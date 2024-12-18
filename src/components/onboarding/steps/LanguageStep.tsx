@@ -2,7 +2,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { Flag } from "lucide-react";
 
 interface LanguageStepProps {
   form: UseFormReturn<any>;
@@ -11,35 +10,42 @@ interface LanguageStepProps {
 }
 
 const languages = [
-  { value: "en-US", label: "English", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "zh-Hans", label: "Mandarin (Simplified)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "zh-Hant", label: "Mandarin (Traditional)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "yue-Hant", label: "Cantonese (Traditional)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "es-MX", label: "Spanish (Mexico)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "es-ES", label: "Spanish (Spain)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "fr-FR", label: "French (France)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "fr-CA", label: "French (Canada)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "pt-BR", label: "Portuguese (Brazil)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "pt-PT", label: "Portuguese (Portugal)", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "ja-JP", label: "Japanese", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "ko-KR", label: "Korean", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "hi-IN", label: "Hindi", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "ta-IN", label: "Tamil", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "th-TH", label: "Thai", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "vi-VN", label: "Vietnamese", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "ms-MY", label: "Malay", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "de-DE", label: "German", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "ru-RU", label: "Russian", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "it-IT", label: "Italian", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "nl-NL", label: "Dutch", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "pl-PL", label: "Polish", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "sv-SE", label: "Swedish", icon: <Flag className="w-4 h-4 mr-2" /> },
-  { value: "nb-NO", label: "Norwegian (Bokmål)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "en-US", label: "English", emoji: "🇺🇸" },
+  { value: "zh-Hans", label: "Mandarin (Simplified)", emoji: "🇨🇳" },
+  { value: "zh-Hant", label: "Mandarin (Traditional)", emoji: "🇹🇼" },
+  { value: "yue-Hant", label: "Cantonese (Traditional)", emoji: "🇭🇰" },
+  { value: "es-MX", label: "Spanish (Mexico)", emoji: "🇲🇽" },
+  { value: "es-ES", label: "Spanish (Spain)", emoji: "🇪🇸" },
+  { value: "fr-FR", label: "French (France)", emoji: "🇫🇷" },
+  { value: "fr-CA", label: "French (Canada)", emoji: "🇨🇦" },
+  { value: "pt-BR", label: "Portuguese (Brazil)", emoji: "🇧🇷" },
+  { value: "pt-PT", label: "Portuguese (Portugal)", emoji: "🇵🇹" },
+  { value: "ja-JP", label: "Japanese", emoji: "🇯🇵" },
+  { value: "ko-KR", label: "Korean", emoji: "🇰🇷" },
+  { value: "hi-IN", label: "Hindi", emoji: "🇮🇳" },
+  { value: "ta-IN", label: "Tamil", emoji: "🇮🇳" },
+  { value: "th-TH", label: "Thai", emoji: "🇹🇭" },
+  { value: "vi-VN", label: "Vietnamese", emoji: "🇻🇳" },
+  { value: "ms-MY", label: "Malay", emoji: "🇲🇾" },
+  { value: "de-DE", label: "German", emoji: "🇩🇪" },
+  { value: "ru-RU", label: "Russian", emoji: "🇷🇺" },
+  { value: "it-IT", label: "Italian", emoji: "🇮🇹" },
+  { value: "nl-NL", label: "Dutch", emoji: "🇳🇱" },
+  { value: "pl-PL", label: "Polish", emoji: "🇵🇱" },
+  { value: "sv-SE", label: "Swedish", emoji: "🇸🇪" },
+  { value: "nb-NO", label: "Norwegian (Bokmål)", emoji: "🇳🇴" },
 ];
 
 export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
   const nativeLanguage = form.watch("nativeLanguage");
   const targetLanguage = form.watch("targetLanguage");
+
+  // Set default value for native language if it's not already set
+  React.useEffect(() => {
+    if (!form.getValues("nativeLanguage")) {
+      form.setValue("nativeLanguage", "en-US");
+    }
+  }, [form]);
 
   const handleNext = () => {
     const isValid = form.trigger(["nativeLanguage", "targetLanguage"]);
@@ -67,7 +73,7 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Native Language</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "en-US"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select your native language" />
@@ -79,9 +85,9 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
                         key={lang.value} 
                         value={lang.value}
                         disabled={lang.value === targetLanguage}
-                        className="flex items-center"
+                        className="flex items-center gap-2"
                       >
-                        {lang.icon}
+                        <span className="mr-1">{lang.emoji}</span>
                         {lang.label}
                       </SelectItem>
                     ))}
@@ -114,9 +120,9 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
                         key={lang.value} 
                         value={lang.value}
                         disabled={lang.value === nativeLanguage}
-                        className="flex items-center"
+                        className="flex items-center gap-2"
                       >
-                        {lang.icon}
+                        <span className="mr-1">{lang.emoji}</span>
                         {lang.label}
                       </SelectItem>
                     ))}
