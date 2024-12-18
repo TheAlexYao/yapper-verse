@@ -1,11 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Globe, MessageSquare, Star, Users } from "lucide-react";
 import LanguageTicker from "@/components/LanguageTicker";
+import FloatingElements from "@/components/FloatingElements";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      {/* Navigation */}
+      <FloatingElements />
+      {/* Dynamic background gradients */}
+      <div className="fixed inset-0 bg-gradient-to-br from-[#38b6ff]/10 via-transparent to-[#7843e6]/10 animate-gradient-shift" />
+      <div className="fixed inset-0">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#38b6ff] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#7843e6] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#38b6ff] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+      </div>
+
+      {/* Rest of the existing content */}
       <nav className="fixed w-full bg-background/80 backdrop-blur-sm z-50 border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="text-2xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer">

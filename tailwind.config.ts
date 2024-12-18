@@ -93,6 +93,16 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
+        "gradient-shift": {
+          "0%, 100%": {
+            "background-size": "200% 200%",
+            "background-position": "left center",
+          },
+          "50%": {
+            "background-size": "200% 200%",
+            "background-position": "right center",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -100,6 +110,7 @@ export default {
         fadeIn: "fadeIn 0.5s ease-out forwards",
         blob: "blob 7s infinite",
         ticker: "ticker 30s linear infinite",
+        "gradient-shift": "gradient-shift 15s ease infinite",
       },
     },
   },
