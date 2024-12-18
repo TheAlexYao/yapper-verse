@@ -1,4 +1,5 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Language {
   name: string;
@@ -35,12 +36,12 @@ const languages: Language[] = [
 ];
 
 const LanguageTicker = () => {
-  // Double the languages array to create a seamless loop
+  const isMobile = useIsMobile();
   const duplicatedLanguages = [...languages, ...languages];
 
   return (
     <div className="w-full overflow-hidden bg-gradient-to-r from-[#38b6ff]/10 via-transparent to-[#7843e6]/10 py-8">
-      <div className="animate-ticker flex space-x-8">
+      <div className={`${isMobile ? 'animate-ticker-mobile' : 'animate-ticker'} flex space-x-8`}>
         {duplicatedLanguages.map((lang, index) => (
           <div
             key={`${lang.code}-${index}`}
