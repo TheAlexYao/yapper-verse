@@ -11,7 +11,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         Welcome to Yapper, Your Global Conversation Partner
       </h1>
       <p className="text-lg text-muted-foreground">
-        You're about to step into new neighborhoods around the world—no passport required. Let's set you up with the right tools so you can learn to talk, listen, and truly connect.
+        You're about to step into new neighborhoods around the world—no passport required. Let's set you up with the right tools so you can learn to talk, listen, and truly connect. Don't worry, you can adjust any of this later. For now, think of this as a quick chat before heading out on your next journey.
       </p>
       <Button onClick={onNext} className="w-full md:w-auto bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
         Let's Begin
