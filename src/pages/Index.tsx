@@ -116,9 +116,9 @@ const Index = () => {
           <h2 className="text-3xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
             Your Journey Begins Here
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
             <div className="relative animate-fadeIn opacity-0" style={{ animationDelay: "0.2s" }}>
-              <div className="absolute -top-4 -left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold">
+              <div className="absolute -top-4 left-4 md:left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold z-10">
                 1
               </div>
               <div className="p-6 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm h-full hover:scale-105 transform transition-all duration-300">
@@ -127,7 +127,7 @@ const Index = () => {
               </div>
             </div>
             <div className="relative animate-fadeIn opacity-0" style={{ animationDelay: "0.4s" }}>
-              <div className="absolute -top-4 -left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold">
+              <div className="absolute -top-4 left-4 md:left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold z-10">
                 2
               </div>
               <div className="p-6 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm h-full hover:scale-105 transform transition-all duration-300">
@@ -136,7 +136,7 @@ const Index = () => {
               </div>
             </div>
             <div className="relative animate-fadeIn opacity-0" style={{ animationDelay: "0.6s" }}>
-              <div className="absolute -top-4 -left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold">
+              <div className="absolute -top-4 left-4 md:left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold z-10">
                 3
               </div>
               <div className="p-6 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm h-full hover:scale-105 transform transition-all duration-300">
@@ -145,7 +145,7 @@ const Index = () => {
               </div>
             </div>
             <div className="relative animate-fadeIn opacity-0" style={{ animationDelay: "0.8s" }}>
-              <div className="absolute -top-4 -left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold">
+              <div className="absolute -top-4 left-4 md:left-8 w-8 h-8 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white font-bold z-10">
                 4
               </div>
               <div className="p-6 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm h-full hover:scale-105 transform transition-all duration-300">
