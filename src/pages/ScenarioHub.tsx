@@ -14,30 +14,27 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-
-export interface Scenario {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  primaryGoal: string;
-  usefulPhrases: string[];
-  culturalNotes: string;
-  locationDetails: string;
-  isBookmarked: boolean;
-}
+} from "@/components/ui/popover";
 
 const ScenarioHub = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Sample scenarios for the combobox
+  const scenarios = [
+    { value: "cafe", label: "Ordering at a Café" },
+    { value: "hotel", label: "Hotel Check-in" },
+    { value: "meeting", label: "Business Meeting" },
+    { value: "shopping", label: "Shopping for Clothes" },
+    { value: "friends", label: "Making Friends" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,47 +60,37 @@ const ScenarioHub = () => {
                   aria-expanded={open}
                   className="w-full md:w-[300px] justify-between border-2 focus:border-primary transition-colors duration-200 bg-card/50 backdrop-blur-sm"
                 >
-                  {searchQuery
-                    ? searchQuery
-                    : "Search scenarios..."}
+                  {searchQuery || "Search scenarios..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full md:w-[300px] p-0">
                 <Command>
-                  <CommandInput placeholder="Search scenarios..." onValueChange={setSearchQuery} />
+                  <CommandInput 
+                    placeholder="Search scenarios..." 
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                  />
                   <CommandEmpty>No scenario found.</CommandEmpty>
                   <CommandGroup>
-                    <CommandItem
-                      value="Ordering at a Café"
-                      onSelect={(value) => {
-                        setSearchQuery(value)
-                        setOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          searchQuery === "Ordering at a Café" ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      Ordering at a Café
-                    </CommandItem>
-                    <CommandItem
-                      value="Hotel Check-in"
-                      onSelect={(value) => {
-                        setSearchQuery(value)
-                        setOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          searchQuery === "Hotel Check-in" ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      Hotel Check-in
-                    </CommandItem>
+                    {scenarios.map((scenario) => (
+                      <CommandItem
+                        key={scenario.value}
+                        value={scenario.value}
+                        onSelect={(value) => {
+                          setSearchQuery(scenarios.find(s => s.value === value)?.label || "");
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            searchQuery === scenario.label ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {scenario.label}
+                      </CommandItem>
+                    ))}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
