@@ -2,6 +2,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VoiceStepProps {
   form: UseFormReturn<any>;
@@ -34,7 +35,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                       <FormControl>
                         <RadioGroupItem value="male" className="peer sr-only" />
                       </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Male Voice
                       </FormLabel>
                     </FormItem>
@@ -42,25 +43,28 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                       <FormControl>
                         <RadioGroupItem value="female" className="peer sr-only" />
                       </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Female Voice
                       </FormLabel>
                     </FormItem>
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroupItem value="nonBinary" className="peer sr-only" />
-                      </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                        Non-Binary Voice
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroupItem value="noPreference" className="peer sr-only" />
-                      </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                        No Preference
-                      </FormLabel>
+                    <FormItem className="col-span-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <FormControl>
+                                <RadioGroupItem value="noPreference" className="peer sr-only" />
+                              </FormControl>
+                              <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
+                                No Preference
+                              </FormLabel>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Defaults to female voice and gender</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>
@@ -74,7 +78,9 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext}>Next</Button>
+        <Button onClick={onNext} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">
+          Next
+        </Button>
       </div>
     </div>
   );

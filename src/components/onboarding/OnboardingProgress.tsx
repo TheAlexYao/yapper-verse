@@ -10,7 +10,7 @@ export function OnboardingProgress({ currentStep, totalSteps }: OnboardingProgre
 
   return (
     <div className="w-full space-y-2">
-      <Progress value={progress} className="h-2" />
+      <Progress value={progress} className="h-2 bg-[#38b6ff]/20 [&>[role=progressbar]]:bg-[#38b6ff]" />
       <p className="text-sm text-muted-foreground text-center">
         Step {currentStep} of {totalSteps}
       </p>

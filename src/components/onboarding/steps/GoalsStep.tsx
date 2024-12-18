@@ -53,22 +53,26 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                       control={form.control}
                       name="goals"
                       render={({ field }) => {
+                        const isChecked = field.value?.includes(goal.id);
                         return (
                           <FormItem
                             key={goal.id}
-                            className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
+                            className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
+                            onClick={() => {
+                              const newValue = isChecked
+                                ? field.value?.filter((value: string) => value !== goal.id)
+                                : [...(field.value || []), goal.id];
+                              field.onChange(newValue);
+                            }}
                           >
                             <FormControl>
                               <Checkbox
-                                checked={field.value?.includes(goal.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, goal.id])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value: string) => value !== goal.id
-                                        )
-                                      );
+                                checked={isChecked}
+                                onCheckedChange={() => {
+                                  const newValue = isChecked
+                                    ? field.value?.filter((value: string) => value !== goal.id)
+                                    : [...(field.value || []), goal.id];
+                                  field.onChange(newValue);
                                 }}
                               />
                             </FormControl>
@@ -96,7 +100,9 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext}>Next</Button>
+        <Button onClick={onNext} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">
+          Next
+        </Button>
       </div>
     </div>
   );
