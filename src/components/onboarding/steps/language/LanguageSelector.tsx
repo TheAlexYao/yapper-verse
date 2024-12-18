@@ -2,39 +2,6 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { FormControl } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
-
-interface Language {
-  readonly value: string;
-  readonly label: string;
-  readonly emoji: string;
-}
-
-interface LanguageSelectorProps {
-  value: string;
-  onSelect: (value: string) => void;
-  
-
-<lov-code>
-Let's update the LanguageSelector component to use only combobox functionality:
-
-<lov-write file_path="src/components/onboarding/steps/language/LanguageSelector.tsx">
-import * as React from "react";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -72,7 +39,6 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [open, setOpen] = React.useState(false);
   
-  // Ensure languages is always an array, even if empty
   const validLanguages = React.useMemo(() => 
     Array.isArray(languages) ? languages : [], 
     [languages]
