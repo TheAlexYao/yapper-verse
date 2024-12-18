@@ -77,7 +77,7 @@ const ScenarioHub = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full md:w-[300px] p-0">
-                <Command shouldFilter={false}>
+                <Command>
                   <CommandInput 
                     placeholder="Search scenarios..." 
                     value={searchQuery}
