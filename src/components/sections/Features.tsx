@@ -4,7 +4,7 @@ const Features = () => {
   return (
     <section id="features" className="py-32 relative overflow-hidden">
       <div className="container mx-auto px-4 relative">
-        <h2 className="text-4xl md:text-6xl font-bold text-center mb-24 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+        <h2 className="text-4xl md:text-6xl font-bold text-center mb-24 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent leading-normal md:leading-relaxed pb-4">
           Your Language Adventure Awaits
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
