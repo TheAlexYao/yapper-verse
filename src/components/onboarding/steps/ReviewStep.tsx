@@ -39,7 +39,7 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Review Your Choices</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Review Your Choices</h2>
       <p className="text-muted-foreground">
         Please review your selections before starting your language learning journey.
       </p>
@@ -73,7 +73,7 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={() => onSubmit(formValues)} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">
+        <Button onClick={() => onSubmit(formValues)} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
           Start Learning
         </Button>
       </div>

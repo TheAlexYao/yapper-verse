@@ -2,7 +2,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import * as z from "zod";
 
 interface LanguageStepProps {
   form: UseFormReturn<any>;
@@ -26,7 +25,7 @@ const languages = [
 export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Pick Your Languages</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Pick Your Languages</h2>
       <p className="text-muted-foreground">
         Choose your home base (native language) and where you'd like to go next (target language).
       </p>
@@ -86,7 +85,7 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">Next</Button>
+        <Button onClick={onNext} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">Next</Button>
       </div>
     </div>
   );

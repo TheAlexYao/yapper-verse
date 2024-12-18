@@ -35,7 +35,7 @@ const goals = [
 export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Set Your Learning Goals</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Set Your Learning Goals</h2>
       <p className="text-muted-foreground">
         Choose what you'd like to focus on in your language learning journey.
       </p>
@@ -68,6 +68,7 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                                     : field.value?.filter((value: string) => value !== goal.id);
                                   field.onChange(newValue);
                                 }}
+                                className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
                               />
                             </FormControl>
                             <div className="space-y-1 leading-none">
@@ -94,7 +95,7 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">
+        <Button onClick={onNext} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
           Next
         </Button>
       </div>

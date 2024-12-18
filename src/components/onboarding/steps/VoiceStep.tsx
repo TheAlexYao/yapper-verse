@@ -13,7 +13,7 @@ interface VoiceStepProps {
 export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Choose Your Voice Preference</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Choose Your Voice Preference</h2>
       <p className="text-muted-foreground">
         Select your preferred voice type for the AI conversation partner.
       </p>
@@ -33,7 +33,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                   >
                     <FormItem>
                       <FormControl>
-                        <RadioGroupItem value="male" className="peer sr-only" />
+                        <RadioGroupItem value="male" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
                       </FormControl>
                       <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Male Voice
@@ -41,7 +41,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                     </FormItem>
                     <FormItem>
                       <FormControl>
-                        <RadioGroupItem value="female" className="peer sr-only" />
+                        <RadioGroupItem value="female" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
                       </FormControl>
                       <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Female Voice
@@ -53,7 +53,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                           <TooltipTrigger asChild>
                             <div>
                               <FormControl>
-                                <RadioGroupItem value="noPreference" className="peer sr-only" />
+                                <RadioGroupItem value="noPreference" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
                               </FormControl>
                               <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                                 No Preference
@@ -78,7 +78,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext} className="bg-[#38b6ff] hover:bg-[#38b6ff]/90">
+        <Button onClick={onNext} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
           Next
         </Button>
       </div>
