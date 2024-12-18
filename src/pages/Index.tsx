@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Globe, MessageSquare, Star, Users } from "lucide-react";
+import LanguageTicker from "@/components/LanguageTicker";
 
 const Index = () => {
   return (
