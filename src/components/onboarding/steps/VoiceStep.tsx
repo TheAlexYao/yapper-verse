@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface VoiceStepProps {
   form: UseFormReturn<any>;
@@ -12,6 +13,8 @@ interface VoiceStepProps {
 }
 
 export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="space-y-2">
@@ -72,26 +75,45 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                       </FormLabel>
                     </FormItem>
                     <FormItem className="col-span-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <FormControl>
-                                <RadioGroupItem 
-                                  value="noPreference" 
-                                  className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
-                                />
-                              </FormControl>
-                              <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
-                                No Preference
-                              </FormLabel>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Defaults to female voice and gender</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {isMobile ? (
+                        <div className="space-y-2">
+                          <FormControl>
+                            <RadioGroupItem 
+                              value="noPreference" 
+                              className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
+                            />
+                          </FormControl>
+                          <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
+                            No Preference
+                          </FormLabel>
+                          {field.value === "noPreference" && (
+                            <p className="text-sm text-muted-foreground text-center px-4">
+                              Defaults to female voice and gender
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <FormControl>
+                                  <RadioGroupItem 
+                                    value="noPreference" 
+                                    className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
+                                  />
+                                </FormControl>
+                                <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
+                                  No Preference
+                                </FormLabel>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Defaults to female voice and gender</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </FormItem>
                   </RadioGroup>
                 </FormControl>
