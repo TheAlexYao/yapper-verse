@@ -68,25 +68,17 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                           <FormItem
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
+                            onClick={() => {
+                              const newValue = !isChecked
+                                ? [...(field.value || []), goal.id]
+                                : field.value?.filter((value: string) => value !== goal.id);
+                              field.onChange(newValue);
+                            }}
                           >
-                            <div 
-                              className="flex flex-1 items-start space-x-3"
-                              onClick={() => {
-                                const newValue = !isChecked
-                                  ? [...(field.value || []), goal.id]
-                                  : field.value?.filter((value: string) => value !== goal.id);
-                                field.onChange(newValue);
-                              }}
-                            >
+                            <div className="flex flex-1 items-start space-x-3">
                               <FormControl>
                                 <Checkbox
                                   checked={isChecked}
-                                  onCheckedChange={(checked) => {
-                                    const newValue = checked
-                                      ? [...(field.value || []), goal.id]
-                                      : field.value?.filter((value: string) => value !== goal.id);
-                                    field.onChange(newValue);
-                                  }}
                                   className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
                                 />
                               </FormControl>
