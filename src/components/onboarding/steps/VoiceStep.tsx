@@ -13,7 +13,7 @@ interface VoiceStepProps {
 export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold">Choose Your Voice Preference</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Choose Your Voice Preference</h2>
       <p className="text-muted-foreground">
         Select your preferred voice type for the AI conversation partner.
       </p>

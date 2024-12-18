@@ -35,7 +35,7 @@ const goals = [
 export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold">Set Your Learning Goals</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#38b6ff]/70 bg-clip-text text-transparent">Set Your Learning Goals</h2>
       <p className="text-muted-foreground">
         Choose what you'd like to focus on in your language learning journey.
       </p>
