@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -13,6 +13,39 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import { FormControl } from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+
+interface Language {
+  readonly value: string;
+  readonly label: string;
+  readonly emoji: string;
+}
+
+interface LanguageSelectorProps {
+  value: string;
+  onSelect: (value: string) => void;
+  
+
+<lov-code>
+Let's update the LanguageSelector component to use only combobox functionality:
+
+<lov-write file_path="src/components/onboarding/steps/language/LanguageSelector.tsx">
+import * as React from "react";
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { FormControl } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +98,6 @@ export function LanguageSelector({
             ) : (
               placeholder
             )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </FormControl>
       </PopoverTrigger>
@@ -73,7 +105,7 @@ export function LanguageSelector({
         <Command>
           <CommandInput placeholder="Search languages..." />
           <CommandEmpty>No language found.</CommandEmpty>
-          <CommandGroup className="max-h-[300px] overflow-auto">
+          <CommandGroup>
             {validLanguages.map((lang) => (
               <CommandItem
                 key={lang.value}
@@ -83,17 +115,16 @@ export function LanguageSelector({
                   setOpen(false);
                 }}
                 disabled={lang.value === otherSelectedValue}
+                className="flex items-center gap-2"
               >
-                <span className="flex items-center gap-2">
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === lang.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <span>{lang.emoji}</span>
-                  {lang.label}
-                </span>
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    value === lang.value ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                <span>{lang.emoji}</span>
+                {lang.label}
               </CommandItem>
             ))}
           </CommandGroup>
