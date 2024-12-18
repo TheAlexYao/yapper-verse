@@ -5,7 +5,6 @@ import Hero from "@/components/sections/Hero";
 import Features from "@/components/sections/Features";
 import HowItWorks from "@/components/sections/HowItWorks";
 import CTA from "@/components/sections/CTA";
-import Auth from "@/components/sections/Auth";
 
 const Index = () => {
   return (
@@ -35,14 +34,13 @@ const Index = () => {
             <Button 
               size="xl"
               className="bg-[#7843e6] hover:bg-[#7843e6]/90 hover:scale-105 transform transition-all duration-200 shadow-[0_0_15px_rgba(120,67,230,0.3)] hover:shadow-[0_0_25px_rgba(120,67,230,0.5)] text-xl py-6 px-8"
+              onClick={() => window.location.href = '/auth'}
             >
               Start Your Adventure
             </Button>
           </div>
         </div>
       </nav>
-
-      <Auth />
 
       <Hero />
       <LanguageTicker />
