@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -64,36 +65,39 @@ export function LanguageSelector({
             ) : (
               placeholder
             )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </FormControl>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput placeholder="Search languages..." />
-          <CommandEmpty>No language found.</CommandEmpty>
-          <CommandGroup>
-            {validLanguages.map((lang) => (
-              <CommandItem
-                key={lang.value}
-                value={lang.value}
-                onSelect={() => {
-                  onSelect(lang.value);
-                  setOpen(false);
-                }}
-                disabled={lang.value === otherSelectedValue}
-                className="flex items-center gap-2"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === lang.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <span>{lang.emoji}</span>
-                {lang.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          <CommandList>
+            <CommandEmpty>No language found.</CommandEmpty>
+            <CommandGroup>
+              {validLanguages.map((lang) => (
+                <CommandItem
+                  key={lang.value}
+                  value={lang.value}
+                  onSelect={(currentValue) => {
+                    onSelect(currentValue === value ? "" : currentValue);
+                    setOpen(false);
+                  }}
+                  disabled={lang.value === otherSelectedValue}
+                  className="flex items-center gap-2"
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === lang.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span>{lang.emoji}</span>
+                  {lang.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
