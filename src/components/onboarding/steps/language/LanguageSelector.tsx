@@ -33,12 +33,18 @@ interface LanguageSelectorProps {
 export function LanguageSelector({ 
   value, 
   onSelect, 
-  languages = [], 
+  languages, 
   otherSelectedValue,
   placeholder 
 }: LanguageSelectorProps) {
   const [open, setOpen] = React.useState(false);
-  const validLanguages = React.useMemo(() => Array.isArray(languages) ? languages : [], [languages]);
+  
+  // Ensure languages is always an array, even if empty
+  const validLanguages = React.useMemo(() => 
+    Array.isArray(languages) ? languages : [], 
+    [languages]
+  );
+  
   const selectedLanguage = validLanguages.find(lang => lang.value === value);
 
   return (
