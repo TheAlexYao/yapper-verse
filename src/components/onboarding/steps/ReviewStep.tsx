@@ -27,11 +27,11 @@ const voicePreferences: Record<string, string> = {
   noPreference: "No Preference",
 };
 
-const goals: Record<string, string> = {
-  "casual-conversation": "Casual Conversation",
-  "business-communication": "Business Communication",
-  "academic-language": "Academic Language",
-  "cultural-exchange": "Cultural Exchange",
+const learningGoals: Record<string, string> = {
+  "improve-pronunciation": "Improve Pronunciation",
+  "travel-phrases": "Learn Travel Phrases",
+  "formal-conversations": "Master Formal Conversations",
+  "casual-speech": "Casual, Everyday Speech",
 };
 
 export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
@@ -39,10 +39,13 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Review Your Choices</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+        You're Almost Ready to Chat
+      </h2>
       <p className="text-muted-foreground">
-        Please review your selections before starting your language learning journey.
+        With these choices, Yapper will introduce you to everyday situations, authentic dialogues, and cultural nuances that go beyond textbook phrases. This is your starting point; we'll adjust as you learn and discover what resonates with you.
       </p>
+      
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -61,20 +64,31 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
             <div>
               <h3 className="font-medium">Learning Goals</h3>
               <div className="text-muted-foreground">
-                {formValues.goals.map((goal: string) => (
-                  <p key={goal}>{goals[goal]}</p>
+                {formValues.goals?.map((goal: string) => (
+                  <p key={goal}>{learningGoals[goal]}</p>
                 ))}
+                {formValues.customGoal && (
+                  <p className="italic">{formValues.customGoal}</p>
+                )}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <p className="text-sm text-muted-foreground">
+        Remember, you can revisit these settings anytime if your perspective changes or you've grown more confident in certain areas.
+      </p>
+
       <div className="flex justify-between">
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={() => onSubmit(formValues)} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
-          Start Learning
+        <Button 
+          onClick={() => onSubmit(formValues)} 
+          className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+        >
+          Finish & Explore
         </Button>
       </div>
     </div>
