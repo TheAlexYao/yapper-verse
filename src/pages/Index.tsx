@@ -21,7 +21,7 @@ const Index = () => {
       {/* Navigation */}
       <nav className="fixed w-full bg-background/80 backdrop-blur-sm z-50 border-b">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer">
+          <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer">
             Yapper
           </div>
           <div className="hidden md:flex items-center space-x-8">
