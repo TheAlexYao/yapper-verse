@@ -53,6 +53,10 @@ const ScenarioHub = () => {
           </div>
 
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg shadow-lg">
+            <div className="p-6 border-b">
+              <CreateScenarioView onScenarioCreated={setSelectedScenario} />
+            </div>
+
             <Tabs defaultValue="library" className="w-full">
               <TabsList className="w-full justify-start border-b rounded-none p-0 h-auto">
                 <TabsTrigger
@@ -60,12 +64,6 @@ const ScenarioHub = () => {
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
                 >
                   Library
-                </TabsTrigger>
-                <TabsTrigger
-                  value="create"
-                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
-                >
-                  Create Scenario
                 </TabsTrigger>
                 <TabsTrigger
                   value="past"
@@ -81,9 +79,6 @@ const ScenarioHub = () => {
                     searchQuery={searchQuery}
                     onScenarioSelect={setSelectedScenario}
                   />
-                </TabsContent>
-                <TabsContent value="create" className="m-0">
-                  <CreateScenarioView onScenarioCreated={setSelectedScenario} />
                 </TabsContent>
                 <TabsContent value="past" className="m-0">
                   <PastBookmarkedView

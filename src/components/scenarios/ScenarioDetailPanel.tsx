@@ -18,14 +18,6 @@ export function ScenarioDetailPanel({ scenario, onClose, isMobile }: ScenarioDet
           <h2 className="text-2xl font-bold">{scenario.title}</h2>
           <p className="text-muted-foreground">{scenario.description}</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="rounded-full hover:bg-accent"
-        >
-          <X className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="space-y-4">

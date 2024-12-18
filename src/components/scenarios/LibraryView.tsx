@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScenarioCard } from "./ScenarioCard";
 import { Scenario } from "@/pages/ScenarioHub";
-import { Progress } from "@/components/ui/progress";
 import { 
   Building2, 
   Plane, 
@@ -10,7 +9,8 @@ import {
   ShoppingBag, 
   Users,
   Clock,
-  Sparkles
+  Sparkles,
+  Trophy
 } from "lucide-react";
 import {
   Tooltip,
@@ -79,7 +79,6 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
   const [selectedCategory, setSelectedCategory] = useState("All");
   const completedCount = 3; // Replace with actual completed count
   const totalScenarios = MOCK_SCENARIOS.length;
-  const progressPercentage = (completedCount / totalScenarios) * 100;
 
   const filteredScenarios = MOCK_SCENARIOS.filter((scenario) => {
     const matchesSearch = scenario.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,13 +89,10 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
   return (
     <div className="space-y-6">
-      {/* Progress Bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Progress</span>
-          <span>{completedCount} / {totalScenarios} completed</span>
-        </div>
-        <Progress value={progressPercentage} className="h-2" />
+      {/* Completed Scenarios Count */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Trophy className="h-4 w-4" />
+        <span>{completedCount} scenarios completed</span>
       </div>
 
       {/* Category Filters */}
