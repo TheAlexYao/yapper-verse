@@ -23,7 +23,7 @@ interface LanguageSelectorProps {
 export function LanguageSelector({ 
   value, 
   onSelect, 
-  languages = [], // Provide default empty array
+  languages = [], 
   otherSelectedValue,
   placeholder 
 }: LanguageSelectorProps) {
@@ -32,6 +32,9 @@ export function LanguageSelector({
     () => languages.find((lang) => lang.value === value),
     [languages, value]
   );
+
+  // Ensure we have a valid array for the Command component
+  const validLanguages = React.useMemo(() => Array.isArray(languages) ? languages : [], [languages]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -60,7 +63,7 @@ export function LanguageSelector({
           <CommandInput placeholder="Search languages..." />
           <CommandEmpty>No language found.</CommandEmpty>
           <CommandGroup className="max-h-[300px] overflow-auto">
-            {languages.map((lang) => (
+            {validLanguages.map((lang) => (
               <CommandItem
                 key={lang.value}
                 value={lang.value}
