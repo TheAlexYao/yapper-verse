@@ -3,6 +3,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 interface VoiceStepProps {
   form: UseFormReturn<any>;
@@ -13,10 +14,28 @@ interface VoiceStepProps {
 export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Choose Your Voice Preference</h2>
-      <p className="text-muted-foreground">
-        Select your preferred voice type for the AI conversation partner.
-      </p>
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+          Personalize your own character's voice
+        </h2>
+        <p className="text-muted-foreground">
+          The people you meet in Yapper will sound authentic and nuanced. Choose a voice style that feels right for you—it might subtly influence how characters address you, reflecting cultural norms and conversation patterns in your chosen language.
+        </p>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground cursor-help">
+                <Info className="h-4 w-4" />
+                <span>Why does this matter?</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p>In many cultures, tone and address vary with context. By selecting a voice preference, you'll help us keep the experience consistent and comfortable for you.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
       <Form {...form}>
         <form className="space-y-6">
           <FormField
@@ -24,7 +43,6 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
             name="voicePreference"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Voice Type</FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
@@ -33,7 +51,10 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                   >
                     <FormItem>
                       <FormControl>
-                        <RadioGroupItem value="male" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
+                        <RadioGroupItem 
+                          value="male" 
+                          className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
+                        />
                       </FormControl>
                       <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Male Voice
@@ -41,7 +62,10 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                     </FormItem>
                     <FormItem>
                       <FormControl>
-                        <RadioGroupItem value="female" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
+                        <RadioGroupItem 
+                          value="female" 
+                          className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
+                        />
                       </FormControl>
                       <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                         Female Voice
@@ -53,7 +77,10 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
                           <TooltipTrigger asChild>
                             <div>
                               <FormControl>
-                                <RadioGroupItem value="noPreference" className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" />
+                                <RadioGroupItem 
+                                  value="noPreference" 
+                                  className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
+                                />
                               </FormControl>
                               <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
                                 No Preference
