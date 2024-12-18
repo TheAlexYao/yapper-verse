@@ -63,12 +63,17 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
             </div>
             <div>
               <h3 className="font-medium">Learning Goals</h3>
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground space-y-1">
                 {formValues.goals?.map((goal: string) => (
                   <p key={goal}>{learningGoals[goal]}</p>
                 ))}
-                {formValues.customGoal && (
-                  <p className="italic">{formValues.customGoal}</p>
+                {formValues.customGoals?.length > 0 && (
+                  <div className="border-t pt-2 mt-2">
+                    <p className="font-medium text-sm text-muted-foreground/80">Custom Goals:</p>
+                    {formValues.customGoals.map((goal: string, index: number) => (
+                      <p key={index} className="text-sm italic">{goal}</p>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

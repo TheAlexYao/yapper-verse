@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
 
 interface GoalsStepProps {
   form: UseFormReturn<any>;
@@ -36,6 +38,32 @@ const goals = [
 ];
 
 export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
+  const [customGoals, setCustomGoals] = useState<string[]>(form.getValues().customGoals || []);
+  const [isCustomGoalsExpanded, setIsCustomGoalsExpanded] = useState(false);
+  const [newCustomGoal, setNewCustomGoal] = useState("");
+
+  const handleAddCustomGoal = () => {
+    if (newCustomGoal.trim()) {
+      const updatedGoals = [...customGoals, newCustomGoal.trim()];
+      setCustomGoals(updatedGoals);
+      form.setValue("customGoals", updatedGoals);
+      setNewCustomGoal("");
+    }
+  };
+
+  const handleRemoveCustomGoal = (index: number) => {
+    const updatedGoals = customGoals.filter((_, i) => i !== index);
+    setCustomGoals(updatedGoals);
+    form.setValue("customGoals", updatedGoals);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCustomGoal();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="space-y-2">
@@ -76,7 +104,6 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
                             onClick={(e) => {
-                              // Only handle click if it's not on the checkbox
                               if (!(e.target as HTMLElement).closest('.checkbox-wrapper')) {
                                 handleChange(!isChecked);
                               }
@@ -112,19 +139,59 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="customGoal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Something else you'd like to focus on?</FormLabel>
-                <FormControl>
-                  <Input {...field} className="max-w-xl" placeholder="Tell us about your specific learning goals..." />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+          <div className="space-y-4">
+            <FormLabel>Something else you'd like to focus on?</FormLabel>
+            <div className="flex gap-2">
+              <Input 
+                value={newCustomGoal}
+                onChange={(e) => setNewCustomGoal(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="flex-1"
+                placeholder="Tell us about your specific learning goals..."
+              />
+              <Button 
+                type="button"
+                onClick={handleAddCustomGoal}
+                className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {customGoals.length > 0 && (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCustomGoalsExpanded(!isCustomGoalsExpanded)}
+                  className="text-sm"
+                >
+                  {isCustomGoalsExpanded ? "Hide" : "Show"} Custom Goals ({customGoals.length})
+                </Button>
+
+                {isCustomGoalsExpanded && (
+                  <Card className="p-4">
+                    <ul className="space-y-2">
+                      {customGoals.map((goal, index) => (
+                        <li key={index} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
+                          <span>{goal}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveCustomGoal(index)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                )}
+              </div>
             )}
-          />
+          </div>
         </form>
       </Form>
 
