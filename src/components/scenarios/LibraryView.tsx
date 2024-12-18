@@ -52,7 +52,39 @@ const MOCK_SCENARIOS: Scenario[] = [
     locationDetails: "City center hotel",
     isBookmarked: false,
   },
-  // Add more scenarios as needed
+  {
+    id: "3",
+    title: "Business Meeting",
+    description: "Navigate a professional business meeting with confidence.",
+    category: "Business",
+    primaryGoal: "Successfully participate in a business meeting",
+    usefulPhrases: ["Let's discuss...", "I agree with...", "Could you clarify..."],
+    culturalNotes: "Business meetings often start with small talk",
+    locationDetails: "Corporate office building",
+    isBookmarked: true,
+  },
+  {
+    id: "4",
+    title: "Shopping for Clothes",
+    description: "Learn how to shop for clothes and ask about sizes and prices.",
+    category: "Shopping",
+    primaryGoal: "Successfully purchase clothing items",
+    usefulPhrases: ["Do you have this in...", "Can I try this on?", "Is this on sale?"],
+    culturalNotes: "Some stores may have different size systems",
+    locationDetails: "Local shopping mall",
+    isBookmarked: false,
+  },
+  {
+    id: "5",
+    title: "Making Friends",
+    description: "Practice social interactions and making new friends in casual settings.",
+    category: "Social",
+    primaryGoal: "Successfully initiate and maintain casual conversations",
+    usefulPhrases: ["Nice to meet you", "What do you do?", "Would you like to..."],
+    culturalNotes: "Personal space and greeting customs vary by culture",
+    locationDetails: "Social gathering or event",
+    isBookmarked: false,
+  }
 ];
 
 const QUICK_START_TEMPLATES = [

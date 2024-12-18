@@ -4,10 +4,22 @@ import { LibraryView } from "@/components/scenarios/LibraryView";
 import { CreateScenarioView } from "@/components/scenarios/CreateScenarioView";
 import { PastBookmarkedView } from "@/components/scenarios/PastBookmarkedView";
 import { ScenarioDetailPanel } from "@/components/scenarios/ScenarioDetailPanel";
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 export interface Scenario {
   id: string;
@@ -24,6 +36,7 @@ export interface Scenario {
 const ScenarioHub = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
 
   return (
@@ -42,25 +55,59 @@ const ScenarioHub = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Scenarios
             </h1>
-            <div className="relative w-full md:w-80 group">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search scenarios..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10 border-2 focus:border-primary transition-colors duration-200 bg-card/50 backdrop-blur-sm"
-              />
-              {searchQuery && (
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-transparent"
-                  onClick={() => setSearchQuery("")}
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full md:w-[300px] justify-between border-2 focus:border-primary transition-colors duration-200 bg-card/50 backdrop-blur-sm"
                 >
-                  <X className="h-4 w-4" />
+                  {searchQuery
+                    ? searchQuery
+                    : "Search scenarios..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
-              )}
-            </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-full md:w-[300px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search scenarios..." onValueChange={setSearchQuery} />
+                  <CommandEmpty>No scenario found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="Ordering at a Café"
+                      onSelect={(value) => {
+                        setSearchQuery(value)
+                        setOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          searchQuery === "Ordering at a Café" ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      Ordering at a Café
+                    </CommandItem>
+                    <CommandItem
+                      value="Hotel Check-in"
+                      onSelect={(value) => {
+                        setSearchQuery(value)
+                        setOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          searchQuery === "Hotel Check-in" ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      Hotel Check-in
+                    </CommandItem>
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg shadow-lg">
