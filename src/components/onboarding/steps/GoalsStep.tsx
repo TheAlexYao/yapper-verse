@@ -1,7 +1,7 @@
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { PredefinedGoals } from "./goals/PredefinedGoals";
@@ -40,20 +40,20 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
         </form>
       </Form>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground cursor-help">
-              <HelpCircle className="h-4 w-4" />
-              <span>Why are we asking about your goals?</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-sm">
+      <Dialog>
+        <DialogTrigger asChild>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground cursor-pointer">
+            <HelpCircle className="h-4 w-4" />
+            <span>Why are we asking about your goals?</span>
+          </div>
+        </DialogTrigger>
+        <DialogContent>
+          <p className="text-sm">
             Your chosen goals will influence what Yapper prioritizes. Want to navigate a farmers' market like a regular? 
             We've got you. Craving deeper chats with friends abroad? Just say the word.
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+          </p>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onPrev}>

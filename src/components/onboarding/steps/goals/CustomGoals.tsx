@@ -46,13 +46,13 @@ export function CustomGoals({ form, customGoals, setCustomGoals }: CustomGoalsPr
           value={newCustomGoal}
           onChange={(e) => setNewCustomGoal(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="flex-1"
+          className="flex-1 min-w-0" // Added min-w-0 to prevent text overflow
           placeholder="Tell us about your specific learning goals..."
         />
         <Button 
           type="button"
           onClick={handleAddCustomGoal}
-          className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+          className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 shrink-0" // Added shrink-0
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -74,13 +74,13 @@ export function CustomGoals({ form, customGoals, setCustomGoals }: CustomGoalsPr
               <ul className="space-y-2">
                 {customGoals.map((goal, index) => (
                   <li key={index} className="flex items-center justify-between gap-2 p-2 rounded-md bg-secondary/50">
-                    <span>{goal}</span>
+                    <span className="break-words flex-1">{goal}</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveCustomGoal(index)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 shrink-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>
