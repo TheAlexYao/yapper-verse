@@ -24,7 +24,6 @@ const languages: Record<string, string> = {
 const voicePreferences: Record<string, string> = {
   male: "Male Voice",
   female: "Female Voice",
-  nonBinary: "Non-Binary Voice",
   noPreference: "No Preference",
 };
 
