@@ -7,15 +7,15 @@ import { cn } from "@/lib/utils";
 import { FormControl } from "@/components/ui/form";
 
 interface Language {
-  value: string;
-  label: string;
-  emoji: string;
+  readonly value: string;
+  readonly label: string;
+  readonly emoji: string;
 }
 
 interface LanguageSelectorProps {
   value: string;
   onSelect: (value: string) => void;
-  languages: Language[];
+  languages: readonly Language[];
   otherSelectedValue?: string;
   placeholder: string;
 }
