@@ -23,11 +23,15 @@ interface LanguageSelectorProps {
 export function LanguageSelector({ 
   value, 
   onSelect, 
-  languages, 
+  languages = [], // Provide default empty array
   otherSelectedValue,
   placeholder 
 }: LanguageSelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const selectedLanguage = React.useMemo(
+    () => languages.find((lang) => lang.value === value),
+    [languages, value]
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -39,12 +43,10 @@ export function LanguageSelector({
             aria-expanded={open}
             className="w-full justify-between font-normal"
           >
-            {value ? (
+            {selectedLanguage ? (
               <>
-                <span className="mr-2">
-                  {languages.find((lang) => lang.value === value)?.emoji}
-                </span>
-                {languages.find((lang) => lang.value === value)?.label}
+                <span className="mr-2">{selectedLanguage.emoji}</span>
+                {selectedLanguage.label}
               </>
             ) : (
               placeholder
