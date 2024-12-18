@@ -2,6 +2,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface GoalsStepProps {
   form: UseFormReturn<any>;
@@ -11,34 +14,41 @@ interface GoalsStepProps {
 
 const goals = [
   {
-    id: "casual-conversation",
-    label: "Casual Conversation",
-    description: "Practice everyday conversations and small talk",
+    id: "improve-pronunciation",
+    label: "Improve Pronunciation",
+    description: "Refine your accent so you're easily understood when asking for directions or making small talk",
   },
   {
-    id: "business-communication",
-    label: "Business Communication",
-    description: "Learn professional language and business etiquette",
+    id: "travel-phrases",
+    label: "Learn Travel Phrases",
+    description: "Handle everyday situations—ordering a meal, checking into a hotel, buying train tickets—like a savvy traveler",
   },
   {
-    id: "academic-language",
-    label: "Academic Language",
-    description: "Study academic vocabulary and formal writing",
+    id: "formal-conversations",
+    label: "Master Formal Conversations",
+    description: "Handle professional or polite scenarios, such as meeting clients, attending a family gathering, or discussing business over dinner",
   },
   {
-    id: "cultural-exchange",
-    label: "Cultural Exchange",
-    description: "Learn about customs, traditions, and cultural nuances",
+    id: "casual-speech",
+    label: "Casual, Everyday Speech",
+    description: "Pick up the local slang, humor, and small talk that makes you blend in naturally",
   },
 ];
 
 export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Set Your Learning Goals</h2>
-      <p className="text-muted-foreground">
-        Choose what you'd like to focus on in your language learning journey.
-      </p>
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+          What Do You Want Out of These Conversations?
+        </h2>
+        <p className="text-muted-foreground">
+          Are you hoping to confidently order street food, strike up conversations with locals at a café, 
+          impress colleagues during a business trip, or navigate a new city without feeling lost? 
+          Tell us what matters most, and we'll shape your experience around those authentic moments.
+        </p>
+      </div>
+
       <Form {...form}>
         <form className="space-y-6">
           <FormField
@@ -58,6 +68,12 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                           <FormItem
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
+                            onClick={() => {
+                              const newValue = !isChecked
+                                ? [...(field.value || []), goal.id]
+                                : field.value?.filter((value: string) => value !== goal.id);
+                              field.onChange(newValue);
+                            }}
                           >
                             <FormControl>
                               <Checkbox
@@ -71,7 +87,7 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                                 className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
                               />
                             </FormControl>
-                            <div className="space-y-1 leading-none">
+                            <div className="space-y-1 leading-none flex-1">
                               <FormLabel className="text-base">
                                 {goal.label}
                               </FormLabel>
@@ -89,13 +105,46 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="customGoal"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Something else you'd like to focus on?</FormLabel>
+                <FormControl>
+                  <Input {...field} className="max-w-xl" placeholder="Tell us about your specific learning goals..." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </form>
       </Form>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground cursor-help">
+              <HelpCircle className="h-4 w-4" />
+              <span>Why are we asking about your goals?</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-sm">
+            Your chosen goals will influence what Yapper prioritizes. Want to navigate a farmers' market like a regular? 
+            We've got you. Craving deeper chats with friends abroad? Just say the word.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       <div className="flex justify-between">
         <Button variant="outline" onClick={onPrev}>
           Back
         </Button>
-        <Button onClick={onNext} className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90">
+        <Button 
+          onClick={onNext} 
+          className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+        >
           Next
         </Button>
       </div>
