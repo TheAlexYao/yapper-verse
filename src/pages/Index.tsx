@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Globe, MessageSquare, Star, Users } from "lucide-react";
-import LanguageGlobe from "@/components/LanguageGlobe";
+import LanguageGrid from "@/components/LanguageGrid";
 
 const Index = () => {
   return (
@@ -62,7 +62,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Language Globe Section */}
+      {/* Language Grid Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-tr from-[#38b6ff]/5 via-transparent to-[#7843e6]/5" />
         <div className="container mx-auto px-4 relative">
@@ -72,7 +72,7 @@ const Index = () => {
           <p className="text-xl text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
             Explore our supported languages across the globe. From Asian languages to European dialects, we've got you covered.
           </p>
-          <LanguageGlobe />
+          <LanguageGrid />
         </div>
       </section>
 
