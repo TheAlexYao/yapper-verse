@@ -2,6 +2,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
+import { Flag } from "lucide-react";
 
 interface LanguageStepProps {
   form: UseFormReturn<any>;
@@ -10,30 +11,30 @@ interface LanguageStepProps {
 }
 
 const languages = [
-  { value: "en", label: "English" },
-  { value: "zh_hans", label: "Mandarin (Simplified)" },
-  { value: "zh_hant", label: "Mandarin (Traditional)" },
-  { value: "yue", label: "Cantonese (Traditional)" },
-  { value: "es_mx", label: "Spanish (Mexico)" },
-  { value: "es_es", label: "Spanish (Spain)" },
-  { value: "fr_fr", label: "French (France)" },
-  { value: "fr_ca", label: "French (Canada)" },
-  { value: "pt_br", label: "Portuguese (Brazil)" },
-  { value: "pt_pt", label: "Portuguese (Portugal)" },
-  { value: "ja", label: "Japanese" },
-  { value: "ko", label: "Korean" },
-  { value: "hi", label: "Hindi" },
-  { value: "ta", label: "Tamil" },
-  { value: "th", label: "Thai" },
-  { value: "vi", label: "Vietnamese" },
-  { value: "ms", label: "Malay" },
-  { value: "de", label: "German" },
-  { value: "ru", label: "Russian" },
-  { value: "it", label: "Italian" },
-  { value: "nl", label: "Dutch" },
-  { value: "pl", label: "Polish" },
-  { value: "sv", label: "Swedish" },
-  { value: "nb", label: "Norwegian (Bokmål)" },
+  { value: "en-US", label: "English", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "zh-Hans", label: "Mandarin (Simplified)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "zh-Hant", label: "Mandarin (Traditional)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "yue-Hant", label: "Cantonese (Traditional)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "es-MX", label: "Spanish (Mexico)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "es-ES", label: "Spanish (Spain)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "fr-FR", label: "French (France)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "fr-CA", label: "French (Canada)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "pt-BR", label: "Portuguese (Brazil)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "pt-PT", label: "Portuguese (Portugal)", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "ja-JP", label: "Japanese", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "ko-KR", label: "Korean", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "hi-IN", label: "Hindi", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "ta-IN", label: "Tamil", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "th-TH", label: "Thai", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "vi-VN", label: "Vietnamese", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "ms-MY", label: "Malay", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "de-DE", label: "German", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "ru-RU", label: "Russian", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "it-IT", label: "Italian", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "nl-NL", label: "Dutch", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "pl-PL", label: "Polish", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "sv-SE", label: "Swedish", icon: <Flag className="w-4 h-4 mr-2" /> },
+  { value: "nb-NO", label: "Norwegian (Bokmål)", icon: <Flag className="w-4 h-4 mr-2" /> },
 ];
 
 export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
@@ -78,7 +79,9 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
                         key={lang.value} 
                         value={lang.value}
                         disabled={lang.value === targetLanguage}
+                        className="flex items-center"
                       >
+                        {lang.icon}
                         {lang.label}
                       </SelectItem>
                     ))}
@@ -111,7 +114,9 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
                         key={lang.value} 
                         value={lang.value}
                         disabled={lang.value === nativeLanguage}
+                        className="flex items-center"
                       >
+                        {lang.icon}
                         {lang.label}
                       </SelectItem>
                     ))}

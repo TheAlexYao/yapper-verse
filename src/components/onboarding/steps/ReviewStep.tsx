@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { Flag } from "lucide-react";
 
 interface ReviewStepProps {
   form: UseFormReturn<any>;
@@ -9,30 +10,30 @@ interface ReviewStepProps {
 }
 
 const languages: Record<string, string> = {
-  en: "English",
-  zh_hans: "Mandarin (Simplified)",
-  zh_hant: "Mandarin (Traditional)",
-  yue: "Cantonese (Traditional)",
-  es_mx: "Spanish (Mexico)",
-  es_es: "Spanish (Spain)",
-  fr_fr: "French (France)",
-  fr_ca: "French (Canada)",
-  pt_br: "Portuguese (Brazil)",
-  pt_pt: "Portuguese (Portugal)",
-  ja: "Japanese",
-  ko: "Korean",
-  hi: "Hindi",
-  ta: "Tamil",
-  th: "Thai",
-  vi: "Vietnamese",
-  ms: "Malay",
-  de: "German",
-  ru: "Russian",
-  it: "Italian",
-  nl: "Dutch",
-  pl: "Polish",
-  sv: "Swedish",
-  nb: "Norwegian (Bokmål)",
+  "en-US": "English",
+  "zh-Hans": "Mandarin (Simplified)",
+  "zh-Hant": "Mandarin (Traditional)",
+  "yue-Hant": "Cantonese (Traditional)",
+  "es-MX": "Spanish (Mexico)",
+  "es-ES": "Spanish (Spain)",
+  "fr-FR": "French (France)",
+  "fr-CA": "French (Canada)",
+  "pt-BR": "Portuguese (Brazil)",
+  "pt-PT": "Portuguese (Portugal)",
+  "ja-JP": "Japanese",
+  "ko-KR": "Korean",
+  "hi-IN": "Hindi",
+  "ta-IN": "Tamil",
+  "th-TH": "Thai",
+  "vi-VN": "Vietnamese",
+  "ms-MY": "Malay",
+  "de-DE": "German",
+  "ru-RU": "Russian",
+  "it-IT": "Italian",
+  "nl-NL": "Dutch",
+  "pl-PL": "Polish",
+  "sv-SE": "Swedish",
+  "nb-NO": "Norwegian (Bokmål)",
 };
 
 const voicePreferences: Record<string, string> = {
@@ -65,11 +66,17 @@ export function ReviewStep({ form, onSubmit, onPrev }: ReviewStepProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h3 className="font-medium">Native Language</h3>
-              <p className="text-muted-foreground">{languages[formValues.nativeLanguage]}</p>
+              <p className="text-muted-foreground flex items-center">
+                <Flag className="w-4 h-4 mr-2" />
+                {languages[formValues.nativeLanguage]}
+              </p>
             </div>
             <div>
               <h3 className="font-medium">Target Language</h3>
-              <p className="text-muted-foreground">{languages[formValues.targetLanguage]}</p>
+              <p className="text-muted-foreground flex items-center">
+                <Flag className="w-4 h-4 mr-2" />
+                {languages[formValues.targetLanguage]}
+              </p>
             </div>
             <div>
               <h3 className="font-medium">Voice Preference</h3>
