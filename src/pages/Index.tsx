@@ -5,6 +5,7 @@ import Hero from "@/components/sections/Hero";
 import Features from "@/components/sections/Features";
 import HowItWorks from "@/components/sections/HowItWorks";
 import CTA from "@/components/sections/CTA";
+import Auth from "@/components/sections/Auth";
 
 const Index = () => {
   return (
@@ -40,6 +41,8 @@ const Index = () => {
           </div>
         </div>
       </nav>
+
+      <Auth />
 
       <Hero />
       <LanguageTicker />
