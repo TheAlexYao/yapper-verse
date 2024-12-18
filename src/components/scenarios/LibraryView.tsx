@@ -102,7 +102,11 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
             key={id}
             variant={selectedCategory === id ? "default" : "outline"}
             onClick={() => setSelectedCategory(id)}
-            className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 gap-2"
+            className={`transition-all duration-300 ease-out ${
+              selectedCategory === id
+                ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 shadow-lg scale-105"
+                : "hover:bg-accent hover:text-accent-foreground hover:scale-105"
+            } gap-2`}
           >
             <Icon className="h-4 w-4" />
             {id}
