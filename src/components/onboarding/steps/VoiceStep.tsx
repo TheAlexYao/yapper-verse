@@ -1,10 +1,10 @@
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormField, FormItem } from "@/components/ui/form";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { InfoTooltip } from "./voice/InfoTooltip";
+import { VoiceOption } from "./voice/VoiceOption";
+import { NoPreferenceOption } from "./voice/NoPreferenceOption";
 
 interface VoiceStepProps {
   form: UseFormReturn<any>;
@@ -13,8 +13,6 @@ interface VoiceStepProps {
 }
 
 export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
-  const isMobile = useIsMobile();
-
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="space-y-2">
@@ -24,19 +22,7 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
         <p className="text-muted-foreground">
           The people you meet in Yapper will sound authentic and nuanced. Choose a voice style that feels right for you—it might subtly influence how characters address you, reflecting cultural norms and conversation patterns in your chosen language.
         </p>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="inline-flex items-center space-x-1 text-sm text-muted-foreground cursor-help">
-                <Info className="h-4 w-4" />
-                <span>Why does this matter?</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p>In many cultures, tone and address vary with context. By selecting a voice preference, you'll help us keep the experience consistent and comfortable for you.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <InfoTooltip />
       </div>
 
       <Form {...form}>
@@ -46,83 +32,21 @@ export function VoiceStep({ form, onNext, onPrev }: VoiceStepProps) {
             name="voicePreference"
             render={({ field }) => (
               <FormItem>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="grid grid-cols-2 gap-4"
-                  >
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroupItem 
-                          value="male" 
-                          className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
-                        />
-                      </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
-                        Male Voice
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroupItem 
-                          value="female" 
-                          className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
-                        />
-                      </FormControl>
-                      <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
-                        Female Voice
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="col-span-2">
-                      {isMobile ? (
-                        <div className="space-y-2">
-                          <FormControl>
-                            <RadioGroupItem 
-                              value="noPreference" 
-                              className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
-                            />
-                          </FormControl>
-                          <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
-                            No Preference
-                          </FormLabel>
-                          {field.value === "noPreference" && (
-                            <p className="text-sm text-muted-foreground text-center px-4">
-                              Defaults to female voice and gender
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div>
-                                <FormControl>
-                                  <RadioGroupItem 
-                                    value="noPreference" 
-                                    className="peer sr-only data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]" 
-                                  />
-                                </FormControl>
-                                <FormLabel className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-background p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-[#38b6ff] [&:has([data-state=checked])]:border-[#38b6ff]">
-                                  No Preference
-                                </FormLabel>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Defaults to female voice and gender</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  <VoiceOption value="male" label="Male Voice" />
+                  <VoiceOption value="female" label="Female Voice" />
+                  <NoPreferenceOption value={field.value} />
+                </RadioGroup>
               </FormItem>
             )}
           />
         </form>
       </Form>
+
       <div className="flex justify-between">
         <Button variant="outline" onClick={onPrev}>
           Back
