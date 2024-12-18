@@ -3,6 +3,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LanguageStepProps {
   form: UseFormReturn<any>;
@@ -38,6 +42,9 @@ const languages = [
 ];
 
 export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
+  const [nativeOpen, setNativeOpen] = React.useState(false);
+  const [targetOpen, setTargetOpen] = React.useState(false);
+  
   const nativeLanguage = form.watch("nativeLanguage");
   const targetLanguage = form.watch("targetLanguage");
 
@@ -74,26 +81,59 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Native Language</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || "en-US"}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your native language" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem 
-                        key={lang.value} 
-                        value={lang.value}
-                        disabled={lang.value === targetLanguage}
-                        className="flex items-center gap-2"
+                <Popover open={nativeOpen} onOpenChange={setNativeOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={nativeOpen}
+                        className="w-full justify-between font-normal"
                       >
-                        <span className="mr-1">{lang.emoji}</span>
-                        {lang.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        {field.value ? (
+                          <>
+                            <span className="mr-2">
+                              {languages.find((lang) => lang.value === field.value)?.emoji}
+                            </span>
+                            {languages.find((lang) => lang.value === field.value)?.label}
+                          </>
+                        ) : (
+                          "Select your native language"
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search languages..." />
+                      <CommandEmpty>No language found.</CommandEmpty>
+                      <CommandGroup className="max-h-[300px] overflow-auto">
+                        {languages.map((lang) => (
+                          <CommandItem
+                            key={lang.value}
+                            value={lang.value}
+                            onSelect={() => {
+                              form.setValue("nativeLanguage", lang.value);
+                              setNativeOpen(false);
+                            }}
+                            disabled={lang.value === targetLanguage}
+                            className="flex items-center gap-2"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === lang.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="mr-2">{lang.emoji}</span>
+                            {lang.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -109,26 +149,59 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Target Language</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your target language" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem 
-                        key={lang.value} 
-                        value={lang.value}
-                        disabled={lang.value === nativeLanguage}
-                        className="flex items-center gap-2"
+                <Popover open={targetOpen} onOpenChange={setTargetOpen}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={targetOpen}
+                        className="w-full justify-between font-normal"
                       >
-                        <span className="mr-1">{lang.emoji}</span>
-                        {lang.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        {field.value ? (
+                          <>
+                            <span className="mr-2">
+                              {languages.find((lang) => lang.value === field.value)?.emoji}
+                            </span>
+                            {languages.find((lang) => lang.value === field.value)?.label}
+                          </>
+                        ) : (
+                          "Select your target language"
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search languages..." />
+                      <CommandEmpty>No language found.</CommandEmpty>
+                      <CommandGroup className="max-h-[300px] overflow-auto">
+                        {languages.map((lang) => (
+                          <CommandItem
+                            key={lang.value}
+                            value={lang.value}
+                            onSelect={() => {
+                              form.setValue("targetLanguage", lang.value);
+                              setTargetOpen(false);
+                            }}
+                            disabled={lang.value === nativeLanguage}
+                            className="flex items-center gap-2"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === lang.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="mr-2">{lang.emoji}</span>
+                            {lang.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
