@@ -41,11 +41,31 @@ const ScenarioHub = () => {
 
   // Sample scenarios for the combobox
   const scenarios = [
-    { value: "cafe", label: "Ordering at a Café" },
-    { value: "hotel", label: "Hotel Check-in" },
-    { value: "meeting", label: "Business Meeting" },
-    { value: "shopping", label: "Shopping for Clothes" },
-    { value: "friends", label: "Making Friends" },
+    {
+      value: "cafe",
+      label: "Ordering at a Café",
+      category: "Dining",
+    },
+    {
+      value: "hotel",
+      label: "Hotel Check-in",
+      category: "Travel",
+    },
+    {
+      value: "meeting",
+      label: "Business Meeting",
+      category: "Business",
+    },
+    {
+      value: "shopping",
+      label: "Shopping for Clothes",
+      category: "Shopping",
+    },
+    {
+      value: "friends",
+      label: "Making Friends",
+      category: "Social",
+    },
   ];
 
   return (
@@ -84,7 +104,7 @@ const ScenarioHub = () => {
                     onValueChange={setSearchQuery}
                   />
                   <CommandEmpty>No scenario found.</CommandEmpty>
-                  <CommandGroup>
+                  <CommandGroup heading="Scenarios">
                     {scenarios.map((scenario) => (
                       <CommandItem
                         key={scenario.value}
