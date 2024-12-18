@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Globe, MessageSquare, Star, Users } from "lucide-react";
+import LanguageGlobe from "@/components/LanguageGlobe";
 
 const Index = () => {
   return (
@@ -58,6 +59,20 @@ const Index = () => {
               <span className="ml-2 inline-block group-hover:translate-x-1 transition-transform">→</span>
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Language Globe Section */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#38b6ff]/5 via-transparent to-[#7843e6]/5" />
+        <div className="container mx-auto px-4 relative">
+          <h2 className="text-3xl md:text-5xl font-bold text-center mb-6 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+            24 Languages Worldwide
+          </h2>
+          <p className="text-xl text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            Explore our supported languages across the globe. From Asian languages to European dialects, we've got you covered.
+          </p>
+          <LanguageGlobe />
         </div>
       </section>
 
