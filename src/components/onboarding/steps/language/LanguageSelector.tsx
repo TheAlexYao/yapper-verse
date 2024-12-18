@@ -39,11 +39,22 @@ export function LanguageSelector({
   placeholder 
 }: LanguageSelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   
   const validLanguages = React.useMemo(() => 
     Array.isArray(languages) ? languages : [], 
     [languages]
   );
+  
+  const filteredLanguages = React.useMemo(() => {
+    if (!searchQuery) return validLanguages;
+    const query = searchQuery.toLowerCase();
+    return validLanguages.filter(
+      (lang) =>
+        lang.label.toLowerCase().includes(query) ||
+        lang.value.toLowerCase().includes(query)
+    );
+  }, [validLanguages, searchQuery]);
   
   const selectedLanguage = validLanguages.find(lang => lang.value === value);
 
@@ -70,12 +81,16 @@ export function LanguageSelector({
         </FormControl>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
-        <Command>
-          <CommandInput placeholder="Search languages..." />
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder="Search languages..." 
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
           <CommandList>
             <CommandEmpty>No language found.</CommandEmpty>
             <CommandGroup>
-              {validLanguages.map((lang) => (
+              {filteredLanguages.map((lang) => (
                 <CommandItem
                   key={lang.value}
                   value={lang.value}
