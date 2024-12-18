@@ -69,20 +69,8 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
                           >
-                            <FormControl>
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                  const newValue = checked
-                                    ? [...(field.value || []), goal.id]
-                                    : field.value?.filter((value: string) => value !== goal.id);
-                                  field.onChange(newValue);
-                                }}
-                                className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
-                              />
-                            </FormControl>
                             <div 
-                              className="space-y-1 leading-none flex-1"
+                              className="flex flex-1 items-start space-x-3"
                               onClick={() => {
                                 const newValue = !isChecked
                                   ? [...(field.value || []), goal.id]
@@ -90,12 +78,26 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                                 field.onChange(newValue);
                               }}
                             >
-                              <FormLabel className="text-base">
-                                {goal.label}
-                              </FormLabel>
-                              <p className="text-sm text-muted-foreground">
-                                {goal.description}
-                              </p>
+                              <FormControl>
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    const newValue = checked
+                                      ? [...(field.value || []), goal.id]
+                                      : field.value?.filter((value: string) => value !== goal.id);
+                                    field.onChange(newValue);
+                                  }}
+                                  className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none flex-1">
+                                <FormLabel className="text-base">
+                                  {goal.label}
+                                </FormLabel>
+                                <p className="text-sm text-muted-foreground">
+                                  {goal.description}
+                                </p>
+                              </div>
                             </div>
                           </FormItem>
                         );
