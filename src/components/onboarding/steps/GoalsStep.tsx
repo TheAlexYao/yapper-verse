@@ -75,15 +75,22 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                           <FormItem
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
-                            onClick={() => handleChange(!isChecked)}
+                            onClick={(e) => {
+                              // Only handle click if it's not on the checkbox
+                              if (!(e.target as HTMLElement).closest('.checkbox-wrapper')) {
+                                handleChange(!isChecked);
+                              }
+                            }}
                           >
                             <div className="flex flex-1 items-start space-x-3">
                               <FormControl>
-                                <Checkbox
-                                  checked={isChecked}
-                                  onCheckedChange={handleChange}
-                                  className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
-                                />
+                                <div className="checkbox-wrapper">
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={handleChange}
+                                    className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
+                                  />
+                                </div>
                               </FormControl>
                               <div className="space-y-1 leading-none flex-1">
                                 <FormLabel className="text-base">
