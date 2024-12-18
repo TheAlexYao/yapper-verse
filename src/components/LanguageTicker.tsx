@@ -1,36 +1,37 @@
-import { Flag } from "lucide-react";
+import React from 'react';
 
 interface Language {
   name: string;
+  flag: string;
   code: string;
   variant?: string;
 }
 
 const languages: Language[] = [
-  { name: "English", code: "en" },
-  { name: "Mandarin", code: "zh", variant: "Simplified" },
-  { name: "Mandarin", code: "zh", variant: "Traditional" },
-  { name: "Cantonese", code: "yue", variant: "Traditional" },
-  { name: "Spanish", code: "es", variant: "Mexico" },
-  { name: "Spanish", code: "es", variant: "Spain" },
-  { name: "French", code: "fr", variant: "France" },
-  { name: "French", code: "fr", variant: "Canada" },
-  { name: "Portuguese", code: "pt", variant: "Brazil" },
-  { name: "Portuguese", code: "pt", variant: "Portugal" },
-  { name: "Japanese", code: "ja" },
-  { name: "Korean", code: "ko" },
-  { name: "Hindi", code: "hi" },
-  { name: "Tamil", code: "ta" },
-  { name: "Thai", code: "th" },
-  { name: "Vietnamese", code: "vi" },
-  { name: "Malay", code: "ms" },
-  { name: "German", code: "de" },
-  { name: "Russian", code: "ru" },
-  { name: "Italian", code: "it" },
-  { name: "Dutch", code: "nl" },
-  { name: "Polish", code: "pl" },
-  { name: "Swedish", code: "sv" },
-  { name: "Norwegian", code: "nb", variant: "Bokmål" },
+  { name: "English", flag: "🇬🇧", code: "en" },
+  { name: "Mandarin", flag: "🇨🇳", code: "zh", variant: "Simplified" },
+  { name: "Mandarin", flag: "🇹🇼", code: "zh", variant: "Traditional" },
+  { name: "Cantonese", flag: "🇭🇰", code: "yue", variant: "Traditional" },
+  { name: "Spanish", flag: "🇲🇽", code: "es", variant: "Mexico" },
+  { name: "Spanish", flag: "🇪🇸", code: "es", variant: "Spain" },
+  { name: "French", flag: "🇫🇷", code: "fr", variant: "France" },
+  { name: "French", flag: "🇨🇦", code: "fr", variant: "Canada" },
+  { name: "Portuguese", flag: "🇧🇷", code: "pt", variant: "Brazil" },
+  { name: "Portuguese", flag: "🇵🇹", code: "pt", variant: "Portugal" },
+  { name: "Japanese", flag: "🇯🇵", code: "ja" },
+  { name: "Korean", flag: "🇰🇷", code: "ko" },
+  { name: "Hindi", flag: "🇮🇳", code: "hi" },
+  { name: "Tamil", flag: "🇱🇰", code: "ta" },
+  { name: "Thai", flag: "🇹🇭", code: "th" },
+  { name: "Vietnamese", flag: "🇻🇳", code: "vi" },
+  { name: "Malay", flag: "🇲🇾", code: "ms" },
+  { name: "German", flag: "🇩🇪", code: "de" },
+  { name: "Russian", flag: "🇷🇺", code: "ru" },
+  { name: "Italian", flag: "🇮🇹", code: "it" },
+  { name: "Dutch", flag: "🇳🇱", code: "nl" },
+  { name: "Polish", flag: "🇵🇱", code: "pl" },
+  { name: "Swedish", flag: "🇸🇪", code: "sv" },
+  { name: "Norwegian", flag: "🇳🇴", code: "nb", variant: "Bokmål" },
 ];
 
 const LanguageTicker = () => {
@@ -45,7 +46,7 @@ const LanguageTicker = () => {
             key={`${lang.code}-${index}`}
             className="flex items-center space-x-2 bg-white/5 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10"
           >
-            <Flag className="w-4 h-4 text-[#38b6ff]" />
+            <span className="text-xl">{lang.flag}</span>
             <span className="whitespace-nowrap text-sm">
               {lang.name}
               {lang.variant && <span className="text-xs text-muted-foreground ml-1">({lang.variant})</span>}

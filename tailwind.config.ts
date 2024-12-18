@@ -101,14 +101,6 @@ export default {
         blob: "blob 7s infinite",
         ticker: "ticker 30s linear infinite",
       },
-      utilities: {
-        ".animation-delay-2000": {
-          "animation-delay": "2s",
-        },
-        ".animation-delay-4000": {
-          "animation-delay": "4s",
-        },
-      },
     },
   },
   plugins: [require("tailwindcss-animate")],
