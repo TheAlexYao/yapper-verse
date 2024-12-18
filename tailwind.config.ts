@@ -89,12 +89,17 @@ export default {
             transform: "translate(0px, 0px) scale(1)",
           },
         },
+        ticker: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         fadeIn: "fadeIn 0.5s ease-out forwards",
         blob: "blob 7s infinite",
+        ticker: "ticker 30s linear infinite",
       },
       utilities: {
         ".animation-delay-2000": {
