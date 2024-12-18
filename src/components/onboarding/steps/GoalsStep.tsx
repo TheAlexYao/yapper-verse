@@ -68,12 +68,6 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                           <FormItem
                             key={goal.id}
                             className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 cursor-pointer hover:border-[#38b6ff] transition-colors"
-                            onClick={() => {
-                              const newValue = !isChecked
-                                ? [...(field.value || []), goal.id]
-                                : field.value?.filter((value: string) => value !== goal.id);
-                              field.onChange(newValue);
-                            }}
                           >
                             <FormControl>
                               <Checkbox
@@ -87,7 +81,15 @@ export function GoalsStep({ form, onNext, onPrev }: GoalsStepProps) {
                                 className="border-[#38b6ff] data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-[#38b6ff] data-[state=checked]:to-[#7843e6]"
                               />
                             </FormControl>
-                            <div className="space-y-1 leading-none flex-1">
+                            <div 
+                              className="space-y-1 leading-none flex-1"
+                              onClick={() => {
+                                const newValue = !isChecked
+                                  ? [...(field.value || []), goal.id]
+                                  : field.value?.filter((value: string) => value !== goal.id);
+                                field.onChange(newValue);
+                              }}
+                            >
                               <FormLabel className="text-base">
                                 {goal.label}
                               </FormLabel>
