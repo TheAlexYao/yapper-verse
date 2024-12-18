@@ -49,13 +49,23 @@
               "d": 1,
               "s": { "a": 0, "k": [40, 40] },
               "p": { "a": 0, "k": [0, 0] },
-              "r": { "a": 0, "k": 5 }
+              "r": { "a": 0, "k": 5 },
+              "nm": "Rectangle",
+              "mn": "ADBE Vector Shape - Rect",
+              "hd": false
             },
             {
               "ty": "fl",
-              "c": { "a": 0, "k": [0.22, 0.71, 1, 1] }
+              "c": { "a": 0, "k": [0.22, 0.71, 1, 1] },
+              "o": { "a": 0, "k": 100 }
             }
-          ]
+          ],
+          "np": 2,
+          "cix": 2,
+          "bm": 0,
+          "nm": "Map Shape",
+          "mn": "ADBE Vector Group",
+          "hd": false
         }
       ]
     }

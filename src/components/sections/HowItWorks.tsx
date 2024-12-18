@@ -41,21 +41,20 @@ const HowItWorks = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 max-w-6xl mx-auto">
           {steps.map((item, index) => (
             <div key={item.step} className="relative animate-fadeIn opacity-0" style={{ animationDelay: `${0.2 * (index + 1)}s` }}>
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 md:left-8 md:translate-x-0 w-10 h-10 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white text-xl font-bold z-10">
-                {item.step}
-              </div>
               <div className="pt-8 p-8 rounded-lg bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm h-full hover:scale-105 transform transition-all duration-300">
-                <div className="w-32 h-32 mx-auto mb-6">
+                <div className="w-32 h-32 mx-auto mb-6 relative">
                   <Lottie
                     animationData={item.animation}
                     loop={true}
                     autoplay={true}
-                    className="w-full h-full"
+                    className="w-full h-full absolute top-0 left-0"
                     style={{
-                      filter: 'hue-rotate(45deg)', // Adjust to match your color scheme
-                      opacity: 0.9,
+                      transform: 'scale(1.5)',
                     }}
                   />
+                </div>
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] flex items-center justify-center text-white text-xl font-bold">
+                  {item.step}
                 </div>
                 <h3 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
                   {item.title}
