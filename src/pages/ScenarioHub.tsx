@@ -21,6 +21,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+export interface Scenario {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  primaryGoal: string;
+  usefulPhrases: string[];
+  culturalNotes: string;
+  locationDetails: string;
+  isBookmarked: boolean;
+}
+
 const ScenarioHub = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
@@ -65,7 +77,7 @@ const ScenarioHub = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full md:w-[300px] p-0">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput 
                     placeholder="Search scenarios..." 
                     value={searchQuery}
