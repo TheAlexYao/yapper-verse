@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
-import { LanguageSelector } from "@/components/onboarding/steps/language/LanguageSelector";
-import { languages } from "@/components/onboarding/steps/language/languages";
 import { Scenario } from "@/pages/ScenarioHub";
 
 interface CreateScenarioViewProps {
@@ -15,8 +13,6 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
   const [isGenerating, setIsGenerating] = useState(false);
   const form = useForm({
     defaultValues: {
-      nativeLanguage: "",
-      targetLanguage: "",
       prompt: "",
     },
   });
@@ -45,40 +41,6 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
     <div className="max-w-2xl mx-auto space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="nativeLanguage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Native Language</FormLabel>
-                <LanguageSelector
-                  value={field.value}
-                  onSelect={(value) => form.setValue("nativeLanguage", value)}
-                  languages={languages}
-                  placeholder="Select your native language"
-                  otherSelectedValue={form.watch("targetLanguage")}
-                />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="targetLanguage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Target Language</FormLabel>
-                <LanguageSelector
-                  value={field.value}
-                  onSelect={(value) => form.setValue("targetLanguage", value)}
-                  languages={languages}
-                  placeholder="Select your target language"
-                  otherSelectedValue={form.watch("nativeLanguage")}
-                />
-              </FormItem>
-            )}
-          />
-
           <FormField
             control={form.control}
             name="prompt"
