@@ -1,8 +1,8 @@
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-24 relative overflow-hidden">
+    <section id="how-it-works" className="py-32 relative overflow-hidden">
       <div className="container mx-auto px-4 relative">
-        <h2 className="text-4xl md:text-6xl font-bold text-center mb-20 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+        <h2 className="text-4xl md:text-6xl font-bold text-center mb-24 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
           Your Journey Begins Here
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
