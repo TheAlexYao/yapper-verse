@@ -5,7 +5,7 @@ const HowItWorks = () => {
         <h2 className="text-4xl md:text-6xl font-bold text-center mb-16 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent leading-normal md:leading-relaxed pb-4">
           Your Journey Begins Here
         </h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 max-w-6xl mx-auto">
           {[
             { step: 1, title: "Choose Your Path", description: "Select your native language and learning goals" },
             { step: 2, title: "Pick Your Adventure", description: "Choose from exciting scenarios or create your own" },
