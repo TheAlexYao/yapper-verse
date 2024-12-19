@@ -8,9 +8,9 @@ import {
   UtensilsCrossed, 
   ShoppingBag, 
   Users,
-  Clock,
   Sparkles,
-  Trophy
+  Trophy,
+  Star
 } from "lucide-react";
 import {
   Tooltip,
@@ -28,7 +28,6 @@ const CATEGORIES = [
   { id: "Social", icon: Users }
 ];
 
-// Mock data - replace with real data later
 const MOCK_SCENARIOS: Scenario[] = [
   {
     id: "1",
@@ -120,13 +119,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
   });
 
   return (
-    <div className="space-y-6">
-      {/* Completed Scenarios Count */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Trophy className="h-4 w-4" />
-        <span>{completedCount} scenarios completed</span>
-      </div>
-
+    <div className="space-y-8">
       {/* Category Filters */}
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map(({ id, icon: Icon }) => (
@@ -138,9 +131,9 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
               selectedCategory === id
                 ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 shadow-lg scale-105"
                 : "hover:bg-accent hover:text-accent-foreground hover:scale-105"
-            } gap-2`}
+            } gap-2 text-base`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
             {id}
           </Button>
         ))}
@@ -148,7 +141,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
       {/* Quick Start Templates */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Quick Start Templates</h3>
+        <h3 className="text-xl font-semibold">Quick Start Templates</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {QUICK_START_TEMPLATES.map((template) => (
             <ScenarioCard
@@ -162,8 +155,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
       {/* Recently Generated */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+        <h3 className="text-xl font-semibold flex items-center gap-2">
           Recently Generated
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -178,7 +170,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
       </div>
 
       {/* All Scenarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
         {filteredScenarios.map((scenario) => (
           <ScenarioCard
             key={scenario.id}

@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Trophy, Star } from "lucide-react";
 
 interface CreateScenarioViewProps {
   onScenarioCreated: (scenario: Scenario) => void;
@@ -24,6 +24,7 @@ const EXAMPLE_PROMPTS = [
 
 export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const completedCount = 3; // Replace with actual completed count
   const form = useForm({
     defaultValues: {
       prompt: "",
@@ -60,14 +61,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-2">
-                  <FormLabel>What would you like to practice?</FormLabel>
+                  <FormLabel className="text-lg">What would you like to practice?</FormLabel>
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      <TooltipTrigger type="button">
+                        <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        <p className="font-semibold mb-2">Example prompts:</p>
+                        <p className="font-semibold mb-2 text-base">Example prompts:</p>
                         <ul className="list-disc list-inside space-y-1">
                           {EXAMPLE_PROMPTS.map((prompt, index) => (
                             <li key={index} className="text-sm">{prompt}</li>
@@ -80,7 +81,7 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
                 <Textarea
                   {...field}
                   placeholder="E.g., I want to learn how to negotiate at a market..."
-                  className="h-32"
+                  className="h-32 text-base"
                 />
               </FormItem>
             )}
@@ -89,12 +90,28 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
           <Button
             type="submit"
             disabled={isGenerating}
-            className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+            className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 text-lg py-6"
           >
             {isGenerating ? "Generating..." : "Generate Scenario"}
           </Button>
         </form>
       </Form>
+
+      {/* Fancy Score Display */}
+      <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-[#38b6ff]/10 to-[#7843e6]/10 rounded-lg border border-primary/20 backdrop-blur-sm">
+        <Trophy className="h-8 w-8 text-primary" />
+        <div className="space-y-1">
+          <h4 className="text-xl font-semibold">Scenarios Completed</h4>
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-primary">{completedCount}</span>
+            <div className="flex -space-x-1">
+              {[...Array(3)].map((_, i) => (
+                <Star key={i} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
