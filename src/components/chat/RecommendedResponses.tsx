@@ -19,7 +19,7 @@ export function RecommendedResponses({
   onSelectResponse,
 }: RecommendedResponsesProps) {
   const [currentPage, setCurrentPage] = useState(0);
-  const responsesPerPage = 2;
+  const responsesPerPage = 1; // Changed to show only one response
   const totalPages = Math.ceil(responses.length / responsesPerPage);
 
   const nextPage = () => {
@@ -50,12 +50,12 @@ export function RecommendedResponses({
           size="icon"
           onClick={prevPage}
           disabled={totalPages <= 1}
-          className="shrink-0 p-0 w-8 h-8 -ml-2"
+          className="shrink-0 p-0 w-8 h-8 hover:bg-accent/50 rounded-full"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         
-        <div className="grid gap-2 flex-1 min-w-0 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {currentResponses.map((response) => (
             <Button
               key={response.id}
@@ -78,10 +78,22 @@ export function RecommendedResponses({
           size="icon"
           onClick={nextPage}
           disabled={totalPages <= 1}
-          className="shrink-0 p-0 w-8 h-8 -mr-2"
+          className="shrink-0 p-0 w-8 h-8 hover:bg-accent/50 rounded-full"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
+      </div>
+      <div className="flex justify-center mt-2 gap-1">
+        {Array.from({ length: totalPages }).map((_, index) => (
+          <div
+            key={index}
+            className={`h-1.5 rounded-full transition-all duration-200 ${
+              index === currentPage
+                ? "w-4 bg-yapper-indigo"
+                : "w-1.5 bg-accent/50"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
