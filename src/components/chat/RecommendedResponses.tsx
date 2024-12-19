@@ -36,7 +36,7 @@ export function RecommendedResponses({
   );
 
   return (
-    <div className="p-3">
+    <div className="p-3 bg-gradient-to-b from-background to-accent/20">
       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
         <span className="relative flex h-2 w-2 mr-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yapper-indigo opacity-75"></span>
@@ -44,28 +44,28 @@ export function RecommendedResponses({
         </span>
         Choose your response:
       </h3>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-w-full">
         <Button
           variant="ghost"
           size="icon"
           onClick={prevPage}
           disabled={totalPages <= 1}
-          className="shrink-0"
+          className="shrink-0 p-0 w-8 h-8"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         
-        <div className="grid gap-2 flex-1">
+        <div className="grid gap-2 flex-1 min-w-0">
           {currentResponses.map((response) => (
             <Button
               key={response.id}
               variant="outline"
-              className="w-full justify-start text-left h-auto py-2 hover:bg-accent/50 transition-all duration-200"
+              className="w-full justify-start text-left h-auto py-2 hover:bg-accent/50 transition-all duration-200 bg-gradient-to-r from-background to-accent/10"
               onClick={() => onSelectResponse(response)}
             >
-              <div className="break-words">
-                <div className="font-medium">{response.text}</div>
-                <div className="text-sm text-muted-foreground">
+              <div className="break-words min-w-0">
+                <div className="font-medium truncate">{response.text}</div>
+                <div className="text-sm text-muted-foreground truncate">
                   {response.translation}
                 </div>
               </div>
@@ -78,7 +78,7 @@ export function RecommendedResponses({
           size="icon"
           onClick={nextPage}
           disabled={totalPages <= 1}
-          className="shrink-0"
+          className="shrink-0 p-0 w-8 h-8"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
