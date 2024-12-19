@@ -106,7 +106,7 @@ export default function Character() {
               Back to Scenarios
             </Button>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
-              Meet Your Conversation Partner
+              Let's have a conversation!
             </h1>
           </div>
 
@@ -145,7 +145,7 @@ export default function Character() {
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-semibold mb-2">
-                  Choose Your Conversation Partner
+                  Who do you want to talk to?
                 </h2>
                 <p className="text-muted-foreground">
                   Pick one of these three characters to guide you through this scenario. Each brings a unique way of speaking and cultural background to help you learn.
@@ -192,7 +192,7 @@ export default function Character() {
                     )}
                     {selectedCharacter?.id === character.id ? (
                       <Button
-                        className="w-full bg-gradient-to-r from-[#7843e6] to-[#38b6ff] hover:from-[#6633e0] hover:to-[#2aa1ff] text-white font-semibold"
+                        className="w-full bg-gradient-to-r from-[#7843e6] to-[#38b6ff] text-white font-semibold"
                         onClick={handleStartConversation}
                       >
                         Let's Get Started!
