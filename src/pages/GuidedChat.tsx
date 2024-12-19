@@ -51,7 +51,7 @@ export default function GuidedChat() {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState({
     pronunciationScore: 85,
     stylePoints: 120,
@@ -62,8 +62,11 @@ export default function GuidedChat() {
 
   // Auto-scroll effect
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    if (viewportRef.current) {
+      viewportRef.current.scrollTo({
+        top: viewportRef.current.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [messages]);
 
@@ -119,7 +122,7 @@ export default function GuidedChat() {
       />
 
       <div className="flex-1 relative">
-        <ScrollArea className="absolute inset-0" ref={scrollAreaRef}>
+        <ScrollArea className="absolute inset-0" viewportRef={viewportRef}>
           <div className="container max-w-2xl mx-auto px-4 pt-16 pb-[calc(2rem+180px)]">
             {messages.map((message: Message) => (
               <MessageBubble
