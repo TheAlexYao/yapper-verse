@@ -60,19 +60,17 @@ export default function GuidedChat() {
     sentenceLimit: 10,
   });
 
-  // Auto-scroll effect
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (viewportRef.current) {
-      setTimeout(() => {
-        const scrollContainer = viewportRef.current;
-        if (scrollContainer) {
-          const scrollableContent = scrollContainer.querySelector('[data-radix-scroll-area-viewport]');
-          if (scrollableContent) {
-            scrollableContent.scrollTop = scrollableContent.scrollHeight;
-          }
-        }
-      }, 100);
+      const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
     }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
   const simulateAIResponse = () => {
@@ -111,7 +109,6 @@ export default function GuidedChat() {
     setSelectedResponse(null);
     setShowPronunciationModal(false);
     
-    // Simulate AI response after user message
     simulateAIResponse();
   };
 
