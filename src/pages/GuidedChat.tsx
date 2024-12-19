@@ -5,7 +5,6 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { RecommendedResponses } from "@/components/chat/RecommendedResponses";
 import { PronunciationModal } from "@/components/chat/PronunciationModal";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Message {
   id: string;
@@ -97,20 +96,6 @@ export default function GuidedChat() {
         onBack={() => navigate("/character")}
       />
 
-      {/* Character Card */}
-      <div className="fixed right-4 top-24 z-10 hidden lg:block">
-        <div className="bg-card/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border w-48">
-          <div className="flex flex-col items-center text-center">
-            <Avatar className="w-16 h-16 mb-2">
-              <AvatarImage src="/placeholder.svg" alt="Marie" />
-              <AvatarFallback>M</AvatarFallback>
-            </Avatar>
-            <h3 className="font-medium">Marie</h3>
-            <p className="text-sm text-muted-foreground">Parisian Barista</p>
-          </div>
-        </div>
-      </div>
-
       {/* Messages Area with proper padding */}
       <ScrollArea className="flex-1 pt-24 pb-[180px] md:pb-[140px]">
         <div className="container max-w-lg mx-auto px-4">
@@ -128,6 +113,23 @@ export default function GuidedChat() {
       {/* Fixed Response Section */}
       <div className="fixed bottom-0 left-0 right-0 z-20">
         <div className="container max-w-lg mx-auto">
+          {/* Score Bar */}
+          <div className="bg-background/95 backdrop-blur-sm border-t p-2">
+            <div className="flex items-center justify-center space-x-6 text-sm">
+              <div className="flex items-center">
+                <span className="mr-2">🎯</span>
+                <span className="font-medium">{metrics.pronunciationScore}%</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">⭐️</span>
+                <span className="font-medium">{metrics.stylePoints}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="mr-2">📝</span>
+                <span className="font-medium">{metrics.sentencesUsed}/{metrics.sentenceLimit}</span>
+              </div>
+            </div>
+          </div>
           <RecommendedResponses
             responses={MOCK_RESPONSES}
             onSelectResponse={handleResponseSelect}
