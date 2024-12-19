@@ -110,8 +110,8 @@ export default function GuidedChat() {
 
       <div className="fixed bottom-0 left-0 right-0 z-20">
         <div className="container max-w-2xl mx-auto px-4">
-          <div className="bg-background/80 backdrop-blur-sm rounded-t-lg border-t">
-            <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm bg-white/5">
+          <div className="bg-background/80 backdrop-blur-sm rounded-t-lg">
+            <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm bg-background/80">
               <div className="flex items-center">
                 <span className="mr-2">🎯</span>
                 <span className="font-medium">{metrics.pronunciationScore}%</span>
