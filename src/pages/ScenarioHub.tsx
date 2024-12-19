@@ -36,11 +36,12 @@ const ScenarioHub = () => {
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
-              Your Language Scenes
+              Your Language Adventures
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              You're set to practice [Target Language]. Explore ready-made scenarios, create your own, or revisit past sessions. 
-              Whether it's asking for directions in a busy market or chatting at a local café, we've got the scenes to help you blend right in.
+              You're ready to practice [Target Language] through real conversations. Choose a scenario, 
+              meet the characters, and dive into interactive dialogue. Think of it like leveling up 
+              your language skills as you play.
             </p>
           </div>
 
@@ -55,7 +56,7 @@ const ScenarioHub = () => {
                   value="library"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
                 >
-                  Library
+                  Scenario Library
                 </TabsTrigger>
                 <TabsTrigger
                   value="past"
@@ -69,9 +70,9 @@ const ScenarioHub = () => {
                 <TabsContent value="library" className="m-0">
                   <div className="text-center mb-6">
                     <p className="text-muted-foreground">
-                      Browse our curated scenarios. Filter by category and pick what interests you—ordering lunch, 
-                      finding a hotel, making small talk. Each scenario comes with key phrases and cultural tips 
-                      to keep your practice natural.
+                      Explore our collection of pre-built scenes. Filter by theme—like ordering food, 
+                      asking for directions, or meeting new friends. Each scenario feels like a mini story: 
+                      pick one, step in, and see where the conversation takes you.
                     </p>
                   </div>
                   <LibraryView
@@ -82,8 +83,9 @@ const ScenarioHub = () => {
                 <TabsContent value="past" className="m-0">
                   <div className="text-center mb-6">
                     <p className="text-muted-foreground">
-                      Want to revisit something you tried before? Check out your past scenarios or jump into 
-                      bookmarked favorites. Pick up where you left off, or refine what you already know.
+                      Revisit previous scenarios or return to favorites you've set aside. Whether you want 
+                      to refine your skills in a scene you found challenging or just replay a fun conversation, 
+                      this is your personal library of past adventures.
                     </p>
                   </div>
                   <PastBookmarkedView
