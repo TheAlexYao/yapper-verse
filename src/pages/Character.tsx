@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Scenario } from "./ScenarioHub";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Character {
   id: string;
@@ -63,7 +64,6 @@ export default function Character() {
       return;
     }
 
-    // Simulate character generation
     const timer = setTimeout(() => {
       setCharacters(MOCK_CHARACTERS);
       setIsGenerating(false);
@@ -74,8 +74,11 @@ export default function Character() {
 
   const handleCharacterSelect = (character: Character) => {
     setSelectedCharacter(character);
+  };
+
+  const handleStartConversation = () => {
     // TODO: Navigate to conversation page
-    console.log("Selected character:", character);
+    console.log("Starting conversation with:", selectedCharacter);
   };
 
   if (!scenario) return null;
@@ -93,7 +96,7 @@ export default function Character() {
       <div className="relative container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <Button
               variant="ghost"
               className="mb-4"
@@ -108,10 +111,27 @@ export default function Character() {
             <p className="text-lg text-muted-foreground mt-2">
               {scenario.title}
             </p>
-            <div className="mt-2 text-sm text-muted-foreground">
-              Step 2 of 3
-            </div>
           </div>
+
+          {/* Scenario Card */}
+          <Card className="mb-8 bg-white/50 backdrop-blur-sm border-muted">
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">{scenario.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-lg text-muted-foreground mb-4">{scenario.description}</p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <h3 className="font-semibold mb-2">Primary Goal</h3>
+                  <p className="text-muted-foreground">{scenario.primaryGoal}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Cultural Notes</h3>
+                  <p className="text-muted-foreground">{scenario.culturalNotes}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Content */}
           {isGenerating ? (
@@ -140,45 +160,54 @@ export default function Character() {
                   <div
                     key={character.id}
                     className={cn(
-                      "relative p-6 rounded-lg border bg-card transition-all duration-300",
+                      "relative p-6 rounded-lg border bg-card/50 backdrop-blur-sm transition-all duration-300",
                       selectedCharacter?.id === character.id
-                        ? "ring-2 ring-primary"
+                        ? "ring-2 ring-[#7843e6]"
                         : "hover:shadow-lg"
                     )}
                   >
-                    <div className="aspect-square rounded-full overflow-hidden mb-4 bg-muted">
+                    <div className="aspect-square rounded-full overflow-hidden mb-4 bg-muted mx-auto max-w-[200px]">
                       <img
                         src={character.avatar}
                         alt={character.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <h3 className="text-xl font-semibold mb-1">
+                    <h3 className="text-xl font-semibold mb-1 text-center">
                       {character.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-sm text-muted-foreground mb-3 text-center">
                       Age: {character.age}, {character.gender}
                     </p>
-                    <p className="text-sm mb-4">{character.bio}</p>
+                    <p className="text-sm mb-4 text-center">{character.bio}</p>
                     <div className="space-y-2 mb-4">
-                      <p className="text-sm font-semibold">Language Style:</p>
-                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                      <p className="text-sm font-semibold text-center">Language Style:</p>
+                      <ul className="list-none text-sm text-muted-foreground space-y-1">
                         {character.languageStyle.map((style, index) => (
-                          <li key={index}>{style}</li>
+                          <li key={index} className="text-center">{style}</li>
                         ))}
                       </ul>
                     </div>
                     {character.conversationCount !== undefined && (
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <p className="text-sm text-muted-foreground mb-4 text-center">
                         Previous conversations: {character.conversationCount}
                       </p>
                     )}
-                    <Button
-                      className="w-full"
-                      onClick={() => handleCharacterSelect(character)}
-                    >
-                      Choose {character.name}
-                    </Button>
+                    {selectedCharacter?.id === character.id ? (
+                      <Button
+                        className="w-full bg-gradient-to-r from-[#7843e6] to-[#38b6ff] hover:from-[#6633e0] hover:to-[#2aa1ff] text-white font-semibold"
+                        onClick={handleStartConversation}
+                      >
+                        Let's Get Started!
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full bg-[#38b6ff] hover:bg-[#2aa1ff] text-white"
+                        onClick={() => handleCharacterSelect(character)}
+                      >
+                        Choose {character.name}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
