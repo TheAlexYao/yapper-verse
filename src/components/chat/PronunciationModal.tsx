@@ -32,6 +32,7 @@ export function PronunciationModal({
   const [hasRecording, setHasRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [results, setResults] = useState<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -83,17 +84,16 @@ export function PronunciationModal({
     setAudioUrl(null);
     setHasRecording(false);
     setShowResults(false);
+    setResults(null);
   };
 
   const handleSubmit = () => {
-    setShowResults(true);
     // Simulated score and analysis for now
     const mockResults = {
       score: 85,
       words: [
         { word: response.text.split(" ")[0], score: 90, isCorrect: true },
         { word: response.text.split(" ")[1], score: 75, isCorrect: false },
-        // Add more words as needed based on the response text
       ],
       aiTips: [
         "Focus on the 'r' sound in the second word",
@@ -101,11 +101,19 @@ export function PronunciationModal({
         "Practice the vowel sounds more carefully",
       ],
     };
+    
+    setResults(mockResults);
+    setShowResults(true);
     onSubmit(mockResults.score);
   };
 
+  const handleClose = () => {
+    resetRecording();
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card">
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl font-bold">
@@ -177,19 +185,12 @@ export function PronunciationModal({
           </div>
         ) : (
           <PronunciationResults
-            score={85}
+            score={results.score}
             transcript={response.text}
-            words={[
-              { word: response.text.split(" ")[0], score: 90, isCorrect: true },
-              { word: response.text.split(" ")[1], score: 75, isCorrect: false },
-            ]}
+            words={results.words}
             userAudioUrl={audioUrl}
             originalAudioUrl="/mock-audio.mp3"
-            aiTips={[
-              "Focus on the 'r' sound in the second word",
-              "Try to emphasize the stress on the first syllable",
-              "Practice the vowel sounds more carefully",
-            ]}
+            aiTips={results.aiTips}
           />
         )}
       </DialogContent>
