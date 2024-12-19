@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
-import { MessageBubble } from "@/components/chat/MessageBubble";
 import { RecommendedResponses } from "@/components/chat/RecommendedResponses";
 import { PronunciationModal } from "@/components/chat/PronunciationModal";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChatMessages } from "@/components/chat/ChatMessages";
+import { ChatMetrics } from "@/components/chat/ChatMetrics";
 
 interface Message {
   id: string;
@@ -51,7 +51,6 @@ export default function GuidedChat() {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const viewportRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState({
     pronunciationScore: 85,
     stylePoints: 120,
@@ -59,19 +58,6 @@ export default function GuidedChat() {
     sentencesUsed: 1,
     sentenceLimit: 10,
   });
-
-  const scrollToBottom = () => {
-    if (viewportRef.current) {
-      const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const simulateAIResponse = () => {
     setTimeout(() => {
@@ -83,7 +69,6 @@ export default function GuidedChat() {
         isUser: false,
       };
       setMessages(prev => [...prev, aiResponse]);
-      scrollToBottom(); // Add scroll after AI response
     }, 1500);
   };
 
@@ -102,7 +87,6 @@ export default function GuidedChat() {
     };
     
     setMessages(prev => [...prev, newMessage]);
-    scrollToBottom(); // Add scroll after user message
     setMetrics({
       ...metrics,
       pronunciationScore: Math.round((metrics.pronunciationScore + score) / 2),
@@ -126,36 +110,17 @@ export default function GuidedChat() {
       />
 
       <div className="flex-1 relative">
-        <ScrollArea className="absolute inset-0" viewportRef={viewportRef}>
-          <div className="container max-w-2xl mx-auto px-4 pt-16 pb-[calc(2rem+180px)]">
-            {messages.map((message: Message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isUser={message.isUser}
-                onPlayAudio={!message.isUser ? () => {} : undefined}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+        <ChatMessages messages={messages} />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm">
         <div className="container max-w-2xl mx-auto px-4">
-          <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm">
-            <div className="flex items-center">
-              <span className="mr-2">🎯</span>
-              <span className="font-medium">{metrics.pronunciationScore}%</span>
-            </div>
-            <div className="flex items-center">
-              <span className="mr-2">⭐️</span>
-              <span className="font-medium">{metrics.stylePoints}</span>
-            </div>
-            <div className="flex items-center">
-              <span className="mr-2">📝</span>
-              <span className="font-medium">{metrics.sentencesUsed}/{metrics.sentenceLimit}</span>
-            </div>
-          </div>
+          <ChatMetrics
+            pronunciationScore={metrics.pronunciationScore}
+            stylePoints={metrics.stylePoints}
+            sentencesUsed={metrics.sentencesUsed}
+            sentenceLimit={metrics.sentenceLimit}
+          />
           
           <RecommendedResponses
             responses={MOCK_RESPONSES}
