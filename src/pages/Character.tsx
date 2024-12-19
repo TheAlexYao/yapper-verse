@@ -77,8 +77,12 @@ export default function Character() {
   };
 
   const handleStartConversation = () => {
-    // TODO: Navigate to conversation page
-    console.log("Starting conversation with:", selectedCharacter);
+    navigate("/chat", {
+      state: {
+        scenario,
+        character: selectedCharacter,
+      },
+    });
   };
 
   if (!scenario) return null;
