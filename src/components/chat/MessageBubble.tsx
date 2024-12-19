@@ -40,11 +40,11 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               <Play className="h-4 w-4" />
             </Button>
           )}
-          <div className="space-y-1">
+          <div className="space-y-1 overflow-hidden">
             <p className="text-base font-medium break-words">{message.text}</p>
             {message.transliteration && (
               <p className={cn(
-                "text-sm italic",
+                "text-sm italic break-words",
                 isUser ? "text-indigo-100" : "text-muted-foreground"
               )}>
                 {message.transliteration}
@@ -52,7 +52,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
             )}
             {message.translation && (
               <p className={cn(
-                "text-sm",
+                "text-sm break-words",
                 isUser ? "text-indigo-100" : "text-muted-foreground"
               )}>
                 {message.translation}

@@ -16,7 +16,6 @@ interface Message {
   isUser: boolean;
 }
 
-// Mock data - replace with real data later
 const MOCK_MESSAGES: Message[] = [
   {
     id: "1",
@@ -114,7 +113,7 @@ export default function GuidedChat() {
 
       {/* Messages Area with proper padding */}
       <ScrollArea className="flex-1 pt-24 pb-[180px] md:pb-[140px]">
-        <div className="container max-w-3xl mx-auto px-4">
+        <div className="container max-w-lg mx-auto px-4">
           {messages.map((message: Message) => (
             <MessageBubble
               key={message.id}
@@ -128,7 +127,7 @@ export default function GuidedChat() {
 
       {/* Fixed Response Section */}
       <div className="fixed bottom-0 left-0 right-0 z-20">
-        <div className="container max-w-3xl mx-auto">
+        <div className="container max-w-lg mx-auto">
           <RecommendedResponses
             responses={MOCK_RESPONSES}
             onSelectResponse={handleResponseSelect}
