@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 
@@ -22,24 +22,21 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     if (viewportRef.current) {
       const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
-        requestAnimationFrame(() => {
-          viewport.scrollTop = viewport.scrollHeight;
-          console.log('Scrolled to bottom, height:', viewport.scrollHeight);
-        });
+        viewport.scrollTop = viewport.scrollHeight;
+        console.log('Scrolled to bottom, height:', viewport.scrollHeight);
       }
     }
   };
 
+  // Use useLayoutEffect for immediate DOM measurements
+  useLayoutEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Backup scroll for dynamic content
   useEffect(() => {
-    // First, let React finish its rendering
-    Promise.resolve().then(() => {
-      // Then scroll immediately
-      scrollToBottom();
-      
-      // And once more after a brief delay to catch any dynamic content
-      const timeoutId = setTimeout(scrollToBottom, 100);
-      return () => clearTimeout(timeoutId);
-    });
+    const timeoutId = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timeoutId);
   }, [messages]);
 
   return (
