@@ -12,6 +12,7 @@ interface MessageBubbleProps {
     transliteration?: string;
     pronunciationScore?: number;
     pronunciationData?: any;
+    audioUrl?: string;
   };
   onPlayAudio?: () => void;
 }
@@ -64,14 +65,19 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                   {message.translation}
                 </p>
               )}
-              {isUser && message.pronunciationScore && (
-                <div className="flex items-center gap-2 mt-2">
-                  <button
-                    onClick={() => setShowScoreModal(true)}
-                    className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-                  >
-                    Pronunciation: {message.pronunciationScore}%
-                  </button>
+              {isUser && (
+                <div className="flex flex-col gap-2 mt-2">
+                  {message.audioUrl && (
+                    <audio src={message.audioUrl} controls className="w-full max-w-[200px]" />
+                  )}
+                  {message.pronunciationScore && (
+                    <button
+                      onClick={() => setShowScoreModal(true)}
+                      className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                    >
+                      Pronunciation: {message.pronunciationScore}%
+                    </button>
+                  )}
                 </div>
               )}
             </div>

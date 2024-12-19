@@ -13,6 +13,7 @@ interface Message {
   transliteration?: string;
   pronunciationScore?: number;
   pronunciationData?: any;
+  audioUrl?: string;
   isUser: boolean;
 }
 
@@ -225,13 +226,14 @@ export default function GuidedChat() {
     setShowPronunciationModal(true);
   };
 
-  const handlePronunciationComplete = (score: number) => {
+  const handlePronunciationComplete = (score: number, audioUrl?: string) => {
     const newMessage = {
       id: Date.now().toString(),
       text: selectedResponse.text,
       translation: selectedResponse.translation,
       pronunciationScore: score,
       pronunciationData: selectedResponse.pronunciationData,
+      audioUrl,
       isUser: true,
     };
     

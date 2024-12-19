@@ -5,6 +5,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Play, Volume2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PronunciationScoreModalProps {
   isOpen: boolean;
@@ -24,6 +27,8 @@ interface PronunciationScoreModalProps {
           ErrorType: string;
         };
       }>;
+      AudioUrl?: string;
+      OriginalAudioUrl?: string;
     }>;
   };
 }
@@ -35,11 +40,19 @@ export function PronunciationScoreModal({
 }: PronunciationScoreModalProps) {
   const assessment = data.NBest[0].PronunciationAssessment;
   const words = data.NBest[0].Words;
+  const audioUrl = data.NBest[0].AudioUrl;
+  const originalAudioUrl = data.NBest[0].OriginalAudioUrl;
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-[#9b87f5]";
     if (score >= 75) return "text-[#7E69AB]";
     return "text-[#6E59A5]";
+  };
+
+  const getWordColor = (score: number) => {
+    if (score >= 90) return "text-green-600";
+    if (score >= 75) return "text-yellow-600";
+    return "text-red-600";
   };
 
   const getAdvice = () => {
@@ -98,6 +111,37 @@ export function PronunciationScoreModal({
             </div>
           </div>
 
+          {/* Audio Comparison */}
+          {(audioUrl || originalAudioUrl) && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold">Compare Audio</h3>
+              <div className="space-y-3">
+                {originalAudioUrl && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/50">
+                    <Button variant="ghost" size="icon" className="shrink-0">
+                      <Volume2 className="h-4 w-4" />
+                    </Button>
+                    <div className="flex-1">
+                      <audio src={originalAudioUrl} controls className="w-full" />
+                      <p className="text-xs text-muted-foreground mt-1">Original Pronunciation</p>
+                    </div>
+                  </div>
+                )}
+                {audioUrl && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/50">
+                    <Button variant="ghost" size="icon" className="shrink-0">
+                      <Play className="h-4 w-4" />
+                    </Button>
+                    <div className="flex-1">
+                      <audio src={audioUrl} controls className="w-full" />
+                      <p className="text-xs text-muted-foreground mt-1">Your Pronunciation</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Word-level Analysis */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Word-by-Word Analysis</h3>
@@ -107,7 +151,12 @@ export function PronunciationScoreModal({
                   key={index}
                   className="flex items-center justify-between p-2 rounded-lg bg-accent/50"
                 >
-                  <span className="font-medium">{word.Word}</span>
+                  <span className={cn(
+                    "font-medium",
+                    getWordColor(word.PronunciationAssessment.AccuracyScore)
+                  )}>
+                    {word.Word}
+                  </span>
                   <div className="flex items-center gap-2">
                     <Progress
                       value={word.PronunciationAssessment.AccuracyScore}
