@@ -63,10 +63,12 @@ export default function GuidedChat() {
   // Auto-scroll effect
   useEffect(() => {
     if (viewportRef.current) {
-      viewportRef.current.scrollTo({
-        top: viewportRef.current.scrollHeight,
-        behavior: "smooth"
-      });
+      setTimeout(() => {
+        viewportRef.current?.scrollTo({
+          top: viewportRef.current.scrollHeight,
+          behavior: "smooth"
+        });
+      }, 100);
     }
   }, [messages]);
 
