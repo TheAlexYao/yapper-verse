@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -51,6 +51,7 @@ export default function GuidedChat() {
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState({
     pronunciationScore: 85,
     stylePoints: 120,
@@ -59,22 +60,41 @@ export default function GuidedChat() {
     sentenceLimit: 10,
   });
 
+  // Auto-scroll effect
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const simulateAIResponse = () => {
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: Date.now().toString(),
+        text: "Excellent! Je vous prépare votre café tout de suite.",
+        translation: "Excellent! I'll prepare your coffee right away.",
+        transliteration: "eks-say-LAHN! zhuh voo pray-PAHR vot-ruh kah-FAY too duh SWEET.",
+        isUser: false,
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    }, 1500);
+  };
+
   const handleResponseSelect = (response: any) => {
     setSelectedResponse(response);
     setShowPronunciationModal(true);
   };
 
   const handlePronunciationComplete = (score: number) => {
-    setMessages([
-      ...messages,
-      {
-        id: Date.now().toString(),
-        text: selectedResponse.text,
-        translation: selectedResponse.translation,
-        pronunciationScore: score,
-        isUser: true,
-      },
-    ]);
+    const newMessage = {
+      id: Date.now().toString(),
+      text: selectedResponse.text,
+      translation: selectedResponse.translation,
+      pronunciationScore: score,
+      isUser: true,
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
     setMetrics({
       ...metrics,
       pronunciationScore: Math.round((metrics.pronunciationScore + score) / 2),
@@ -82,6 +102,9 @@ export default function GuidedChat() {
     });
     setSelectedResponse(null);
     setShowPronunciationModal(false);
+    
+    // Simulate AI response after user message
+    simulateAIResponse();
   };
 
   return (
@@ -96,7 +119,7 @@ export default function GuidedChat() {
       />
 
       <div className="flex-1 relative">
-        <ScrollArea className="absolute inset-0">
+        <ScrollArea className="absolute inset-0" ref={scrollAreaRef}>
           <div className="container max-w-2xl mx-auto px-4 pt-16 pb-[calc(2rem+180px)]">
             {messages.map((message: Message) => (
               <MessageBubble
