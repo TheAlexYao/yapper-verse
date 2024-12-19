@@ -4,6 +4,7 @@ import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
 import { Scenario } from "@/pages/ScenarioHub";
+import confetti from 'canvas-confetti';
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
       prompt: "",
     },
   });
+
+  const handleCounterClick = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  };
 
   const onSubmit = async (values: any) => {
     setIsGenerating(true);
@@ -107,10 +116,10 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
       <div className="flex items-center justify-center mt-8">
         <div 
           className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 transform hover:scale-105 transition-all duration-300 cursor-pointer hover:shadow-xl"
-          onClick={() => console.log('Counter clicked')} // Add interaction handler here
+          onClick={handleCounterClick}
         >
           <div className="flex items-center gap-2">
-            <span role="img" aria-label="celebration" className="text-2xl animate-bounce">🎉</span>
+            <span role="img" aria-label="celebration" className="text-2xl">🎉</span>
             <h4 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Scenarios Completed: {completedCount}
             </h4>
