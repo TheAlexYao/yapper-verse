@@ -22,22 +22,20 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     if (viewportRef.current) {
       const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
-        console.log('Scrolling to bottom, current height:', viewport.scrollHeight);
         viewport.scrollTop = viewport.scrollHeight;
-      } else {
-        console.log('Viewport element not found');
+        console.log('Scrolled to bottom, height:', viewport.scrollHeight);
       }
-    } else {
-      console.log('ViewportRef not set');
     }
   };
 
   useEffect(() => {
-    console.log('Messages changed, length:', messages.length);
+    // Scroll immediately for the initial messages
+    scrollToBottom();
     
+    // And then again after a short delay to ensure all content is rendered
     const timeoutId = setTimeout(() => {
       scrollToBottom();
-    }, 100);
+    }, 50);
 
     return () => clearTimeout(timeoutId);
   }, [messages]);
