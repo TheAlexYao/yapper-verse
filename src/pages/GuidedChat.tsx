@@ -4,6 +4,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { RecommendedResponses } from "@/components/chat/RecommendedResponses";
 import { PronunciationModal } from "@/components/chat/PronunciationModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
   id: string;
@@ -100,8 +101,9 @@ export default function GuidedChat() {
         metrics={metrics}
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 bg-gradient-to-b from-background to-accent/20">
-        <div className="container mx-auto max-w-3xl">
+      {/* Add padding-top to account for fixed header */}
+      <ScrollArea className="flex-1 pt-24 pb-[200px]">
+        <div className="container max-w-3xl mx-auto px-4">
           {messages.map((message: Message) => (
             <MessageBubble
               key={message.id}
@@ -111,13 +113,15 @@ export default function GuidedChat() {
             />
           ))}
         </div>
-      </div>
+      </ScrollArea>
 
-      <div className="container mx-auto max-w-3xl">
-        <RecommendedResponses
-          responses={MOCK_RESPONSES}
-          onSelectResponse={handleResponseSelect}
-        />
+      <div className="fixed bottom-0 left-0 right-0">
+        <div className="container max-w-3xl mx-auto">
+          <RecommendedResponses
+            responses={MOCK_RESPONSES}
+            onSelectResponse={handleResponseSelect}
+          />
+        </div>
       </div>
 
       {selectedResponse && (

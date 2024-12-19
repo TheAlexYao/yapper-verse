@@ -1,7 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
 
 interface ChatHeaderProps {
   scenario: {
@@ -24,67 +23,49 @@ export function ChatHeader({ scenario, character, metrics }: ChatHeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+    <div className="fixed top-0 left-0 right-0 z-10">
+      {/* Compact HUD-style score bar */}
+      <div className="bg-background/95 backdrop-blur-sm border-b px-4 py-2">
+        <div className="flex items-center justify-between max-w-3xl mx-auto">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/scenarios")}
-            className="mr-4"
+            className="mr-2"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold text-foreground">
-              {scenario.title}
-            </h1>
-            <div className="flex items-center mt-1 text-sm text-muted-foreground">
-              <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center mr-2">
-                <img
-                  src={character.avatar}
-                  alt={character.name}
-                  className="w-6 h-6 rounded-full"
-                />
-              </div>
-              <span>{character.name}</span>
+          
+          <div className="flex items-center space-x-6 text-sm">
+            <div className="flex items-center">
+              <span className="mr-2">🎯</span>
+              <span className="font-medium">{metrics.pronunciationScore}%</span>
             </div>
+            <div className="flex items-center">
+              <span className="mr-2">⭐️</span>
+              <span className="font-medium">{metrics.stylePoints}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-2">📝</span>
+              <span className="font-medium">{metrics.sentencesUsed}/{metrics.sentenceLimit}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <img
+              src={character.avatar}
+              alt={character.name}
+              className="w-6 h-6 rounded-full mr-2"
+            />
+            <span className="text-sm font-medium">{character.name}</span>
           </div>
         </div>
-
-        <div className="grid grid-cols-4 gap-4 mt-4">
-          <div className="bg-card rounded-lg p-4 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground mb-2">Pronunciation</div>
-            <div className="text-2xl font-bold text-indigo-500">
-              {metrics.pronunciationScore}%
-            </div>
-            <Progress value={metrics.pronunciationScore} className="h-1 mt-2" />
-          </div>
-          <div className="bg-card rounded-lg p-4 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground mb-2">Style Points</div>
-            <div className="text-2xl font-bold text-purple-500">
-              {metrics.stylePoints}
-            </div>
-            <Progress value={(metrics.stylePoints / 200) * 100} className="h-1 mt-2" />
-          </div>
-          <div className="bg-card rounded-lg p-4 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground mb-2">Progress</div>
-            <div className="text-2xl font-bold text-blue-500">
-              {metrics.progress}%
-            </div>
-            <Progress value={metrics.progress} className="h-1 mt-2" />
-          </div>
-          <div className="bg-card rounded-lg p-4 shadow-sm">
-            <div className="text-sm font-medium text-muted-foreground mb-2">Sentences</div>
-            <div className="text-2xl font-bold text-orange-500">
-              {metrics.sentencesUsed}/{metrics.sentenceLimit}
-            </div>
-            <Progress 
-              value={(metrics.sentencesUsed / metrics.sentenceLimit) * 100} 
-              className="h-1 mt-2" 
-            />
-          </div>
+      </div>
+      
+      {/* Collapsible scenario info */}
+      <div className="bg-accent/50 backdrop-blur-sm px-4 py-2">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-sm font-medium text-center">{scenario.title}</h2>
         </div>
       </div>
     </div>
