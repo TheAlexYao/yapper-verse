@@ -108,9 +108,6 @@ export default function Character() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Meet Your Conversation Partner
             </h1>
-            <p className="text-lg text-muted-foreground mt-2">
-              {scenario.title}
-            </p>
           </div>
 
           {/* Scenario Card */}
@@ -160,10 +157,10 @@ export default function Character() {
                   <div
                     key={character.id}
                     className={cn(
-                      "relative p-6 rounded-lg border bg-card/50 backdrop-blur-sm transition-all duration-300",
+                      "relative p-6 rounded-lg border bg-card/50 backdrop-blur-sm",
                       selectedCharacter?.id === character.id
                         ? "ring-2 ring-[#7843e6]"
-                        : "hover:shadow-lg"
+                        : ""
                     )}
                   >
                     <div className="aspect-square rounded-full overflow-hidden mb-4 bg-muted mx-auto max-w-[200px]">
