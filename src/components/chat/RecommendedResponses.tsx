@@ -36,7 +36,7 @@ export function RecommendedResponses({
   );
 
   return (
-    <div className="border-t bg-background/80 backdrop-blur-sm p-3">
+    <div className="p-3">
       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
         <span className="relative flex h-2 w-2 mr-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yapper-indigo opacity-75"></span>
