@@ -103,24 +103,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
         </form>
       </Form>
 
-      {/* Pokemon-style Badge */}
-      <div className="flex items-center justify-center">
-        <div className="relative bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 p-1 rounded-xl shadow-lg transform hover:scale-105 transition-transform">
-          <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-4 border-4 border-yellow-300">
-            <div className="text-center space-y-1">
-              <h4 className="text-xl font-bold text-white">Scenarios Mastered</h4>
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-4xl font-black text-yellow-300 drop-shadow-lg">{completedCount}</span>
-                <div className="flex -space-x-1">
-                  {[...Array(3)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-6 h-6 bg-yellow-300 rounded-full transform rotate-45 border-2 border-yellow-400"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+      {/* Minimalist Counter */}
+      <div className="flex items-center justify-center mt-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
+          <h4 className="text-xl font-semibold mb-2 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+            Scenarios Completed
+          </h4>
+          <div className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+            {completedCount}
           </div>
         </div>
       </div>

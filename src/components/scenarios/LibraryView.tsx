@@ -2,16 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScenarioCard } from "./ScenarioCard";
 import { Scenario } from "@/pages/ScenarioHub";
-import { 
-  Building2, 
-  Plane, 
-  UtensilsCrossed, 
-  ShoppingBag, 
-  Users,
-  Sparkles,
-  Trophy,
-  Star
-} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,12 +10,12 @@ import {
 } from "@/components/ui/tooltip";
 
 const CATEGORIES = [
-  { id: "All", icon: Sparkles },
-  { id: "Travel", icon: Plane },
-  { id: "Dining", icon: UtensilsCrossed },
-  { id: "Business", icon: Building2 },
-  { id: "Shopping", icon: ShoppingBag },
-  { id: "Social", icon: Users }
+  { id: "All", emoji: "✨" },
+  { id: "Travel", emoji: "✈️" },
+  { id: "Dining", emoji: "🍜" },
+  { id: "Business", emoji: "💼" },
+  { id: "Shopping", emoji: "🛍️" },
+  { id: "Social", emoji: "👥" }
 ];
 
 const MOCK_SCENARIOS: Scenario[] = [
@@ -120,7 +110,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
     <div className="space-y-8">
       {/* Category Filters */}
       <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map(({ id, icon: Icon }) => (
+        {CATEGORIES.map(({ id, emoji }) => (
           <Button
             key={id}
             variant={selectedCategory === id ? "default" : "outline"}
@@ -131,7 +121,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
                 : "hover:bg-accent hover:text-accent-foreground hover:scale-105"
             } gap-2 text-base`}
           >
-            <Icon className="h-5 w-5" />
+            <span role="img" aria-label={id} className="text-lg">{emoji}</span>
             {id}
           </Button>
         ))}
@@ -166,7 +156,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
       </div>
 
       {/* All Scenarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr grid-flow-row-dense">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
         {filteredScenarios.map((scenario) => (
           <ScenarioCard
             key={scenario.id}
