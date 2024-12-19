@@ -60,16 +60,16 @@ export default function GuidedChat() {
   });
 
   const simulateAIResponse = () => {
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: Date.now().toString(),
-        text: "Excellent! Je vous prépare votre café tout de suite.",
-        translation: "Excellent! I'll prepare your coffee right away.",
-        transliteration: "eks-say-LAHN! zhuh voo pray-PAHR vot-ruh kah-FAY too duh SWEET.",
-        isUser: false,
-      };
-      setMessages(prev => [...prev, aiResponse]);
-    }, 1500);
+    const aiResponse: Message = {
+      id: Date.now().toString(),
+      text: "Excellent! Je vous prépare votre café tout de suite.",
+      translation: "Excellent! I'll prepare your coffee right away.",
+      transliteration: "eks-say-LAHN! zhuh voo pray-PAHR vot-ruh kah-FAY too duh SWEET.",
+      isUser: false,
+    };
+    
+    // Update messages immediately instead of using setTimeout
+    setMessages(prev => [...prev, aiResponse]);
   };
 
   const handleResponseSelect = (response: any) => {
