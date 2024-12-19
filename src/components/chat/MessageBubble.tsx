@@ -68,7 +68,13 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               {isUser && (
                 <div className="flex flex-col gap-2 mt-2">
                   {message.audioUrl && (
-                    <audio src={message.audioUrl} controls className="w-full max-w-[200px]" />
+                    <div className="w-full max-w-[200px] rounded-lg overflow-hidden bg-black/10">
+                      <audio 
+                        src={message.audioUrl} 
+                        controls 
+                        className="w-full h-8"
+                      />
+                    </div>
                   )}
                   {message.pronunciationScore && (
                     <button
