@@ -1,5 +1,6 @@
 import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface MessageBubbleProps {
   isUser?: boolean;
@@ -15,23 +16,25 @@ interface MessageBubbleProps {
 export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubbleProps) {
   return (
     <div
-      className={`flex ${
+      className={cn(
+        "flex mb-4",
         isUser ? "justify-end" : "justify-start"
-      } mb-4`}
+      )}
     >
       <div
-        className={`max-w-[80%] rounded-lg p-4 ${
+        className={cn(
+          "max-w-[80%] rounded-lg p-4",
           isUser
             ? "bg-primary text-primary-foreground"
-            : "bg-muted"
-        }`}
+            : "bg-accent"
+        )}
       >
         <div className="flex items-start gap-2">
           {!isUser && onPlayAudio && (
             <Button
               variant="ghost"
               size="icon"
-              className="mt-1 h-6 w-6"
+              className="mt-1 h-6 w-6 hover:bg-accent-foreground/10"
               onClick={onPlayAudio}
             >
               <Play className="h-4 w-4" />
@@ -50,9 +53,11 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               </p>
             )}
             {isUser && message.pronunciationScore && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Pronunciation: {message.pronunciationScore}%
-              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="text-xs px-2 py-1 rounded-full bg-accent-foreground/10">
+                  Pronunciation: {message.pronunciationScore}%
+                </div>
+              </div>
             )}
           </div>
         </div>

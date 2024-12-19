@@ -30,10 +30,10 @@ export function RecommendedResponses({
       </h3>
       <div className="grid gap-2">
         {responses.map((response) => (
-          <div key={response.id} className="relative">
+          <div key={response.id} className="relative group">
             <Button
               variant="outline"
-              className="w-full justify-between text-left h-auto py-3"
+              className="w-full justify-between text-left h-auto py-3 group-hover:border-primary group-hover:bg-accent/50 transition-colors"
               onClick={() => onSelectResponse(response)}
             >
               <div>

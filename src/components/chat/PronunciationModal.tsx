@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mic, Play, RefreshCw } from "lucide-react";
+import { Mic, Play, RefreshCw, Volume2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -28,15 +30,58 @@ export function PronunciationModal({
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioUrl(audioUrl);
+        setHasRecording(true);
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
 
   const handleRecord = () => {
-    setIsRecording(!isRecording);
     if (!isRecording) {
-      setHasRecording(false);
-      setShowResults(false);
+      startRecording();
     } else {
-      setHasRecording(true);
+      stopRecording();
     }
+  };
+
+  const resetRecording = () => {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    setAudioUrl(null);
+    setHasRecording(false);
+    setShowResults(false);
   };
 
   const handleSubmit = () => {
@@ -48,31 +93,30 @@ export function PronunciationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
-          <DialogTitle>Pronunciation Check</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Pronunciation Check</DialogTitle>
+          <DialogDescription>
+            Listen to the correct pronunciation and record your attempt
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon">
-                <Play className="h-4 w-4" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
+              <Button variant="secondary" size="icon" className="shrink-0">
+                <Volume2 className="h-4 w-4" />
               </Button>
-              <div className="text-sm text-muted-foreground">
-                Listen to the correct pronunciation
+              <div className="flex-1">
+                <p className="font-medium">{response.text}</p>
+                <p className="text-sm text-muted-foreground">{response.translation}</p>
+                {response.transliteration && (
+                  <p className="text-sm italic text-muted-foreground">
+                    {response.transliteration}
+                  </p>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="font-medium">{response.text}</p>
-            <p className="text-sm text-muted-foreground">{response.translation}</p>
-            {response.transliteration && (
-              <p className="text-sm italic text-muted-foreground">
-                {response.transliteration}
-              </p>
-            )}
           </div>
 
           <div className="space-y-4">
@@ -80,22 +124,34 @@ export function PronunciationModal({
               <Button
                 variant={isRecording ? "destructive" : "default"}
                 onClick={handleRecord}
+                className="min-w-[140px]"
               >
                 <Mic className="mr-2 h-4 w-4" />
-                {isRecording ? "Stop Recording" : "Start Recording"}
+                {isRecording ? "Stop" : "Record"}
               </Button>
               {hasRecording && (
-                <Button variant="outline" onClick={() => setHasRecording(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={resetRecording}
+                  className="min-w-[140px]"
+                >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Record Again
+                  Reset
                 </Button>
               )}
             </div>
+
+            {audioUrl && (
+              <div className="p-4 rounded-lg bg-accent/50">
+                <audio src={audioUrl} controls className="w-full" />
+              </div>
+            )}
 
             {hasRecording && !showResults && (
               <Button
                 className="w-full"
                 onClick={handleSubmit}
+                variant="default"
               >
                 Submit Recording
               </Button>
@@ -103,14 +159,15 @@ export function PronunciationModal({
 
             {showResults && (
               <div className="space-y-4">
-                <div className="rounded-lg border p-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">85%</div>
+                <div className="rounded-lg border border-border p-6 bg-card">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-primary">85%</div>
+                    <Progress value={85} className="h-2" />
                     <div className="text-sm text-muted-foreground">
                       Pronunciation Score
                     </div>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-6">
                     <h4 className="text-sm font-medium mb-2">Tips:</h4>
                     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                       <li>Pay attention to the stress on the second syllable</li>
@@ -125,8 +182,9 @@ export function PronunciationModal({
                     onSubmit(85);
                     onClose();
                   }}
+                  variant="default"
                 >
-                  Confirm & Send
+                  Continue
                 </Button>
               </div>
             )}
