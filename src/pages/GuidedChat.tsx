@@ -83,6 +83,7 @@ export default function GuidedChat() {
         isUser: false,
       };
       setMessages(prev => [...prev, aiResponse]);
+      scrollToBottom(); // Add scroll after AI response
     }, 1500);
   };
 
@@ -101,6 +102,7 @@ export default function GuidedChat() {
     };
     
     setMessages(prev => [...prev, newMessage]);
+    scrollToBottom(); // Add scroll after user message
     setMetrics({
       ...metrics,
       pronunciationScore: Math.round((metrics.pronunciationScore + score) / 2),
