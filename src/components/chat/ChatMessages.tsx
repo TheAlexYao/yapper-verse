@@ -32,7 +32,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
 
   return (
     <ScrollArea className="h-full relative">
-      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-48">
+      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-72">
         {messages.map((message: Message, index) => {
           const isLastMessage = index === messages.length - 1;
           return (
