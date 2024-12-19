@@ -105,12 +105,12 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
 
       {/* Minimalist Counter */}
       <div className="flex items-center justify-center mt-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
-          <h4 className="text-xl font-semibold mb-2 bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
-            Scenarios Completed
-          </h4>
-          <div className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
-            {completedCount}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+          <div className="flex items-center gap-2">
+            <span role="img" aria-label="celebration" className="text-2xl">🎉</span>
+            <h4 className="text-xl font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+              Scenarios Completed: {completedCount}
+            </h4>
           </div>
         </div>
       </div>

@@ -11,11 +11,14 @@ import {
 
 const CATEGORIES = [
   { id: "All", emoji: "✨" },
+  { id: "Food", emoji: "🍜" },
+  { id: "Dating", emoji: "💏" },
+  { id: "Learning", emoji: "📚" },
+  { id: "Work", emoji: "💼" },
+  { id: "Friends", emoji: "👥" },
   { id: "Travel", emoji: "✈️" },
-  { id: "Dining", emoji: "🍜" },
-  { id: "Business", emoji: "💼" },
   { id: "Shopping", emoji: "🛍️" },
-  { id: "Social", emoji: "👥" }
+  { id: "Play", emoji: "🎮" }
 ];
 
 const MOCK_SCENARIOS: Scenario[] = [
@@ -23,7 +26,7 @@ const MOCK_SCENARIOS: Scenario[] = [
     id: "1",
     title: "Ordering at a Café",
     description: "Learn how to order your favorite drinks and snacks at a local café.",
-    category: "Dining",
+    category: "Food",
     primaryGoal: "Successfully order a drink and food item",
     usefulPhrases: ["Can I have...", "How much is...", "Thank you"],
     culturalNotes: "In many cultures, it's common to greet the staff when entering and leaving.",
@@ -45,7 +48,7 @@ const MOCK_SCENARIOS: Scenario[] = [
     id: "3",
     title: "Business Meeting",
     description: "Navigate a professional business meeting with confidence.",
-    category: "Business",
+    category: "Work",
     primaryGoal: "Successfully participate in a business meeting",
     usefulPhrases: ["Let's discuss...", "I agree with...", "Could you clarify..."],
     culturalNotes: "Business meetings often start with small talk",
@@ -67,7 +70,7 @@ const MOCK_SCENARIOS: Scenario[] = [
     id: "5",
     title: "Making Friends",
     description: "Practice social interactions and making new friends in casual settings.",
-    category: "Social",
+    category: "Friends",
     primaryGoal: "Successfully initiate and maintain casual conversations",
     usefulPhrases: ["Nice to meet you", "What do you do?", "Would you like to..."],
     culturalNotes: "Personal space and greeting customs vary by culture",
