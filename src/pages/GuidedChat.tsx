@@ -85,7 +85,7 @@ export default function GuidedChat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-background to-accent/20">
+    <div className="flex flex-col h-screen">
       <ChatHeader
         scenario={{ title: "Ordering Coffee at a Parisian Café" }}
         character={{
@@ -95,42 +95,42 @@ export default function GuidedChat() {
         onBack={() => navigate("/character")}
       />
 
-      <ScrollArea className="flex-1 pt-16 pb-32">
-        <div className="container max-w-2xl mx-auto px-4">
-          {messages.map((message: Message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isUser={message.isUser}
-              onPlayAudio={!message.isUser ? () => {} : undefined}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-
-      <div className="fixed bottom-0 left-0 right-0">
-        <div className="container max-w-2xl mx-auto px-4">
-          <div className="bg-background/80 backdrop-blur-sm">
-            <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm">
-              <div className="flex items-center">
-                <span className="mr-2">🎯</span>
-                <span className="font-medium">{metrics.pronunciationScore}%</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">⭐️</span>
-                <span className="font-medium">{metrics.stylePoints}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="mr-2">📝</span>
-                <span className="font-medium">{metrics.sentencesUsed}/{metrics.sentenceLimit}</span>
-              </div>
-            </div>
-            
-            <RecommendedResponses
-              responses={MOCK_RESPONSES}
-              onSelectResponse={handleResponseSelect}
-            />
+      <div className="flex-1 relative">
+        <ScrollArea className="absolute inset-0 pt-16">
+          <div className="container max-w-2xl mx-auto px-4 pb-32">
+            {messages.map((message: Message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isUser={message.isUser}
+                onPlayAudio={!message.isUser ? () => {} : undefined}
+              />
+            ))}
           </div>
+        </ScrollArea>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm">
+        <div className="container max-w-2xl mx-auto px-4">
+          <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm">
+            <div className="flex items-center">
+              <span className="mr-2">🎯</span>
+              <span className="font-medium">{metrics.pronunciationScore}%</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-2">⭐️</span>
+              <span className="font-medium">{metrics.stylePoints}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-2">📝</span>
+              <span className="font-medium">{metrics.sentencesUsed}/{metrics.sentenceLimit}</span>
+            </div>
+          </div>
+          
+          <RecommendedResponses
+            responses={MOCK_RESPONSES}
+            onSelectResponse={handleResponseSelect}
+          />
         </div>
       </div>
 
