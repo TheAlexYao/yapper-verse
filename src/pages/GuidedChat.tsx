@@ -96,8 +96,8 @@ export default function GuidedChat() {
       />
 
       <div className="flex-1 relative">
-        <ScrollArea className="absolute inset-0 pt-16">
-          <div className="container max-w-2xl mx-auto px-4 pb-32">
+        <ScrollArea className="absolute inset-0">
+          <div className="container max-w-2xl mx-auto px-4 pt-16 pb-[calc(2rem+180px)]">
             {messages.map((message: Message) => (
               <MessageBubble
                 key={message.id}
