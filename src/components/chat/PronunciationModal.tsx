@@ -107,14 +107,14 @@ export function PronunciationModal({
               <Button variant="secondary" size="icon" className="shrink-0">
                 <Volume2 className="h-4 w-4" />
               </Button>
-              <div className="flex-1">
+              <div className="flex-1 space-y-1">
                 <p className="font-medium">{response.text}</p>
-                <p className="text-sm text-muted-foreground">{response.translation}</p>
                 {response.transliteration && (
                   <p className="text-sm italic text-muted-foreground">
                     {response.transliteration}
                   </p>
                 )}
+                <p className="text-sm text-muted-foreground">{response.translation}</p>
               </div>
             </div>
           </div>
