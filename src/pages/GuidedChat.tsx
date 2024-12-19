@@ -95,7 +95,7 @@ export default function GuidedChat() {
         onBack={() => navigate("/character")}
       />
 
-      <ScrollArea className="flex-1 pt-24 pb-[220px] md:pb-[180px]">
+      <ScrollArea className="flex-1 pt-24 pb-[180px] md:pb-[140px]">
         <div className="container max-w-2xl mx-auto px-4">
           {messages.map((message: Message) => (
             <MessageBubble
@@ -111,7 +111,6 @@ export default function GuidedChat() {
       <div className="fixed bottom-0 left-0 right-0 z-20">
         <div className="container max-w-2xl mx-auto px-4">
           <div className="bg-background/80 backdrop-blur-sm rounded-t-lg border-t">
-            {/* Score Bar */}
             <div className="flex items-center justify-center space-x-6 p-3 border-b text-sm bg-white/5">
               <div className="flex items-center">
                 <span className="mr-2">🎯</span>
