@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 
@@ -28,13 +28,15 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     }
   };
 
-  // Use useLayoutEffect for immediate DOM measurements
-  useLayoutEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Backup scroll for dynamic content
+  // Initial scroll on mount
   useEffect(() => {
+    scrollToBottom();
+  }, []); // Empty dependency array for componentDidMount equivalent
+
+  // Scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+    // Backup scroll for dynamic content loading
     const timeoutId = setTimeout(scrollToBottom, 50);
     return () => clearTimeout(timeoutId);
   }, [messages]);
