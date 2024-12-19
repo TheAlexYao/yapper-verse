@@ -27,9 +27,15 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     }
   };
 
+  // Call scrollToBottom whenever messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Add a small delay to ensure the DOM has updated
+    const timeoutId = setTimeout(() => {
+      scrollToBottom();
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [messages]); // Re-run effect when messages array changes
 
   return (
     <ScrollArea className="absolute inset-0" viewportRef={viewportRef}>
