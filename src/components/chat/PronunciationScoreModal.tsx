@@ -52,14 +52,14 @@ export function PronunciationScoreModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-card">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Pronunciation Analysis</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold">Pronunciation Analysis</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Overall Scores */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <div className="text-sm font-medium">Accuracy</div>
               <div className="flex items-center gap-2">
@@ -111,7 +111,7 @@ export function PronunciationScoreModal({
                   <div className="flex items-center gap-2">
                     <Progress
                       value={word.PronunciationAssessment.AccuracyScore}
-                      className="w-24 h-2"
+                      className="w-16 sm:w-24 h-2"
                     />
                     <span className={`text-sm font-bold ${getScoreColor(word.PronunciationAssessment.AccuracyScore)}`}>
                       {Math.round(word.PronunciationAssessment.AccuracyScore)}%
@@ -123,7 +123,7 @@ export function PronunciationScoreModal({
           </div>
 
           {/* AI Advice */}
-          <div className="rounded-lg border border-border p-4 bg-accent/30">
+          <div className="rounded-lg border border-border p-3 sm:p-4 bg-accent/30">
             <h3 className="text-lg font-semibold mb-2">Improvement Tips</h3>
             <p className="text-sm text-muted-foreground">{getAdvice()}</p>
           </div>
