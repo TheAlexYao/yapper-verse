@@ -110,9 +110,10 @@ const ScenarioHub = () => {
                         key={scenario.value}
                         value={scenario.value}
                         onSelect={(value) => {
-                          setSearchQuery(scenarios.find(s => s.value === value)?.label || "");
+                          setSearchQuery(scenarios.find((s) => s.value === value)?.label || "");
                           setOpen(false);
                         }}
+                        className="cursor-pointer"
                       >
                         <Check
                           className={cn(
