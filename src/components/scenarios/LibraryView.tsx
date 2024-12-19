@@ -76,20 +76,6 @@ const MOCK_SCENARIOS: Scenario[] = [
   }
 ];
 
-const QUICK_START_TEMPLATES = [
-  {
-    id: "template1",
-    title: "Market Negotiation",
-    description: "Learn to haggle prices at local markets",
-    category: "Shopping",
-    primaryGoal: "Successfully negotiate a better price",
-    usefulPhrases: ["Can you lower the price?", "That's too expensive"],
-    culturalNotes: "Negotiating is expected in many local markets",
-    locationDetails: "Local market",
-    isBookmarked: false,
-  },
-];
-
 interface LibraryViewProps {
   searchQuery: string;
   onScenarioSelect: (scenario: Scenario) => void;
@@ -124,20 +110,6 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
             {id}
           </Button>
         ))}
-      </div>
-
-      {/* Quick Start Templates */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold">Quick Start Templates</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {QUICK_START_TEMPLATES.map((template) => (
-            <ScenarioCard
-              key={template.id}
-              scenario={template}
-              onClick={() => onScenarioSelect(template)}
-            />
-          ))}
-        </div>
       </div>
 
       {/* All Scenarios */}
