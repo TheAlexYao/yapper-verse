@@ -27,19 +27,21 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
         const lastMessage = lastMessageRef.current;
         
         if (scrollArea && lastMessage) {
-          const scrollAreaBottom = scrollArea.getBoundingClientRect().bottom;
-          const lastMessageBottom = lastMessage.getBoundingClientRect().bottom;
-          const offset = lastMessageBottom - scrollAreaBottom + 200; // Add extra padding
-          
-          scrollArea.scrollTop += offset;
+          lastMessage.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+          });
         }
       });
     }
   }, [messages]);
 
   return (
-    <ScrollArea className="h-full relative" ref={scrollAreaRef}>
-      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-72">
+    <ScrollArea 
+      className="h-[calc(100vh-13rem)] relative" 
+      ref={scrollAreaRef}
+    >
+      <div className="container max-w-2xl mx-auto px-4 pt-16">
         {messages.map((message: Message, index) => {
           const isLastMessage = index === messages.length - 1;
           return (
