@@ -77,13 +77,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
                         <Button
                           type="button"
                           variant="ghost"
-                          className="p-0 h-auto hover:bg-transparent"
+                          size="icon"
+                          className="h-8 w-8 p-0"
                         >
-                          <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="font-semibold mb-2 text-base">Example prompts:</p>
+                      <TooltipContent side="right" align="start" className="max-w-xs">
+                        <p className="font-semibold mb-2">Example prompts:</p>
                         <ul className="list-disc list-inside space-y-1">
                           {EXAMPLE_PROMPTS.map((prompt, index) => (
                             <li key={index} className="text-sm">{prompt}</li>
