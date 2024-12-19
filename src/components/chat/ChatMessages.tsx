@@ -25,6 +25,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
         lastMessageRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "end",
+          inline: "nearest"
         });
       });
     }
