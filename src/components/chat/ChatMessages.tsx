@@ -22,14 +22,14 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ 
         behavior: "smooth",
-        block: "start"
+        block: "end"
       });
     }
   }, [messages]);
 
   return (
     <ScrollArea className="h-full relative">
-      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-48 flex flex-col-reverse">
+      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-48">
         {messages.map((message: Message, index) => {
           const isLastMessage = index === messages.length - 1;
           return (
