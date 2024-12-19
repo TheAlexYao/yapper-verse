@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle, Trophy, Star } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 interface CreateScenarioViewProps {
   onScenarioCreated: (scenario: Scenario) => void;
@@ -64,8 +64,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
                   <FormLabel className="text-lg">What would you like to practice?</FormLabel>
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger type="button">
-                        <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="p-0 h-auto hover:bg-transparent"
+                        >
+                          <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="font-semibold mb-2 text-base">Example prompts:</p>
@@ -97,17 +103,23 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
         </form>
       </Form>
 
-      {/* Fancy Score Display */}
-      <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-[#38b6ff]/10 to-[#7843e6]/10 rounded-lg border border-primary/20 backdrop-blur-sm">
-        <Trophy className="h-8 w-8 text-primary" />
-        <div className="space-y-1">
-          <h4 className="text-xl font-semibold">Scenarios Completed</h4>
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-primary">{completedCount}</span>
-            <div className="flex -space-x-1">
-              {[...Array(3)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-              ))}
+      {/* Pokemon-style Badge */}
+      <div className="flex items-center justify-center">
+        <div className="relative bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 p-1 rounded-xl shadow-lg transform hover:scale-105 transition-transform">
+          <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-4 border-4 border-yellow-300">
+            <div className="text-center space-y-1">
+              <h4 className="text-xl font-bold text-white">Scenarios Mastered</h4>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-4xl font-black text-yellow-300 drop-shadow-lg">{completedCount}</span>
+                <div className="flex -space-x-1">
+                  {[...Array(3)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="w-6 h-6 bg-yellow-300 rounded-full transform rotate-45 border-2 border-yellow-400"
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

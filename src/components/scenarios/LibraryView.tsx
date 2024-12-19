@@ -108,8 +108,6 @@ interface LibraryViewProps {
 
 export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps) {
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const completedCount = 3; // Replace with actual completed count
-  const totalScenarios = MOCK_SCENARIOS.length;
 
   const filteredScenarios = MOCK_SCENARIOS.filter((scenario) => {
     const matchesSearch = scenario.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,9 +153,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
       {/* Recently Generated */}
       <div className="space-y-4">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          Recently Generated
-        </h3>
+        <h3 className="text-xl font-semibold">Recently Generated</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredScenarios.slice(0, 3).map((scenario) => (
             <ScenarioCard
@@ -170,7 +166,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
       </div>
 
       {/* All Scenarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr grid-flow-row-dense">
         {filteredScenarios.map((scenario) => (
           <ScenarioCard
             key={scenario.id}

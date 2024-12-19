@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bookmark, Building2, Plane, UtensilsCrossed, ShoppingBag, Users } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import { Scenario } from "@/pages/ScenarioHub";
 
-const categoryIcons: { [key: string]: any } = {
-  Travel: Plane,
-  Dining: UtensilsCrossed,
-  Business: Building2,
-  Shopping: ShoppingBag,
-  Social: Users,
+const categoryEmojis: { [key: string]: string } = {
+  Travel: "✈️",
+  Dining: "🍽️",
+  Business: "💼",
+  Shopping: "🛍️",
+  Social: "👥",
 };
 
 interface ScenarioCardProps {
@@ -16,7 +16,7 @@ interface ScenarioCardProps {
 }
 
 export function ScenarioCard({ scenario, onClick }: ScenarioCardProps) {
-  const CategoryIcon = categoryIcons[scenario.category] || Building2;
+  const emoji = categoryEmojis[scenario.category] || "💼";
 
   return (
     <Card
@@ -26,7 +26,7 @@ export function ScenarioCard({ scenario, onClick }: ScenarioCardProps) {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2">
-            <CategoryIcon className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
+            <span className="text-2xl" role="img" aria-label={scenario.category}>{emoji}</span>
             <CardTitle className="text-xl font-semibold transition-colors group-hover:text-primary">{scenario.title}</CardTitle>
           </div>
           {scenario.isBookmarked && (
