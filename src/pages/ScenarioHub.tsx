@@ -33,11 +33,15 @@ const ScenarioHub = () => {
       </div>
 
       <div className="relative container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
-              Scenarios
+              Your Language Scenes
             </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              You're set to practice [Target Language]. Explore ready-made scenarios, create your own, or revisit past sessions. 
+              Whether it's asking for directions in a busy market or chatting at a local café, we've got the scenes to help you blend right in.
+            </p>
           </div>
 
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg shadow-lg">
@@ -63,12 +67,25 @@ const ScenarioHub = () => {
 
               <div className="p-6">
                 <TabsContent value="library" className="m-0">
+                  <div className="text-center mb-6">
+                    <p className="text-muted-foreground">
+                      Browse our curated scenarios. Filter by category and pick what interests you—ordering lunch, 
+                      finding a hotel, making small talk. Each scenario comes with key phrases and cultural tips 
+                      to keep your practice natural.
+                    </p>
+                  </div>
                   <LibraryView
                     searchQuery=""
                     onScenarioSelect={setSelectedScenario}
                   />
                 </TabsContent>
                 <TabsContent value="past" className="m-0">
+                  <div className="text-center mb-6">
+                    <p className="text-muted-foreground">
+                      Want to revisit something you tried before? Check out your past scenarios or jump into 
+                      bookmarked favorites. Pick up where you left off, or refine what you already know.
+                    </p>
+                  </div>
                   <PastBookmarkedView
                     searchQuery=""
                     onScenarioSelect={setSelectedScenario}
