@@ -16,45 +16,35 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages }: ChatMessagesProps) {
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement | null>(null);
 
-  const scrollToBottom = () => {
-    if (viewportRef.current) {
-      const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-        console.log('Scrolled to bottom, height:', viewport.scrollHeight);
-      }
+  useEffect(() => {
+    if (lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
     }
-  };
-
-  // Initial scroll on mount
-  useEffect(() => {
-    scrollToBottom();
-  }, []); // Empty dependency array for componentDidMount equivalent
-
-  // Scroll when messages change
-  useEffect(() => {
-    scrollToBottom();
-    // Backup scroll for dynamic content loading
-    const timeoutId = setTimeout(scrollToBottom, 50);
-    return () => clearTimeout(timeoutId);
   }, [messages]);
 
   return (
-    <ScrollArea 
-      className="h-full relative" 
-      viewportRef={viewportRef}
-    >
+    <ScrollArea className="h-full relative">
       <div className="container max-w-2xl mx-auto px-4 pt-16 pb-48">
-        {messages.map((message: Message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isUser={message.isUser}
-            onPlayAudio={!message.isUser ? () => {} : undefined}
-          />
-        ))}
+        {messages.map((message: Message, index) => {
+          const isLastMessage = index === messages.length - 1;
+          return (
+            <div
+              key={message.id}
+              ref={isLastMessage ? lastMessageRef : null}
+            >
+              <MessageBubble
+                message={message}
+                isUser={message.isUser}
+                onPlayAudio={!message.isUser ? () => {} : undefined}
+              />
+            </div>
+          );
+        })}
       </div>
     </ScrollArea>
   );
