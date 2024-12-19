@@ -47,7 +47,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
       className="h-full relative" 
       viewportRef={viewportRef}
     >
-      <div className="container max-w-2xl mx-auto px-4 py-4">
+      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-48">
         {messages.map((message: Message) => (
           <MessageBubble
             key={message.id}
