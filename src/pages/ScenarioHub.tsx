@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LibraryView } from "@/components/scenarios/LibraryView";
 import { CreateScenarioView } from "@/components/scenarios/CreateScenarioView";
-import { PastBookmarkedView } from "@/components/scenarios/PastBookmarkedView";
-import { ScenarioDetailPanel } from "@/components/scenarios/ScenarioDetailPanel";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { HistoryView } from "@/components/scenarios/HistoryView";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export interface Scenario {
   id: string;
@@ -20,7 +21,12 @@ export interface Scenario {
 
 const ScenarioHub = () => {
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
-  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  const handleStartScenario = () => {
+    setSelectedScenario(null);
+    navigate("/character", { state: { scenario: selectedScenario } });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,10 +65,10 @@ const ScenarioHub = () => {
                   Scenario Library
                 </TabsTrigger>
                 <TabsTrigger
-                  value="past"
+                  value="history"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
                 >
-                  Past & Bookmarked
+                  History
                 </TabsTrigger>
               </TabsList>
 
@@ -80,15 +86,14 @@ const ScenarioHub = () => {
                     onScenarioSelect={setSelectedScenario}
                   />
                 </TabsContent>
-                <TabsContent value="past" className="m-0">
+                <TabsContent value="history" className="m-0">
                   <div className="text-center mb-6">
                     <p className="text-muted-foreground">
-                      Revisit previous scenarios or return to favorites you've set aside. Whether you want 
-                      to refine your skills in a scene you found challenging or just replay a fun conversation, 
-                      this is your personal library of past adventures.
+                      Revisit your previous scenarios and practice sessions. See your progress and 
+                      refine your skills by replaying conversations you've had before.
                     </p>
                   </div>
-                  <PastBookmarkedView
+                  <HistoryView
                     searchQuery=""
                     onScenarioSelect={setSelectedScenario}
                   />
@@ -98,13 +103,55 @@ const ScenarioHub = () => {
           </div>
         </div>
 
-        {selectedScenario && (
-          <ScenarioDetailPanel
-            scenario={selectedScenario}
-            onClose={() => setSelectedScenario(null)}
-            isMobile={isMobile}
-          />
-        )}
+        <Dialog open={!!selectedScenario} onOpenChange={() => setSelectedScenario(null)}>
+          <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-none shadow-xl">
+            {selectedScenario && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+                    {selectedScenario.title}
+                  </h2>
+                  <p className="text-muted-foreground mt-2">{selectedScenario.description}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Primary Goal</h3>
+                    <p className="mt-1">{selectedScenario.primaryGoal}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Useful Phrases</h3>
+                    <ul className="list-disc list-inside space-y-1 mt-1">
+                      {selectedScenario.usefulPhrases.map((phrase, index) => (
+                        <li key={index} className="text-muted-foreground">{phrase}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Cultural Notes</h3>
+                    <p className="mt-1 text-muted-foreground">{selectedScenario.culturalNotes}</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">Location Details</h3>
+                    <p className="mt-1 text-muted-foreground">{selectedScenario.locationDetails}</p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button 
+                    className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 text-white font-semibold"
+                    onClick={handleStartScenario}
+                  >
+                    Start Scenario
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
