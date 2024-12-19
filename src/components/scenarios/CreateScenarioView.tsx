@@ -103,12 +103,15 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
         </form>
       </Form>
 
-      {/* Minimalist Counter */}
+      {/* Sleek Interactive Counter */}
       <div className="flex items-center justify-center mt-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 py-2 transform hover:scale-105 transition-all duration-300 cursor-pointer hover:shadow-xl"
+          onClick={() => console.log('Counter clicked')} // Add interaction handler here
+        >
           <div className="flex items-center gap-2">
-            <span role="img" aria-label="celebration" className="text-2xl">🎉</span>
-            <h4 className="text-xl font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
+            <span role="img" aria-label="celebration" className="text-2xl animate-bounce">🎉</span>
+            <h4 className="text-lg font-semibold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Scenarios Completed: {completedCount}
             </h4>
           </div>

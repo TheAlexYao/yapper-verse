@@ -13,7 +13,7 @@ const CATEGORIES = [
   { id: "All", emoji: "✨" },
   { id: "Food", emoji: "🍜" },
   { id: "Dating", emoji: "💏" },
-  { id: "Learning", emoji: "📚" },
+  { id: "Learning", emoji: "🧠" },
   { id: "Work", emoji: "💼" },
   { id: "Friends", emoji: "👥" },
   { id: "Travel", emoji: "✈️" },
