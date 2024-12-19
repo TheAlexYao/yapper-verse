@@ -5,8 +5,17 @@ import { MessageBubble } from "@/components/chat/MessageBubble";
 import { RecommendedResponses } from "@/components/chat/RecommendedResponses";
 import { PronunciationModal } from "@/components/chat/PronunciationModal";
 
+interface Message {
+  id: string;
+  text: string;
+  translation?: string;
+  transliteration?: string;
+  pronunciationScore?: number;
+  isUser: boolean;
+}
+
 // Mock data - replace with real data later
-const MOCK_MESSAGES = [
+const MOCK_MESSAGES: Message[] = [
   {
     id: "1",
     text: "Bonjour! Que puis-je vous servir aujourd'hui?",
@@ -42,7 +51,7 @@ export default function GuidedChat() {
   const scenario = location.state?.scenario;
   const character = location.state?.character;
 
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [metrics, setMetrics] = useState({
@@ -93,7 +102,7 @@ export default function GuidedChat() {
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="container mx-auto max-w-3xl">
-          {messages.map((message: any) => (
+          {messages.map((message: Message) => (
             <MessageBubble
               key={message.id}
               message={message}
