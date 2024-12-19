@@ -7,9 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mic, Volume2 } from "lucide-react";
+import { Mic, Play, RefreshCw, Volume2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { PronunciationResults } from "@/components/chat/PronunciationResults";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -32,7 +31,6 @@ export function PronunciationModal({
   const [hasRecording, setHasRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [results, setResults] = useState<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -84,115 +82,112 @@ export function PronunciationModal({
     setAudioUrl(null);
     setHasRecording(false);
     setShowResults(false);
-    setResults(null);
   };
 
   const handleSubmit = () => {
-    // Simulated score and analysis for now
-    const mockResults = {
-      score: 85,
-      words: [
-        { word: response.text.split(" ")[0], score: 90, isCorrect: true },
-        { word: response.text.split(" ")[1], score: 75, isCorrect: false },
-      ],
-      aiTips: [
-        "Focus on the 'r' sound in the second word",
-        "Try to emphasize the stress on the first syllable",
-        "Practice the vowel sounds more carefully",
-      ],
-    };
-    
-    setResults(mockResults);
     setShowResults(true);
-    onSubmit(mockResults.score);
-  };
-
-  const handleClose = () => {
-    resetRecording();
-    onClose();
+    // Simulated score for now
+    const score = Math.floor(Math.random() * 30) + 70;
+    onSubmit(score);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl font-bold">
-            {showResults ? "Pronunciation Results" : "Pronunciation Check"}
-          </DialogTitle>
-          {!showResults && (
-            <DialogDescription>
-              Listen to the correct pronunciation and record your attempt
-            </DialogDescription>
-          )}
+          <DialogTitle className="text-2xl font-bold">Pronunciation Check</DialogTitle>
+          <DialogDescription>
+            Listen to the correct pronunciation and record your attempt
+          </DialogDescription>
         </DialogHeader>
 
-        {!showResults ? (
-          <div className="space-y-6 py-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
-                <Button variant="secondary" size="icon" className="shrink-0">
-                  <Volume2 className="h-4 w-4" />
-                </Button>
-                <div className="flex-1 space-y-1">
-                  <p className="font-medium">{response.text}</p>
-                  {response.transliteration && (
-                    <p className="text-sm italic text-muted-foreground">
-                      {response.transliteration}
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground">{response.translation}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-center gap-4">
-                <Button
-                  variant={isRecording ? "destructive" : "default"}
-                  onClick={handleRecord}
-                  className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
-                >
-                  <Mic className="mr-2 h-4 w-4" />
-                  {isRecording ? "Stop" : "Record"}
-                </Button>
-                {hasRecording && (
-                  <Button 
-                    variant="outline" 
-                    onClick={resetRecording}
-                    className="min-w-[140px]"
-                  >
-                    <Mic className="mr-2 h-4 w-4" />
-                    Reset
-                  </Button>
+        <div className="space-y-6 py-4">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
+              <Button variant="secondary" size="icon" className="shrink-0">
+                <Volume2 className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 space-y-1">
+                <p className="font-medium">{response.text}</p>
+                {response.transliteration && (
+                  <p className="text-sm italic text-muted-foreground">
+                    {response.transliteration}
+                  </p>
                 )}
+                <p className="text-sm text-muted-foreground">{response.translation}</p>
               </div>
-
-              {audioUrl && (
-                <div className="p-4 rounded-lg bg-accent/50">
-                  <audio src={audioUrl} controls className="w-full" />
-                </div>
-              )}
-
-              {hasRecording && !showResults && (
-                <Button
-                  className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
-                  onClick={handleSubmit}
-                >
-                  Submit Recording
-                </Button>
-              )}
             </div>
           </div>
-        ) : (
-          <PronunciationResults
-            score={results.score}
-            transcript={response.text}
-            words={results.words}
-            userAudioUrl={audioUrl}
-            originalAudioUrl="/mock-audio.mp3"
-            aiTips={results.aiTips}
-          />
-        )}
+
+          <div className="space-y-4">
+            <div className="flex justify-center gap-4">
+              <Button
+                variant={isRecording ? "destructive" : "default"}
+                onClick={handleRecord}
+                className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
+              >
+                <Mic className="mr-2 h-4 w-4" />
+                {isRecording ? "Stop" : "Record"}
+              </Button>
+              {hasRecording && (
+                <Button 
+                  variant="outline" 
+                  onClick={resetRecording}
+                  className="min-w-[140px]"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Reset
+                </Button>
+              )}
+            </div>
+
+            {audioUrl && (
+              <div className="p-4 rounded-lg bg-accent/50">
+                <audio src={audioUrl} controls className="w-full" />
+              </div>
+            )}
+
+            {hasRecording && !showResults && (
+              <Button
+                className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+                onClick={handleSubmit}
+              >
+                Submit Recording
+              </Button>
+            )}
+
+            {showResults && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border p-6 bg-card">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-primary">85%</div>
+                    <Progress value={85} className="h-2" />
+                    <div className="text-sm text-muted-foreground">
+                      Pronunciation Score
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium mb-2">Tips:</h4>
+                    <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
+                      <li>Pay attention to the stress on the second syllable</li>
+                      <li>Try to soften the 'r' sound at the end</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+                  onClick={() => {
+                    onSubmit(85);
+                    onClose();
+                  }}
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
