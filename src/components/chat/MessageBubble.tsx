@@ -21,11 +21,16 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
   const [showScoreModal, setShowScoreModal] = useState(false);
   
   const handlePlayUserAudio = () => {
+    console.log("Playing user audio, URL:", message.audioUrl);
     if (message.audioUrl) {
       const audio = new Audio(message.audioUrl);
-      audio.play();
+      audio.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
     }
   };
+
+  console.log("Message data:", { isUser, audioUrl: message.audioUrl });
 
   return (
     <>
