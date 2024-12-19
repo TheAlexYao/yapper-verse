@@ -95,7 +95,7 @@ export default function GuidedChat() {
         onBack={() => navigate("/character")}
       />
 
-      <ScrollArea className="flex-1 pt-16 pb-[180px] md:pb-[140px]">
+      <ScrollArea className="flex-1 pt-16 pb-[220px] md:pb-[180px]">
         <div className="container max-w-2xl mx-auto px-4">
           {messages.map((message: Message) => (
             <MessageBubble
