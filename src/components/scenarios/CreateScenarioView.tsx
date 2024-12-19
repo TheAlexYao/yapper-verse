@@ -83,11 +83,17 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
                           <HelpCircle className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" align="start" className="max-w-xs">
+                      <TooltipContent 
+                        side="right" 
+                        align="start" 
+                        className="max-w-[280px] md:max-w-xs p-4"
+                        sideOffset={5}
+                        alignOffset={-20}
+                      >
                         <p className="font-semibold mb-2">Example prompts:</p>
-                        <ul className="list-disc list-inside space-y-1">
+                        <ul className="list-disc list-inside space-y-2">
                           {EXAMPLE_PROMPTS.map((prompt, index) => (
-                            <li key={index} className="text-sm">{prompt}</li>
+                            <li key={index} className="text-sm leading-relaxed">{prompt}</li>
                           ))}
                         </ul>
                       </TooltipContent>
