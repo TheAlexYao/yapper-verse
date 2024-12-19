@@ -17,22 +17,28 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ messages }: ChatMessagesProps) {
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (lastMessageRef.current) {
+    if (lastMessageRef.current && scrollAreaRef.current) {
       // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
-        lastMessageRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-          inline: "nearest"
-        });
+        const scrollArea = scrollAreaRef.current;
+        const lastMessage = lastMessageRef.current;
+        
+        if (scrollArea && lastMessage) {
+          const scrollAreaBottom = scrollArea.getBoundingClientRect().bottom;
+          const lastMessageBottom = lastMessage.getBoundingClientRect().bottom;
+          const offset = lastMessageBottom - scrollAreaBottom + 200; // Add extra padding
+          
+          scrollArea.scrollTop += offset;
+        }
       });
     }
   }, [messages]);
 
   return (
-    <ScrollArea className="h-full relative">
+    <ScrollArea className="h-full relative" ref={scrollAreaRef}>
       <div className="container max-w-2xl mx-auto px-4 pt-16 pb-72">
         {messages.map((message: Message, index) => {
           const isLastMessage = index === messages.length - 1;
