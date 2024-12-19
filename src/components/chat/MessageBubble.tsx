@@ -31,7 +31,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
           className={cn(
             "max-w-[85%] rounded-2xl p-4 shadow-md transition-all duration-200 hover:shadow-lg break-words",
             isUser
-              ? "bg-gradient-to-r from-[#818CF8] to-[#6366F1] text-white"
+              ? "bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] text-white"
               : "bg-gradient-to-r from-card to-accent/30 hover:from-accent/20 hover:to-accent/40"
           )}
         >
@@ -51,7 +51,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               {message.transliteration && (
                 <p className={cn(
                   "text-sm italic break-words",
-                  isUser ? "text-indigo-100" : "text-muted-foreground"
+                  isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
                 )}>
                   {message.transliteration}
                 </p>
@@ -59,7 +59,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               {message.translation && (
                 <p className={cn(
                   "text-sm break-words",
-                  isUser ? "text-indigo-100" : "text-muted-foreground"
+                  isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
                 )}>
                   {message.translation}
                 </p>

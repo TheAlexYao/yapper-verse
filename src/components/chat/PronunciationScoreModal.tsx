@@ -37,9 +37,9 @@ export function PronunciationScoreModal({
   const words = data.NBest[0].Words;
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-primary";
-    if (score >= 75) return "text-indigo-400";
-    return "text-indigo-300";
+    if (score >= 90) return "text-[#9b87f5]";
+    if (score >= 75) return "text-[#7E69AB]";
+    return "text-[#6E59A5]";
   };
 
   const getAdvice = () => {
