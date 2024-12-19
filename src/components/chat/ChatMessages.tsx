@@ -32,24 +32,22 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     }
   };
 
-  // Call scrollToBottom whenever messages change
   useEffect(() => {
     console.log('Messages changed, length:', messages.length);
     
-    // Add a small delay to ensure the DOM has updated
     const timeoutId = setTimeout(() => {
       scrollToBottom();
-    }, 100); // Increased timeout slightly to ensure DOM updates
+    }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [messages]); // Re-run effect when messages array changes
+  }, [messages]);
 
   return (
     <ScrollArea 
-      className="absolute inset-0" 
+      className="h-full relative" 
       viewportRef={viewportRef}
     >
-      <div className="container max-w-2xl mx-auto px-4 pt-16 pb-[calc(2rem+180px)]">
+      <div className="container max-w-2xl mx-auto px-4 py-4">
         {messages.map((message: Message) => (
           <MessageBubble
             key={message.id}
