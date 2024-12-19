@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bookmark } from "lucide-react";
 import { Scenario } from "@/pages/ScenarioHub";
 
 const categoryEmojis: { [key: string]: string } = {
@@ -8,6 +7,12 @@ const categoryEmojis: { [key: string]: string } = {
   Business: "💼",
   Shopping: "🛍️",
   Social: "👥",
+  Food: "🍜",
+  Dating: "💏",
+  Learning: "🧠",
+  Work: "💼",
+  Friends: "👥",
+  Play: "🎮",
 };
 
 interface ScenarioCardProps {
@@ -20,18 +25,13 @@ export function ScenarioCard({ scenario, onClick }: ScenarioCardProps) {
 
   return (
     <Card
-      className="cursor-pointer transition-all duration-300 ease-out hover:shadow-lg hover:scale-[1.02] relative overflow-hidden group h-full"
+      className="cursor-pointer transition-all duration-300 ease-out hover:shadow-lg hover:scale-[1.02] relative overflow-hidden group h-full bg-white/50 backdrop-blur-sm border-muted"
       onClick={onClick}
     >
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl" role="img" aria-label={scenario.category}>{emoji}</span>
-            <CardTitle className="text-xl font-semibold transition-colors group-hover:text-primary">{scenario.title}</CardTitle>
-          </div>
-          {scenario.isBookmarked && (
-            <Bookmark className="h-6 w-6 text-primary transition-colors" fill="currentColor" />
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-2xl" role="img" aria-label={scenario.category}>{emoji}</span>
+          <CardTitle className="text-xl font-semibold transition-colors group-hover:text-primary">{scenario.title}</CardTitle>
         </div>
       </CardHeader>
       <CardContent>

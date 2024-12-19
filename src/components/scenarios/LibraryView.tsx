@@ -2,12 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScenarioCard } from "./ScenarioCard";
 import { Scenario } from "@/pages/ScenarioHub";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 const CATEGORIES = [
   { id: "All", emoji: "✨" },
@@ -97,7 +91,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
   return (
     <div className="space-y-8">
       {/* Category Filters */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3 justify-center md:justify-start">
         {CATEGORIES.map(({ id, emoji }) => (
           <Button
             key={id}
@@ -107,7 +101,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
               selectedCategory === id
                 ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 shadow-lg scale-105"
                 : "hover:bg-accent hover:text-accent-foreground hover:scale-105"
-            } gap-2 text-base`}
+            } gap-2 text-base px-6`}
           >
             <span role="img" aria-label={id} className="text-lg">{emoji}</span>
             {id}
@@ -115,8 +109,8 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
         ))}
       </div>
 
-      {/* All Scenarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+      {/* Scenarios Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
         {filteredScenarios.map((scenario) => (
           <ScenarioCard
             key={scenario.id}
