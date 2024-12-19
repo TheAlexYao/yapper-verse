@@ -11,7 +11,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CreateScenarioViewProps {
   onScenarioCreated: (scenario: Scenario) => void;
@@ -25,7 +32,9 @@ const EXAMPLE_PROMPTS = [
 
 export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProps) {
   const [isGenerating, setIsGenerating] = useState(false);
-  const completedCount = 3; // Replace with actual completed count
+  const [showExamples, setShowExamples] = useState(false);
+  const isMobile = useIsMobile();
+  const completedCount = 3;
   const form = useForm({
     defaultValues: {
       prompt: "",
@@ -39,6 +48,14 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
       origin: { y: 0.6 }
     });
   };
+
+  const ExamplesList = () => (
+    <ul className="list-disc list-inside space-y-2">
+      {EXAMPLE_PROMPTS.map((prompt, index) => (
+        <li key={index} className="text-sm leading-relaxed">{prompt}</li>
+      ))}
+    </ul>
+  );
 
   const onSubmit = async (values: any) => {
     setIsGenerating(true);
@@ -71,34 +88,54 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
               <FormItem>
                 <div className="flex items-center gap-2">
                   <FormLabel className="text-lg">What would you like to practice?</FormLabel>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 p-0"
-                        >
-                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent 
-                        side="right" 
-                        align="start" 
-                        className="max-w-[280px] md:max-w-xs p-4"
-                        sideOffset={5}
-                        alignOffset={-20}
+                  {isMobile ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setShowExamples(true)}
                       >
-                        <p className="font-semibold mb-2">Example prompts:</p>
-                        <ul className="list-disc list-inside space-y-2">
-                          {EXAMPLE_PROMPTS.map((prompt, index) => (
-                            <li key={index} className="text-sm leading-relaxed">{prompt}</li>
-                          ))}
-                        </ul>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Dialog open={showExamples} onOpenChange={setShowExamples}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Example Prompts</DialogTitle>
+                          </DialogHeader>
+                          <div className="mt-4">
+                            <ExamplesList />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 p-0"
+                          >
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                          side="right" 
+                          align="start" 
+                          className="max-w-[280px] md:max-w-xs p-4"
+                          sideOffset={5}
+                          alignOffset={-20}
+                        >
+                          <p className="font-semibold mb-2">Example prompts:</p>
+                          <ExamplesList />
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
                 <Textarea
                   {...field}
