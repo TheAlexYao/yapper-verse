@@ -22,22 +22,24 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
     if (viewportRef.current) {
       const viewport = viewportRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-        console.log('Scrolled to bottom, height:', viewport.scrollHeight);
+        requestAnimationFrame(() => {
+          viewport.scrollTop = viewport.scrollHeight;
+          console.log('Scrolled to bottom, height:', viewport.scrollHeight);
+        });
       }
     }
   };
 
   useEffect(() => {
-    // Scroll immediately for the initial messages
-    scrollToBottom();
-    
-    // And then again after a short delay to ensure all content is rendered
-    const timeoutId = setTimeout(() => {
+    // First, let React finish its rendering
+    Promise.resolve().then(() => {
+      // Then scroll immediately
       scrollToBottom();
-    }, 50);
-
-    return () => clearTimeout(timeoutId);
+      
+      // And once more after a brief delay to catch any dynamic content
+      const timeoutId = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timeoutId);
+    });
   }, [messages]);
 
   return (
