@@ -64,10 +64,13 @@ export default function GuidedChat() {
   useEffect(() => {
     if (viewportRef.current) {
       setTimeout(() => {
-        viewportRef.current?.scrollTo({
-          top: viewportRef.current.scrollHeight,
-          behavior: "smooth"
-        });
+        const scrollContainer = viewportRef.current;
+        if (scrollContainer) {
+          const scrollableContent = scrollContainer.querySelector('[data-radix-scroll-area-viewport]');
+          if (scrollableContent) {
+            scrollableContent.scrollTop = scrollableContent.scrollHeight;
+          }
+        }
       }, 100);
     }
   }, [messages]);
