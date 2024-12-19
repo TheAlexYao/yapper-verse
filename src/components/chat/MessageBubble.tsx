@@ -23,10 +23,10 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-lg p-4",
+          "max-w-[80%] rounded-lg p-4 shadow-md transition-all duration-200 hover:shadow-lg",
           isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-accent"
+            ? "bg-indigo-500 text-white"
+            : "bg-card hover:bg-accent/50"
         )}
       >
         <div className="flex items-start gap-2">
@@ -41,20 +41,26 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
             </Button>
           )}
           <div>
-            <p className="text-base">{message.text}</p>
+            <p className="text-base font-medium">{message.text}</p>
             {message.translation && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={cn(
+                "text-sm mt-1",
+                isUser ? "text-indigo-100" : "text-muted-foreground"
+              )}>
                 {message.translation}
               </p>
             )}
             {message.transliteration && (
-              <p className="text-sm italic text-muted-foreground mt-1">
+              <p className={cn(
+                "text-sm italic mt-1",
+                isUser ? "text-indigo-100" : "text-muted-foreground"
+              )}>
                 {message.transliteration}
               </p>
             )}
             {isUser && message.pronunciationScore && (
               <div className="flex items-center gap-2 mt-2">
-                <div className="text-xs px-2 py-1 rounded-full bg-accent-foreground/10">
+                <div className="text-xs px-2 py-1 rounded-full bg-indigo-400/20">
                   Pronunciation: {message.pronunciationScore}%
                 </div>
               </div>

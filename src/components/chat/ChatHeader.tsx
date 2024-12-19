@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
 
 interface ChatHeaderProps {
   scenario: {
@@ -40,40 +41,49 @@ export function ChatHeader({ scenario, character, metrics }: ChatHeaderProps) {
               {scenario.title}
             </h1>
             <div className="flex items-center mt-1 text-sm text-muted-foreground">
-              <img
-                src={character.avatar}
-                alt={character.name}
-                className="w-6 h-6 rounded-full mr-2"
-              />
+              <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center mr-2">
+                <img
+                  src={character.avatar}
+                  alt={character.name}
+                  className="w-6 h-6 rounded-full"
+                />
+              </div>
               <span>{character.name}</span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-4 mt-4">
-          <div className="text-center">
-            <div className="text-sm font-medium">Pronunciation</div>
-            <div className="text-2xl font-bold text-primary">
+          <div className="bg-card rounded-lg p-4 shadow-sm">
+            <div className="text-sm font-medium text-muted-foreground mb-2">Pronunciation</div>
+            <div className="text-2xl font-bold text-indigo-500">
               {metrics.pronunciationScore}%
             </div>
+            <Progress value={metrics.pronunciationScore} className="h-1 mt-2" />
           </div>
-          <div className="text-center">
-            <div className="text-sm font-medium">Style Points</div>
-            <div className="text-2xl font-bold text-primary">
+          <div className="bg-card rounded-lg p-4 shadow-sm">
+            <div className="text-sm font-medium text-muted-foreground mb-2">Style Points</div>
+            <div className="text-2xl font-bold text-purple-500">
               {metrics.stylePoints}
             </div>
+            <Progress value={(metrics.stylePoints / 200) * 100} className="h-1 mt-2" />
           </div>
-          <div className="text-center">
-            <div className="text-sm font-medium">Progress</div>
-            <div className="text-2xl font-bold text-primary">
+          <div className="bg-card rounded-lg p-4 shadow-sm">
+            <div className="text-sm font-medium text-muted-foreground mb-2">Progress</div>
+            <div className="text-2xl font-bold text-blue-500">
               {metrics.progress}%
             </div>
+            <Progress value={metrics.progress} className="h-1 mt-2" />
           </div>
-          <div className="text-center">
-            <div className="text-sm font-medium">Sentences</div>
-            <div className="text-2xl font-bold text-primary">
+          <div className="bg-card rounded-lg p-4 shadow-sm">
+            <div className="text-sm font-medium text-muted-foreground mb-2">Sentences</div>
+            <div className="text-2xl font-bold text-orange-500">
               {metrics.sentencesUsed}/{metrics.sentenceLimit}
             </div>
+            <Progress 
+              value={(metrics.sentencesUsed / metrics.sentenceLimit) * 100} 
+              className="h-1 mt-2" 
+            />
           </div>
         </div>
       </div>

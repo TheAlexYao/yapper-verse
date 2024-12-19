@@ -100,7 +100,7 @@ export default function GuidedChat() {
         metrics={metrics}
       />
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 bg-gradient-to-b from-background to-accent/20">
         <div className="container mx-auto max-w-3xl">
           {messages.map((message: Message) => (
             <MessageBubble
