@@ -23,7 +23,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-lg p-4 shadow-md transition-all duration-200 hover:shadow-lg",
+          "max-w-[80%] rounded-lg p-4 shadow-md transition-all duration-200 hover:shadow-lg break-words",
           isUser
             ? "bg-yapper-indigo text-white"
             : "bg-card hover:bg-accent/50"
@@ -40,11 +40,11 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
               <Play className="h-4 w-4" />
             </Button>
           )}
-          <div>
-            <p className="text-base font-medium">{message.text}</p>
+          <div className="space-y-1">
+            <p className="text-base font-medium break-words">{message.text}</p>
             {message.transliteration && (
               <p className={cn(
-                "text-sm italic mt-1",
+                "text-sm italic",
                 isUser ? "text-indigo-100" : "text-muted-foreground"
               )}>
                 {message.transliteration}
@@ -52,7 +52,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
             )}
             {message.translation && (
               <p className={cn(
-                "text-sm mt-1",
+                "text-sm",
                 isUser ? "text-indigo-100" : "text-muted-foreground"
               )}>
                 {message.translation}

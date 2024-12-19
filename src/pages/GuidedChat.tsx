@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { RecommendedResponses } from "@/components/chat/RecommendedResponses";
 import { PronunciationModal } from "@/components/chat/PronunciationModal";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Message {
   id: string;
@@ -48,10 +49,7 @@ const MOCK_RESPONSES = [
 ];
 
 export default function GuidedChat() {
-  const location = useLocation();
-  const scenario = location.state?.scenario;
-  const character = location.state?.character;
-
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
@@ -89,19 +87,32 @@ export default function GuidedChat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-background to-accent/20">
       <ChatHeader
-        scenario={scenario || { title: "Ordering Coffee at a Parisian Café" }}
-        character={
-          character || {
-            name: "Marie",
-            avatar: "/placeholder.svg",
-          }
-        }
+        scenario={{ title: "Ordering Coffee at a Parisian Café" }}
+        character={{
+          name: "Marie",
+          avatar: "/placeholder.svg",
+        }}
         metrics={metrics}
+        onBack={() => navigate("/character")}
       />
 
-      {/* Add padding-top to account for fixed header and padding-bottom for responses */}
+      {/* Character Card */}
+      <div className="fixed right-4 top-24 z-10 hidden lg:block">
+        <div className="bg-card/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border w-48">
+          <div className="flex flex-col items-center text-center">
+            <Avatar className="w-16 h-16 mb-2">
+              <AvatarImage src="/placeholder.svg" alt="Marie" />
+              <AvatarFallback>M</AvatarFallback>
+            </Avatar>
+            <h3 className="font-medium">Marie</h3>
+            <p className="text-sm text-muted-foreground">Parisian Barista</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Area with proper padding */}
       <ScrollArea className="flex-1 pt-24 pb-[180px] md:pb-[140px]">
         <div className="container max-w-3xl mx-auto px-4">
           {messages.map((message: Message) => (
@@ -115,7 +126,8 @@ export default function GuidedChat() {
         </div>
       </ScrollArea>
 
-      <div className="fixed bottom-0 left-0 right-0">
+      {/* Fixed Response Section */}
+      <div className="fixed bottom-0 left-0 right-0 z-20">
         <div className="container max-w-3xl mx-auto">
           <RecommendedResponses
             responses={MOCK_RESPONSES}

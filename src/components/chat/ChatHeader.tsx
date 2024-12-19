@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 
 interface ChatHeaderProps {
   scenario: {
@@ -17,11 +16,10 @@ interface ChatHeaderProps {
     sentencesUsed: number;
     sentenceLimit: number;
   };
+  onBack: () => void;
 }
 
-export function ChatHeader({ scenario, character, metrics }: ChatHeaderProps) {
-  const navigate = useNavigate();
-
+export function ChatHeader({ scenario, character, metrics, onBack }: ChatHeaderProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-10">
       {/* Compact HUD-style score bar */}
@@ -30,7 +28,7 @@ export function ChatHeader({ scenario, character, metrics }: ChatHeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/scenarios")}
+            onClick={onBack}
             className="mr-2"
           >
             <ArrowLeft className="h-4 w-4" />

@@ -30,12 +30,12 @@ export function RecommendedResponses({
           <Button
             key={response.id}
             variant="outline"
-            className="w-full justify-start text-left h-auto py-2 hover:bg-accent/50 transition-all duration-200"
+            className="w-full justify-start text-left h-auto py-2 hover:bg-accent/50 transition-all duration-200 break-words"
             onClick={() => onSelectResponse(response)}
           >
             <div>
-              <div className="font-medium">{response.text}</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="font-medium break-words">{response.text}</div>
+              <div className="text-sm text-muted-foreground break-words">
                 {response.translation}
               </div>
             </div>
