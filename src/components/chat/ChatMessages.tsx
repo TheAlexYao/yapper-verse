@@ -20,10 +20,13 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
 
   useEffect(() => {
     if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
+      // Use a small timeout to ensure the DOM has updated
+      setTimeout(() => {
+        lastMessageRef.current?.scrollIntoView({ 
+          behavior: "smooth",
+          block: "end"
+        });
+      }, 100);
     }
   }, [messages]);
 
