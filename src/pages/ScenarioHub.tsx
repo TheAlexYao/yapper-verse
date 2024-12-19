@@ -4,22 +4,7 @@ import { LibraryView } from "@/components/scenarios/LibraryView";
 import { CreateScenarioView } from "@/components/scenarios/CreateScenarioView";
 import { PastBookmarkedView } from "@/components/scenarios/PastBookmarkedView";
 import { ScenarioDetailPanel } from "@/components/scenarios/ScenarioDetailPanel";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 export interface Scenario {
   id: string;
@@ -34,39 +19,8 @@ export interface Scenario {
 }
 
 const ScenarioHub = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
-  const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  // Sample scenarios for the combobox
-  const scenarios = [
-    {
-      value: "cafe",
-      label: "Ordering at a Café",
-      category: "Dining",
-    },
-    {
-      value: "hotel",
-      label: "Hotel Check-in",
-      category: "Travel",
-    },
-    {
-      value: "meeting",
-      label: "Business Meeting",
-      category: "Business",
-    },
-    {
-      value: "shopping",
-      label: "Shopping for Clothes",
-      category: "Shopping",
-    },
-    {
-      value: "friends",
-      label: "Making Friends",
-      category: "Social",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,50 +38,6 @@ const ScenarioHub = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Scenarios
             </h1>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-full md:w-[300px] justify-between border-2 focus:border-primary transition-colors duration-200 bg-card/50 backdrop-blur-sm"
-                >
-                  {searchQuery || "Search scenarios..."}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full md:w-[300px] p-0">
-                <Command>
-                  <CommandInput 
-                    placeholder="Search scenarios..." 
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                  />
-                  <CommandEmpty>No scenario found.</CommandEmpty>
-                  <CommandGroup heading="Scenarios">
-                    {scenarios.map((scenario) => (
-                      <CommandItem
-                        key={scenario.value}
-                        value={scenario.value}
-                        onSelect={(value) => {
-                          setSearchQuery(scenarios.find((s) => s.value === value)?.label || "");
-                          setOpen(false);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            searchQuery === scenario.label ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {scenario.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
           </div>
 
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg shadow-lg">
@@ -154,13 +64,13 @@ const ScenarioHub = () => {
               <div className="p-6">
                 <TabsContent value="library" className="m-0">
                   <LibraryView
-                    searchQuery={searchQuery}
+                    searchQuery=""
                     onScenarioSelect={setSelectedScenario}
                   />
                 </TabsContent>
                 <TabsContent value="past" className="m-0">
                   <PastBookmarkedView
-                    searchQuery={searchQuery}
+                    searchQuery=""
                     onScenarioSelect={setSelectedScenario}
                   />
                 </TabsContent>
