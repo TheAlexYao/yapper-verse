@@ -124,7 +124,7 @@ export function PronunciationModal({
               <Button
                 variant={isRecording ? "destructive" : "default"}
                 onClick={handleRecord}
-                className="min-w-[140px]"
+                className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
               >
                 <Mic className="mr-2 h-4 w-4" />
                 {isRecording ? "Stop" : "Record"}
@@ -149,9 +149,8 @@ export function PronunciationModal({
 
             {hasRecording && !showResults && (
               <Button
-                className="w-full"
+                className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
                 onClick={handleSubmit}
-                variant="default"
               >
                 Submit Recording
               </Button>
@@ -177,12 +176,11 @@ export function PronunciationModal({
                 </div>
 
                 <Button
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
                   onClick={() => {
                     onSubmit(85);
                     onClose();
                   }}
-                  variant="default"
                 >
                   Continue
                 </Button>
