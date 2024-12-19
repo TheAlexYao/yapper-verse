@@ -88,7 +88,6 @@ const QUICK_START_TEMPLATES = [
     locationDetails: "Local market",
     isBookmarked: false,
   },
-  // Add more templates
 ];
 
 interface LibraryViewProps {
@@ -136,20 +135,6 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
               key={template.id}
               scenario={template}
               onClick={() => onScenarioSelect(template)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Recently Generated */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold">Recently Generated</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredScenarios.slice(0, 3).map((scenario) => (
-            <ScenarioCard
-              key={scenario.id}
-              scenario={scenario}
-              onClick={() => onScenarioSelect(scenario)}
             />
           ))}
         </div>
