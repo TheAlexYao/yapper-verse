@@ -227,19 +227,16 @@ export default function GuidedChat() {
   };
 
   const handlePronunciationComplete = (score: number, audioUrl?: string) => {
-    console.log("Creating new message with audioUrl:", audioUrl);
-    
     const newMessage = {
       id: Date.now().toString(),
       text: selectedResponse.text,
       translation: selectedResponse.translation,
       pronunciationScore: score,
       pronunciationData: selectedResponse.pronunciationData,
-      audioUrl: audioUrl, // Make sure this is being passed correctly
+      audioUrl,
       isUser: true,
     };
     
-    console.log("New message object:", newMessage);
     setMessages(prev => [...prev, newMessage]);
     setMetrics({
       ...metrics,

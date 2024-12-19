@@ -19,18 +19,6 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubbleProps) {
   const [showScoreModal, setShowScoreModal] = useState(false);
-  
-  const handlePlayUserAudio = () => {
-    console.log("Playing user audio, URL:", message.audioUrl);
-    if (message.audioUrl) {
-      const audio = new Audio(message.audioUrl);
-      audio.play().catch(error => {
-        console.error("Error playing audio:", error);
-      });
-    }
-  };
-
-  console.log("Message data:", { isUser, message });
 
   return (
     <>
@@ -55,16 +43,6 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                 size="icon"
                 className="mt-1 h-6 w-6 hover:bg-accent-foreground/10"
                 onClick={onPlayAudio}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            )}
-            {isUser && message.audioUrl && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mt-1 h-6 w-6 hover:bg-white/20"
-                onClick={handlePlayUserAudio}
               >
                 <Play className="h-4 w-4" />
               </Button>
