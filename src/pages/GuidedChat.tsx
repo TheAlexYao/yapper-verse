@@ -101,8 +101,8 @@ export default function GuidedChat() {
         metrics={metrics}
       />
 
-      {/* Add padding-top to account for fixed header */}
-      <ScrollArea className="flex-1 pt-24 pb-[200px]">
+      {/* Add padding-top to account for fixed header and padding-bottom for responses */}
+      <ScrollArea className="flex-1 pt-24 pb-[180px] md:pb-[140px]">
         <div className="container max-w-3xl mx-auto px-4">
           {messages.map((message: Message) => (
             <MessageBubble
