@@ -30,7 +30,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
     }
   };
 
-  console.log("Message data:", { isUser, audioUrl: message.audioUrl });
+  console.log("Message data:", { isUser, message });
 
   return (
     <>
