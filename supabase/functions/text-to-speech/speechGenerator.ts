@@ -28,7 +28,7 @@ export async function generateSpeech(
   }
 
   const ssml = `
-    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${languageCode}">
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
       <voice name="${voiceName}">
         <prosody${rateAdjustment}>
           ${text}
@@ -68,26 +68,26 @@ export async function generateSpeech(
       ssml,
       result => {
         try {
-          console.log('Synthesis result received');
-          
           if (audioData) {
             console.log('Using audio data from synthesis completed event');
+            synthesizer.close();
             resolve(audioData);
             return;
           }
 
           if (result?.audioData) {
             console.log('Using audio data from synthesis result');
+            synthesizer.close();
             resolve(result.audioData);
             return;
           }
 
+          synthesizer.close();
           reject(new Error('No audio data in synthesis result'));
         } catch (error) {
           console.error('Error processing synthesis result:', error);
-          reject(error);
-        } finally {
           synthesizer.close();
+          reject(error);
         }
       },
       error => {
