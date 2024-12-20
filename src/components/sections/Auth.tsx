@@ -46,6 +46,7 @@ const Auth = () => {
             providers={["google"]}
             view="sign_in"
             showLinks={false}
+            redirectTo={window.location.origin + '/auth/callback'}
           />
         </div>
 

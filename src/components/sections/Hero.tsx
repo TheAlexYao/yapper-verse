@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="pt-32 pb-20 px-4 relative overflow-hidden">
       <div className="container mx-auto text-center relative">
@@ -17,6 +20,7 @@ const Hero = () => {
           <Button 
             size="xl"
             className="bg-[#38b6ff] hover:bg-[#38b6ff]/90 hover:scale-105 transform transition-all duration-200 shadow-[0_0_15px_rgba(56,182,255,0.3)] hover:shadow-[0_0_25px_rgba(56,182,255,0.5)] w-full md:w-auto text-xl py-6 px-8"
+            onClick={() => navigate('/auth')}
           >
             Begin Your Journey
           </Button>
@@ -24,6 +28,7 @@ const Hero = () => {
             variant="outline" 
             size="xl"
             className="group hover:scale-105 transform transition-all duration-200 w-full md:w-auto text-xl py-6 px-8"
+            onClick={() => navigate('/auth')}
           >
             Watch Demo
             <span className="ml-2 inline-block group-hover:translate-x-1 transition-transform">→</span>
