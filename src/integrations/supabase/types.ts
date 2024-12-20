@@ -275,6 +275,7 @@ export type Database = {
           custom_goals: string[] | null
           full_name: string | null
           id: string
+          languages_learning: string[] | null
           learning_goals: string[] | null
           native_language: string | null
           onboarding_completed: boolean | null
@@ -289,6 +290,7 @@ export type Database = {
           custom_goals?: string[] | null
           full_name?: string | null
           id: string
+          languages_learning?: string[] | null
           learning_goals?: string[] | null
           native_language?: string | null
           onboarding_completed?: boolean | null
@@ -303,6 +305,7 @@ export type Database = {
           custom_goals?: string[] | null
           full_name?: string | null
           id?: string
+          languages_learning?: string[] | null
           learning_goals?: string[] | null
           native_language?: string | null
           onboarding_completed?: boolean | null

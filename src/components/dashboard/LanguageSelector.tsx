@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { languages } from "@/components/onboarding/steps/language/languages";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LanguageSelectorProps {
   currentLanguage: string;
@@ -14,7 +17,35 @@ export function LanguageSelector({
   onLanguageChange,
   onAddLanguage 
 }: LanguageSelectorProps) {
-  const activeLanguages = ["fr-FR", "es-ES"]; // This would come from user data
+  const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchUserLanguages() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('languages_learning')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        setActiveLanguages(data.languages_learning || []);
+      } catch (error) {
+        console.error('Error fetching user languages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load language preferences",
+          variant: "destructive",
+        });
+      }
+    }
+
+    fetchUserLanguages();
+  }, []);
 
   return (
     <Card className="p-6">
