@@ -1,4 +1,4 @@
-import { useSession } from "@supabase/auth-helpers-react";
+import { useSession, useSessionContext } from "@supabase/auth-helpers-react";
 import { Navigate } from "react-router-dom";
 
 interface AuthGuardProps {
@@ -7,7 +7,13 @@ interface AuthGuardProps {
 
 export const AuthGuard = ({ children }: AuthGuardProps) => {
   const session = useSession();
+  const { isLoading } = useSessionContext();
   const isDevelopment = import.meta.env.DEV;
+
+  // Show nothing while loading to prevent flash of redirect
+  if (isLoading) {
+    return null;
+  }
 
   // Allow access in development mode or if user is authenticated
   if (isDevelopment || session) {
