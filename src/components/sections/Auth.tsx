@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Auth as SupabaseAuth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const session = useSession();
   const supabase = useSupabaseClient();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (session) {
-      // Check if user has a profile
       const checkProfile = async () => {
         try {
           console.log('Auth flow - Session detected:', session.user.id);
@@ -21,31 +22,28 @@ const Auth = () => {
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
           if (error) {
             console.error('Error checking profile:', error);
-            return;
+            throw error;
           }
 
-          console.log('Auth flow - Profile check result:', profile);
-
           if (!profile) {
-            // If no profile exists, create one
-            console.log('Auth flow - Creating new profile for user:', session.user.id);
+            console.log('Auth flow - No profile found, creating new profile');
             const { error: insertError } = await supabase
               .from('profiles')
               .insert([
                 {
                   id: session.user.id,
-                  full_name: session.user.user_metadata.full_name || session.user.user_metadata.name,
+                  full_name: session.user.user_metadata.full_name,
                   avatar_url: session.user.user_metadata.avatar_url,
                 }
               ]);
 
             if (insertError) {
               console.error('Error creating profile:', insertError);
-              return;
+              throw insertError;
             }
             console.log('Auth flow - Profile created, redirecting to onboarding...');
             navigate("/onboarding");
@@ -56,14 +54,19 @@ const Auth = () => {
             console.log('Auth flow - Profile complete, redirecting to dashboard...');
             navigate("/dashboard");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error in checkProfile:', error);
+          toast({
+            title: "Error",
+            description: "There was a problem setting up your profile. Please try again.",
+            variant: "destructive",
+          });
         }
       };
 
       checkProfile();
     }
-  }, [session, navigate, supabase]);
+  }, [session, navigate, supabase, toast]);
 
   return (
     <section className="min-h-screen flex items-center justify-center px-4 py-12">
