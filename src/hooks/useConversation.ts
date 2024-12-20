@@ -7,6 +7,7 @@ import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 export type Message = Omit<GuidedMessage, 'content' | 'is_user'> & {
   text: string;  // maps to content
   isUser: boolean;  // maps to is_user
+  reference_audio_url?: string;  // add this line
 };
 
 export const useConversation = (characterId: string | undefined) => {

@@ -27,6 +27,7 @@ export interface GuidedMessage {
   pronunciation_score?: number;
   pronunciation_data?: any;
   audio_url?: string;
+  reference_audio_url?: string;
   sentence_count?: number;
   created_at?: string;
   updated_at?: string;
