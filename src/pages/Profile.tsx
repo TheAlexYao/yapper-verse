@@ -6,6 +6,7 @@ import { VoiceSettings } from "@/components/profile/VoiceSettings";
 import { LearningGoals } from "@/components/profile/LearningGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Form } from "@/components/ui/form";
 
 interface UserProfile {
   full_name: string;
@@ -25,6 +26,9 @@ const Profile = () => {
     defaultValues: {
       nativeLanguage: "",
       targetLanguage: "",
+      voicePreference: "",
+      learningGoals: [],
+      customGoals: [],
     },
   });
 
@@ -46,6 +50,9 @@ const Profile = () => {
         form.reset({
           nativeLanguage: data.native_language || "",
           targetLanguage: data.target_language || "",
+          voicePreference: data.voice_preference || "",
+          learningGoals: data.learning_goals || [],
+          customGoals: data.custom_goals || [],
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -62,17 +69,6 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  const handleVoiceChange = (voice: string) => {
-    setProfile(prev => prev ? { ...prev, voice_preference: voice } : null);
-  };
-
-  const handleGoalsUpdate = (goals: string[], type: 'learning' | 'custom') => {
-    setProfile(prev => prev ? {
-      ...prev,
-      [type === 'learning' ? 'learning_goals' : 'custom_goals']: goals
-    } : null);
-  };
-
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -87,18 +83,30 @@ const Profile = () => {
         <div className="space-y-8">
           <h1 className="text-3xl font-bold">Your Profile</h1>
 
-          <LanguageSettings form={form} />
-          
-          <VoiceSettings
-            currentVoice={profile?.voice_preference || null}
-            onVoiceChange={handleVoiceChange}
-          />
-          
-          <LearningGoals
-            learningGoals={profile?.learning_goals || []}
-            customGoals={profile?.custom_goals || []}
-            onGoalsUpdate={handleGoalsUpdate}
-          />
+          <Form {...form}>
+            <form className="space-y-8">
+              <LanguageSettings form={form} />
+              
+              <VoiceSettings
+                currentVoice={profile?.voice_preference || null}
+                onVoiceChange={(voice) => {
+                  form.setValue("voicePreference", voice);
+                }}
+              />
+              
+              <LearningGoals
+                learningGoals={profile?.learning_goals || []}
+                customGoals={profile?.custom_goals || []}
+                onGoalsUpdate={(goals, type) => {
+                  if (type === 'learning') {
+                    form.setValue("learningGoals", goals);
+                  } else {
+                    form.setValue("customGoals", goals);
+                  }
+                }}
+              />
+            </form>
+          </Form>
         </div>
       </main>
     </div>
