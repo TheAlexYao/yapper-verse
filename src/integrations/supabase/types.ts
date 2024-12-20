@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      daily_tips: {
+        Row: {
+          id: string
+          language_code: string
+          tip_text: string
+          cultural_context: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          language_code: string
+          tip_text: string
+          cultural_context?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          language_code?: string
+          tip_text?: string
+          cultural_context?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tips_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          }
+        ]
+      }
       agents: {
         Row: {
           context_info: Json
@@ -241,15 +276,15 @@ export type Database = {
         }
         Update: {
           content_native_language?: string | null
-          content_target_language?: string
-          conversation_id?: string
-          created_at?: string | null
-          id?: string
-          is_direct_voice?: boolean
-          pronunciation_attempt_id?: string | null
-          sender_type?: Database["public"]["Enums"]["sender_type"]
-          storage_path?: string | null
-          updated_at?: string | null
+          content_target_language?: string;
+          conversation_id?: string;
+          created_at?: string | null;
+          id?: string;
+          is_direct_voice?: boolean;
+          pronunciation_attempt_id?: string | null;
+          sender_type?: Database["public"]["Enums"]["sender_type"];
+          storage_path?: string | null;
+          updated_at?: string | null;
         }
         Relationships: [
           {
@@ -351,7 +386,7 @@ export type Database = {
           is_successful?: boolean
           recommendation_id?: string | null
           storage_path?: string
-          telegram_id?: number
+          telegram_id: number
           transcription?: string | null
           transformation_id?: string | null
           updated_at?: string | null
@@ -466,7 +501,7 @@ export type Database = {
           location_details?: string | null
           location_details_translations?: Json | null
           primary_goal?: string | null
-          primary_goal_translations?: Json | null
+          primary_goal_translations?: string | null
           title?: string
           title_translations?: Json | null
           updated_at?: string | null
@@ -549,7 +584,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id?: string
-          telegram_id?: number
+          telegram_id: number
           total_conversations?: number
           total_messages?: number
           total_pronunciation_attempts?: number
@@ -637,7 +672,7 @@ export type Database = {
           first_name?: string | null
           language_code?: string | null
           last_name?: string | null
-          telegram_id?: number
+          telegram_id: number
           updated_at?: string | null
           username?: string | null
         }
@@ -676,7 +711,7 @@ export type Tables<
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
       Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {

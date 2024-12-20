@@ -26,13 +26,12 @@ export function DailyTip({ language }: DailyTipProps) {
           .select('tip_text, cultural_context')
           .eq('language_code', language)
           .limit(1)
-          // Use a random offset to get a different tip each time
-          .offset(Math.floor(Math.random() * 2)); // Assuming we have 2 tips per language
+          .maybeSingle();
 
         if (error) throw error;
         
-        if (data && data.length > 0) {
-          setTip(data[0]);
+        if (data) {
+          setTip(data);
         }
       } catch (error) {
         console.error('Error fetching daily tip:', error);
@@ -47,7 +46,7 @@ export function DailyTip({ language }: DailyTipProps) {
     if (language) {
       fetchDailyTip();
     }
-  }, [language]);
+  }, [language, toast]);
 
   if (!tip) return null;
 
