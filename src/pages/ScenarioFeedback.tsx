@@ -362,25 +362,25 @@ export default function ScenarioFeedback() {
             Back to Scenarios
           </Button>
         </div>
-      </div>
 
-      {selectedUtterance && (
-        <PronunciationModal
-          isOpen={!!selectedUtterance}
-          onClose={() => setSelectedUtterance(null)}
-          utterance={{
-            text: selectedUtterance.text,
-            metrics: {
-              accuracy: selectedUtterance.metrics.accuracy,
-              fluency: selectedUtterance.metrics.fluency,
-              completeness: selectedUtterance.metrics.completeness,
-              overall: selectedUtterance.metrics.overall,
-            },
-            words: selectedUtterance.metrics.words,
-            improvementTip: selectedUtterance.metrics.improvementTip,
-          }}
-        />
-      )}
+        {selectedUtterance && (
+          <PronunciationModal
+            isOpen={!!selectedUtterance}
+            onClose={() => setSelectedUtterance(null)}
+            utterance={{
+              text: selectedUtterance.text,
+              metrics: {
+                accuracy: selectedUtterance.metrics.accuracy,
+                fluency: selectedUtterance.metrics.fluency,
+                completeness: selectedUtterance.metrics.completeness,
+                overall: selectedUtterance.metrics.overall,
+              },
+              words: selectedUtterance.metrics.words,
+              improvementTip: selectedUtterance.metrics.improvementTip,
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
