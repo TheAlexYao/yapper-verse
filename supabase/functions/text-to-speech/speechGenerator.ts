@@ -17,33 +17,30 @@ export async function generateSpeech(
     region: speechRegion,
     voice: voiceName,
     language: languageCode,
-    speed
+    speed,
+    textLength: text.length
   });
   
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-  
-  // Set output format to MP3
   speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
-  // Use descriptive rates instead of percentages for better compatibility
-  let rateValue = "default";
-  if (speed === 'slow') {
-    rateValue = "slow";
-  } else if (speed === 'very-slow') {
-    rateValue = "x-slow";
-  }
+  // Simplified rate values that are well-supported across voices
+  const rateMap = {
+    'normal': 'default',
+    'slow': 'x-slow',
+    'very-slow': 'x-slow'
+  };
 
-  // Construct SSML with proper language and voice settings
   const ssml = `
     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
       <voice name="${voiceName}">
-        <prosody rate="${rateValue}">
+        <prosody rate="${rateMap[speed]}">
           ${text}
         </prosody>
       </voice>
-    </speak>`;
+    </speak>`.trim();
 
-  console.log('Generated SSML:', ssml);
+  console.log('Using SSML:', ssml);
   
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
   let isSynthesizerClosed = false;
@@ -52,16 +49,19 @@ export async function generateSpeech(
     if (!isSynthesizerClosed) {
       synthesizer.close();
       isSynthesizerClosed = true;
+      console.log('Synthesizer closed');
     }
   };
 
   return new Promise((resolve, reject) => {
     let audioData: ArrayBuffer | null = null;
+    let hasError = false;
 
     synthesizer.synthesisCompleted = (s, e) => {
-      console.log('Synthesis completed');
+      console.log('Synthesis completed event received');
       if (e.result.audioData) {
         audioData = e.result.audioData;
+        console.log('Audio data received in synthesis completed event:', audioData.byteLength, 'bytes');
       }
     };
 
@@ -70,10 +70,11 @@ export async function generateSpeech(
     };
 
     synthesizer.synthesizing = (s, e) => {
-      console.log('Synthesizing...');
+      console.log('Synthesizing in progress...');
     };
 
     synthesizer.synthesiscanceled = (s, e) => {
+      hasError = true;
       const errorMessage = `Synthesis canceled: ${e.errorDetails}. Error code: ${e.result.errorDetails}`;
       console.error(errorMessage);
       closeSynthesizer();
@@ -84,22 +85,29 @@ export async function generateSpeech(
       ssml,
       result => {
         try {
+          if (hasError) {
+            console.log('Skipping result processing due to previous error');
+            return;
+          }
+
           if (audioData) {
-            console.log('Using audio data from synthesis completed event');
+            console.log('Using audio data from synthesis completed event:', audioData.byteLength, 'bytes');
             closeSynthesizer();
             resolve(audioData);
             return;
           }
 
           if (result?.audioData) {
-            console.log('Using audio data from synthesis result');
+            console.log('Using audio data from synthesis result:', result.audioData.byteLength, 'bytes');
             closeSynthesizer();
             resolve(result.audioData);
             return;
           }
 
+          const error = new Error('No audio data in synthesis result');
+          console.error(error);
           closeSynthesizer();
-          reject(new Error('No audio data in synthesis result'));
+          reject(error);
         } catch (error) {
           console.error('Error processing synthesis result:', error);
           closeSynthesizer();
@@ -113,14 +121,14 @@ export async function generateSpeech(
       }
     );
 
-    // Set a timeout to prevent hanging
+    // Reduced timeout to 15 seconds as Azure usually responds within 5-10 seconds
     setTimeout(() => {
-      if (!audioData) {
-        const timeoutError = new Error('Speech synthesis timeout');
+      if (!audioData && !hasError) {
+        const timeoutError = new Error('Speech synthesis timeout after 15 seconds');
         console.error(timeoutError);
         closeSynthesizer();
         reject(timeoutError);
       }
-    }, 30000);
+    }, 15000);
   });
 }
