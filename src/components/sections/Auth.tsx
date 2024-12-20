@@ -11,9 +11,31 @@ const Auth = () => {
 
   useEffect(() => {
     if (session) {
-      navigate("/dashboard");
+      // Check if user has a profile
+      const checkProfile = async () => {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error checking profile:', error);
+          return;
+        }
+
+        // If no profile exists, redirect to onboarding
+        // If profile exists, redirect to dashboard
+        if (!profile) {
+          navigate("/onboarding");
+        } else {
+          navigate("/dashboard");
+        }
+      };
+
+      checkProfile();
     }
-  }, [session, navigate]);
+  }, [session, navigate, supabase]);
 
   return (
     <section className="min-h-screen flex items-center justify-center px-4 py-12">
