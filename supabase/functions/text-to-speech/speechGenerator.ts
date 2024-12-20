@@ -14,8 +14,6 @@ export async function generateSpeech(
   }
 
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-  
-  // Set voice name - don't append Neural since it's already in the voice name
   speechConfig.speechSynthesisVoiceName = voiceName;
   
   // Set output format to high quality audio
@@ -30,7 +28,7 @@ export async function generateSpeech(
   }
 
   const ssml = `
-    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${languageCode}">
       <voice name="${voiceName}">
         <prosody${rateAdjustment}>
           ${text}
@@ -44,15 +42,6 @@ export async function generateSpeech(
 
   return new Promise((resolve, reject) => {
     let audioData: ArrayBuffer | null = null;
-    let hasResolved = false;
-
-    // Set a timeout to prevent hanging
-    const timeout = setTimeout(() => {
-      if (!hasResolved) {
-        synthesizer.close();
-        reject(new Error('Speech synthesis timed out'));
-      }
-    }, 30000); // 30 second timeout
 
     synthesizer.synthesisCompleted = (s, e) => {
       console.log('Synthesis completed event received');
@@ -61,30 +50,34 @@ export async function generateSpeech(
       }
     };
 
-    synthesizer.synthesisStarted = (s, e) => {
+    synthesizer.synthesisStarted = () => {
       console.log('Synthesis started');
+    };
+
+    synthesizer.synthesizing = (s, e) => {
+      console.log('Synthesizing...', e);
+    };
+
+    synthesizer.synthesisCanceled = (s, e) => {
+      console.error('Synthesis canceled:', e);
+      synthesizer.close();
+      reject(new Error(`Synthesis canceled: ${e.errorDetails}`));
     };
 
     synthesizer.speakSsmlAsync(
       ssml,
       result => {
-        clearTimeout(timeout);
-        
         try {
-          console.log('Synthesis result received:', result);
+          console.log('Synthesis result received');
           
-          // First try to use the audio data from the completed event
           if (audioData) {
             console.log('Using audio data from synthesis completed event');
-            hasResolved = true;
             resolve(audioData);
             return;
           }
 
-          // Fallback to the result's audio data
           if (result?.audioData) {
             console.log('Using audio data from synthesis result');
-            hasResolved = true;
             resolve(result.audioData);
             return;
           }
@@ -98,21 +91,18 @@ export async function generateSpeech(
         }
       },
       error => {
-        clearTimeout(timeout);
         console.error('Speech synthesis error:', error);
         synthesizer.close();
         reject(error);
       }
     );
 
-    // Additional error handler
-    synthesizer.synthesisCanceled = (s, e) => {
-      console.error('Synthesis canceled:', e);
-      if (!hasResolved) {
-        clearTimeout(timeout);
+    // Set a timeout to prevent hanging
+    setTimeout(() => {
+      if (!audioData) {
         synthesizer.close();
-        reject(new Error(`Synthesis canceled: ${e.errorDetails}`));
+        reject(new Error('Speech synthesis timeout'));
       }
-    };
+    }, 30000);
   });
 }
