@@ -14,7 +14,8 @@ const Auth = () => {
       // Check if user has a profile
       const checkProfile = async () => {
         try {
-          console.log('Checking profile for user:', session.user.id);
+          console.log('Auth flow - Session detected:', session.user.id);
+          console.log('Auth flow - User metadata:', session.user.user_metadata);
           
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -27,15 +28,32 @@ const Auth = () => {
             return;
           }
 
-          console.log('Profile check result:', profile);
+          console.log('Auth flow - Profile check result:', profile);
 
-          // If no profile exists or onboarding not completed, redirect to onboarding
-          // If profile exists and onboarding completed, redirect to dashboard
-          if (!profile || !profile.onboarding_completed) {
-            console.log('Redirecting to onboarding...');
+          if (!profile) {
+            // If no profile exists, create one
+            console.log('Auth flow - Creating new profile for user:', session.user.id);
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: session.user.id,
+                  full_name: session.user.user_metadata.full_name || session.user.user_metadata.name,
+                  avatar_url: session.user.user_metadata.avatar_url,
+                }
+              ]);
+
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+              return;
+            }
+            console.log('Auth flow - Profile created, redirecting to onboarding...');
+            navigate("/onboarding");
+          } else if (!profile.onboarding_completed) {
+            console.log('Auth flow - Existing profile found, onboarding incomplete. Redirecting to onboarding...');
             navigate("/onboarding");
           } else {
-            console.log('Redirecting to dashboard...');
+            console.log('Auth flow - Profile complete, redirecting to dashboard...');
             navigate("/dashboard");
           }
         } catch (error) {
