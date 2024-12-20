@@ -58,8 +58,13 @@ export function usePronunciationHandler({
       }
 
       const { audioUrl, assessment } = assessmentData;
-      const pronunciationScore = assessment.pronunciationScore || 
-        (assessment.NBest?.[0]?.PronunciationAssessment?.PronScore ?? 0);
+      
+      // Extract the pronunciation score from the assessment data
+      const pronunciationScore = assessment.NBest?.[0]?.PronunciationAssessment?.PronScore ?? 
+                               assessment.pronunciationScore ?? 0;
+
+      console.log('Pronunciation score:', pronunciationScore);
+      console.log('Assessment data:', assessment);
 
       // Create the message with pronunciation data
       const newMessage: Message = {
@@ -72,9 +77,6 @@ export function usePronunciationHandler({
         audio_url: audioUrl,
         isUser: true,
       };
-
-      console.log('Pronunciation score:', pronunciationScore);
-      console.log('Assessment data:', assessment);
 
       onMessageSend(newMessage);
       onComplete();

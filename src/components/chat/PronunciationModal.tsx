@@ -20,6 +20,7 @@ interface PronunciationModalProps {
     transliteration?: string;
   };
   onSubmit: (score: number, audioBlob?: Blob) => void;
+  isProcessing: boolean;
 }
 
 export function PronunciationModal({
@@ -27,9 +28,9 @@ export function PronunciationModal({
   onClose,
   response,
   onSubmit,
+  isProcessing,
 }: PronunciationModalProps) {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async () => {
@@ -42,10 +43,8 @@ export function PronunciationModal({
       return;
     }
 
-    setIsProcessing(true);
     try {
       await onSubmit(0, audioBlob);
-      onClose();
     } catch (error) {
       console.error('Error submitting recording:', error);
       toast({
@@ -53,8 +52,6 @@ export function PronunciationModal({
         description: "Failed to process your recording. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 

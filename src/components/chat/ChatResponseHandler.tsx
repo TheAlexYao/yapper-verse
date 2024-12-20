@@ -17,6 +17,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [pronunciationData, setPronunciationData] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
@@ -24,6 +25,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       onMessageSend(message);
       if (message.pronunciation_data) {
         setPronunciationData(message.pronunciation_data);
+        setIsProcessing(false);
         setShowScoreModal(true);
       }
     },
@@ -39,6 +41,11 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     setShowPronunciationModal(true);
   };
 
+  const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
+    setIsProcessing(true);
+    await handlePronunciationComplete(score, audioBlob);
+  };
+
   return (
     <>
       <RecommendedResponses
@@ -49,9 +56,13 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       {selectedResponse && (
         <PronunciationModal
           isOpen={showPronunciationModal}
-          onClose={() => setShowPronunciationModal(false)}
+          onClose={() => {
+            setShowPronunciationModal(false);
+            setIsProcessing(false);
+          }}
           response={selectedResponse}
-          onSubmit={handlePronunciationComplete}
+          onSubmit={handlePronunciationSubmit}
+          isProcessing={isProcessing}
         />
       )}
 
