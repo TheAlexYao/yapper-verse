@@ -25,7 +25,6 @@ const MOCK_SCENARIOS: Scenario[] = [
     usefulPhrases: ["Can I have...", "How much is...", "Thank you"],
     culturalNotes: "In many cultures, it's common to greet the staff when entering and leaving.",
     locationDetails: "Local café in the city center",
-    isBookmarked: false,
   },
   {
     id: "2",
@@ -36,7 +35,6 @@ const MOCK_SCENARIOS: Scenario[] = [
     usefulPhrases: ["I have a reservation", "What time is checkout?"],
     culturalNotes: "Some hotels require passport at check-in",
     locationDetails: "City center hotel",
-    isBookmarked: false,
   },
   {
     id: "3",
@@ -47,7 +45,6 @@ const MOCK_SCENARIOS: Scenario[] = [
     usefulPhrases: ["Let's discuss...", "I agree with...", "Could you clarify..."],
     culturalNotes: "Business meetings often start with small talk",
     locationDetails: "Corporate office building",
-    isBookmarked: true,
   },
   {
     id: "4",
@@ -58,7 +55,6 @@ const MOCK_SCENARIOS: Scenario[] = [
     usefulPhrases: ["Do you have this in...", "Can I try this on?", "Is this on sale?"],
     culturalNotes: "Some stores may have different size systems",
     locationDetails: "Local shopping mall",
-    isBookmarked: false,
   },
   {
     id: "5",
@@ -69,7 +65,6 @@ const MOCK_SCENARIOS: Scenario[] = [
     usefulPhrases: ["Nice to meet you", "What do you do?", "Would you like to..."],
     culturalNotes: "Personal space and greeting customs vary by culture",
     locationDetails: "Social gathering or event",
-    isBookmarked: false,
   }
 ];
 

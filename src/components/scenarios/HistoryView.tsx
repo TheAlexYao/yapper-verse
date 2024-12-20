@@ -14,7 +14,6 @@ const MOCK_PAST_SCENARIOS: Scenario[] = [
     usefulPhrases: ["I would like...", "Could you recommend..."],
     culturalNotes: "Tipping customs vary by country",
     locationDetails: "Fine dining restaurant",
-    isBookmarked: true,
   },
   // Add more mock scenarios as needed
 ];

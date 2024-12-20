@@ -17,7 +17,6 @@ export interface Scenario {
   usefulPhrases: string[];
   culturalNotes: string;
   locationDetails: string;
-  isBookmarked: boolean;
 }
 
 const ScenarioHub = () => {
