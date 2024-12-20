@@ -24,6 +24,7 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
   const [languageStats, setLanguageStats] = useState<LanguageStats[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchUserLanguagesAndStats = async () => {
@@ -31,15 +32,31 @@ export function LanguageSelector({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch user's active languages
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('languages_learning, target_language')
-        .eq('id', user.id)
-        .single();
+      // Fetch user's active languages and stats in parallel
+      const [profileResponse, scenariosResponse] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('languages_learning, target_language')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('user_scenarios')
+          .select(`
+            id,
+            scenarios (
+              language_id,
+              languages (
+                code
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+      ]);
 
-      if (profileError) throw profileError;
-      const userLanguages = profileData.languages_learning || [];
+      if (profileResponse.error) throw profileResponse.error;
+      
+      const userLanguages = profileResponse.data.languages_learning || [];
       setActiveLanguages(userLanguages);
 
       // If this is a newly added language, switch to it
@@ -48,26 +65,11 @@ export function LanguageSelector({
         handleLanguageChange(newLanguage);
       }
 
-      // Fetch completed scenarios count for each language
-      const { data: scenariosData, error: scenariosError } = await supabase
-        .from('user_scenarios')
-        .select(`
-          id,
-          scenarios (
-            language_id,
-            languages (
-              code
-            )
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'completed');
-
-      if (scenariosError) throw scenariosError;
+      if (scenariosResponse.error) throw scenariosResponse.error;
 
       // Calculate completed scenarios per language
       const stats = userLanguages.map(langCode => {
-        const completedCount = scenariosData.filter(scenario => 
+        const completedCount = scenariosResponse.data.filter(scenario => 
           scenario.scenarios?.languages?.code === langCode
         ).length;
 
@@ -90,11 +92,13 @@ export function LanguageSelector({
   };
 
   const handleLanguageChange = async (langCode: string) => {
+    if (isLoading || currentLanguage === langCode) return;
+    
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Update target language in profile
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ target_language: langCode })
@@ -110,6 +114,8 @@ export function LanguageSelector({
         description: "Failed to update target language",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,8 +140,10 @@ export function LanguageSelector({
           (payload) => {
             const updatedLanguages = payload.new.languages_learning || [];
             setActiveLanguages(updatedLanguages);
-            // Refetch stats for the updated languages
-            fetchUserLanguagesAndStats();
+            // Only refetch stats if languages have changed
+            if (JSON.stringify(updatedLanguages) !== JSON.stringify(activeLanguages)) {
+              fetchUserLanguagesAndStats();
+            }
           }
         )
         .subscribe();
@@ -158,12 +166,16 @@ export function LanguageSelector({
             const stats = languageStats.find(s => s.languageCode === lang);
             if (!language) return null;
             
+            const isSelected = currentLanguage === lang;
+            const isDisabled = isLoading && !isSelected;
+            
             return (
               <Button
                 key={lang}
-                variant={currentLanguage === lang ? "default" : "outline"}
+                variant={isSelected ? "default" : "outline"}
                 onClick={() => handleLanguageChange(lang)}
                 className="gap-2"
+                disabled={isDisabled}
               >
                 <span>{language.emoji}</span>
                 <span>{language.label}</span>
@@ -179,6 +191,7 @@ export function LanguageSelector({
             variant="outline" 
             onClick={onAddLanguage}
             className="gap-2"
+            disabled={isLoading}
           >
             <Plus className="h-4 w-4" />
             Add Language
