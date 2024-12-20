@@ -4,7 +4,7 @@ import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useConversation } from "@/hooks/useConversation";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@supabase/auth-helpers-react";
+import { useUser } from "@supabase/auth-helpers-react";
 import type { Message } from "@/hooks/useConversation";
 
 export default function GuidedChat() {
@@ -14,18 +14,18 @@ export default function GuidedChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [ttsAudioUrl, setTtsAudioUrl] = useState<string>("/dummy-tts.mp3");
-  const auth = useAuth();
+  const user = useUser();
   
   const { character: characterData, createConversation } = useConversation(character?.id);
 
   useEffect(() => {
     const initializeConversation = async () => {
-      if (!auth.user?.id || !character?.id || !scenario?.id) return;
+      if (!user?.id || !character?.id || !scenario?.id) return;
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('native_language, target_language')
-        .eq('id', auth.user.id)
+        .eq('id', user.id)
         .single();
 
       if (!profile?.native_language || !profile?.target_language) return;
@@ -43,7 +43,7 @@ export default function GuidedChat() {
     };
 
     initializeConversation();
-  }, [auth.user?.id, character?.id, scenario?.id]);
+  }, [user?.id, character?.id, scenario?.id]);
 
   useEffect(() => {
     if (!conversationId) return;

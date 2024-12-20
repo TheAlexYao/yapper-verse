@@ -5,7 +5,7 @@ import { ChatMetrics } from "./ChatMetrics";
 import { PronunciationModal } from "./PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@supabase/auth-helpers-react";
+import { useUser } from "@supabase/auth-helpers-react";
 
 interface ChatContainerProps {
   messages: Message[];
@@ -17,7 +17,7 @@ interface ChatContainerProps {
 export function ChatContainer({ messages, onMessageSend, onPlayTTS, conversationId }: ChatContainerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const auth = useAuth();
+  const user = useUser();
 
   const handleResponseSelect = (response: any) => {
     setSelectedResponse(response);
@@ -25,7 +25,7 @@ export function ChatContainer({ messages, onMessageSend, onPlayTTS, conversation
   };
 
   const handlePronunciationComplete = async (score: number, audioUrl?: string) => {
-    if (!auth.user?.id) return;
+    if (!user?.id) return;
 
     const newMessage = {
       conversation_id: conversationId,

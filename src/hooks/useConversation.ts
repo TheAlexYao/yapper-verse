@@ -1,14 +1,14 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@supabase/auth-helpers-react";
+import { useUser } from "@supabase/auth-helpers-react";
 import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 
 export type Message = GuidedMessage;
 
 export const useConversation = (characterId: string | undefined) => {
   const { toast } = useToast();
-  const auth = useAuth();
+  const user = useUser();
 
   const { data: character } = useQuery({
     queryKey: ['character', characterId],
@@ -33,12 +33,12 @@ export const useConversation = (characterId: string | undefined) => {
       nativeLanguageId: string;
       targetLanguageId: string;
     }) => {
-      if (!auth.user?.id) throw new Error('No user authenticated');
+      if (!user?.id) throw new Error('No user authenticated');
       
       const { data: conversationData, error } = await supabase
         .from('guided_conversations')
         .insert({
-          user_id: auth.user.id,
+          user_id: user.id,
           character_id: params.characterId,
           scenario_id: params.scenarioId,
           native_language_id: params.nativeLanguageId,
