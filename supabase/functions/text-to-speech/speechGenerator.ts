@@ -13,30 +13,31 @@ export async function generateSpeech(
     throw new Error('Azure Speech credentials not configured');
   }
 
-  const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-  speechConfig.speechSynthesisVoiceName = voiceName;
+  console.log('Initializing speech config with region:', speechRegion);
   
-  // Set output format to high quality audio
+  const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
+  
+  // Set output format to MP3
   speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
   // Set rate adjustment based on speed
-  let rateAdjustment = '';
+  let rateValue = "0%";
   if (speed === 'slow') {
-    rateAdjustment = ' rate="-20%"';
+    rateValue = "-20%";
   } else if (speed === 'very-slow') {
-    rateAdjustment = ' rate="-50%"';
+    rateValue = "-40%";
   }
 
   const ssml = `
     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
       <voice name="${voiceName}">
-        <prosody${rateAdjustment}>
+        <prosody rate="${rateValue}">
           ${text}
         </prosody>
       </voice>
     </speak>`;
 
-  console.log('Generating speech with SSML:', ssml);
+  console.log('Generated SSML:', ssml);
   
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
 
@@ -44,7 +45,7 @@ export async function generateSpeech(
     let audioData: ArrayBuffer | null = null;
 
     synthesizer.synthesisCompleted = (s, e) => {
-      console.log('Synthesis completed event received');
+      console.log('Synthesis completed');
       if (e.result.audioData) {
         audioData = e.result.audioData;
       }
@@ -55,10 +56,10 @@ export async function generateSpeech(
     };
 
     synthesizer.synthesizing = (s, e) => {
-      console.log('Synthesizing...', e);
+      console.log('Synthesizing...');
     };
 
-    synthesizer.synthesisCanceled = (s, e) => {
+    synthesizer.synthesiscanceled = (s, e) => {
       console.error('Synthesis canceled:', e);
       synthesizer.close();
       reject(new Error(`Synthesis canceled: ${e.errorDetails}`));

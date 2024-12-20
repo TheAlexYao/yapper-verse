@@ -11,6 +11,10 @@ export class CacheManager {
     );
   }
 
+  public getSupabaseClient() {
+    return this.supabaseAdmin;
+  }
+
   async getCacheEntry(textHash: string, languageCode: string, voiceGender: string): Promise<TTSCacheEntry | null> {
     const { data, error } = await this.supabaseAdmin
       .from('tts_cache')
@@ -74,7 +78,7 @@ export class CacheManager {
       .storage
       .from('tts_cache')
       .upload(filename, audioData, {
-        contentType: 'audio/wav',
+        contentType: 'audio/mpeg',
         cacheControl: '3600',
         upsert: true
       });

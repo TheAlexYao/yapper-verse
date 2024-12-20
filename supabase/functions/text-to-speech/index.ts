@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Get voice configuration for the language
-    const { data: languageData, error: languageError } = await cacheManager.supabaseAdmin
+    const { data: languageData, error: languageError } = await cacheManager.getSupabaseClient()
       .from('languages')
       .select('male_voice, female_voice')
       .eq('code', languageCode)
@@ -65,8 +65,8 @@ Deno.serve(async (req) => {
     console.log(`Generating ${speed} speed audio...`);
     const audioData = await generateSpeech(text, languageCode, voiceName, speed);
 
-    // Upload to storage
-    const filename = `${textHash}_${speed}.wav`;
+    // Upload to storage with correct extension and content type
+    const filename = `${textHash}_${speed}.mp3`;
     const publicUrl = await cacheManager.uploadAudio(filename, audioData);
 
     // Update cache entry
