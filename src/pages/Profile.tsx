@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { PersonalInfo } from "@/components/profile/PersonalInfo";
 import { LanguageSettings } from "@/components/profile/LanguageSettings";
 import { VoiceSettings } from "@/components/profile/VoiceSettings";
 import { LearningGoals } from "@/components/profile/LearningGoals";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Form } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
 
 interface UserProfile {
   full_name: string;
+  username: string;
   native_language: string;
   target_language: string;
   voice_preference: string;
@@ -24,6 +27,8 @@ const Profile = () => {
   
   const form = useForm({
     defaultValues: {
+      fullName: "",
+      username: "",
       nativeLanguage: "",
       targetLanguage: "",
       voicePreference: "",
@@ -48,6 +53,8 @@ const Profile = () => {
 
         setProfile(data);
         form.reset({
+          fullName: data.full_name || "",
+          username: data.username || "",
           nativeLanguage: data.native_language || "",
           targetLanguage: data.target_language || "",
           voicePreference: data.voice_preference || "",
@@ -70,9 +77,11 @@ const Profile = () => {
   }, []);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
@@ -85,7 +94,13 @@ const Profile = () => {
 
           <Form {...form}>
             <form className="space-y-8">
+              <PersonalInfo form={form} />
+              
+              <Separator className="my-8" />
+              
               <LanguageSettings form={form} />
+              
+              <Separator className="my-8" />
               
               <VoiceSettings
                 currentVoice={profile?.voice_preference || null}
@@ -93,6 +108,8 @@ const Profile = () => {
                   form.setValue("voicePreference", voice);
                 }}
               />
+              
+              <Separator className="my-8" />
               
               <LearningGoals
                 learningGoals={profile?.learning_goals || []}
