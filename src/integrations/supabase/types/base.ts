@@ -1,44 +1,20 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import type { Json, Database as BaseDatabase } from "./shared";
 
-export type Database = {
-  public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      sender_type: "user" | "agent"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+export type { Json, BaseDatabase };
 
-export type PublicSchema = Database[Extract<keyof Database, "public">]
+export type PublicSchema = BaseDatabase[Extract<keyof BaseDatabase, "public">]
 
 export type Tables<
   PublicTableNameOrOptions extends
     | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    | { schema: keyof BaseDatabase },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof BaseDatabase }
+    ? keyof (BaseDatabase[PublicTableNameOrOptions["schema"]]["Tables"] &
+        BaseDatabase[PublicTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"][TableName] extends {
+> = PublicTableNameOrOptions extends { schema: keyof BaseDatabase }
+  ? BaseDatabase[PublicTableNameOrOptions["schema"]]["Tables"] &
+      BaseDatabase[PublicTableNameOrOptions["schema"]]["Views"][TableName] extends {
       Row: infer R
     }
     ? R
