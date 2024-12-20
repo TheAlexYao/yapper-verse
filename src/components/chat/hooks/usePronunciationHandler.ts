@@ -59,16 +59,35 @@ export function usePronunciationHandler({
 
       const { audioUrl, assessment } = assessmentData;
       
-      // Extract pronunciation scores from the NBest array
-      const pronunciationAssessment = assessment.NBest?.[0]?.PronunciationAssessment;
+      // Extract the full pronunciation assessment data
+      const nBestResult = assessment.NBest?.[0];
+      const pronunciationAssessment = nBestResult?.PronunciationAssessment;
+      
+      // Get the overall scores
+      const accuracyScore = pronunciationAssessment?.AccuracyScore ?? 0;
+      const fluencyScore = pronunciationAssessment?.FluencyScore ?? 0;
+      const completenessScore = pronunciationAssessment?.CompletenessScore ?? 0;
       const pronunciationScore = pronunciationAssessment?.PronScore ?? 
                                pronunciationAssessment?.pronunciationScore ?? 
                                assessment.pronunciationScore ?? 0;
 
-      console.log('Pronunciation score:', pronunciationScore);
-      console.log('Assessment data:', assessment);
+      // Get the word-by-word analysis
+      const words = nBestResult?.Words?.map(word => ({
+        Word: word.Word,
+        PronunciationAssessment: {
+          AccuracyScore: word.PronunciationAssessment?.AccuracyScore ?? 0,
+          ErrorType: word.PronunciationAssessment?.ErrorType ?? 'None'
+        }
+      })) ?? [];
 
-      // Create the message with pronunciation data
+      console.log('Pronunciation scores:', {
+        accuracyScore,
+        fluencyScore,
+        completenessScore,
+        pronunciationScore
+      });
+      
+      // Create the message with detailed pronunciation data
       const newMessage: Message = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
@@ -78,12 +97,12 @@ export function usePronunciationHandler({
         pronunciation_data: {
           NBest: [{
             PronunciationAssessment: {
-              AccuracyScore: pronunciationAssessment?.AccuracyScore ?? 0,
-              FluencyScore: pronunciationAssessment?.FluencyScore ?? 0,
-              CompletenessScore: pronunciationAssessment?.CompletenessScore ?? 0,
+              AccuracyScore: accuracyScore,
+              FluencyScore: fluencyScore,
+              CompletenessScore: completenessScore,
               PronScore: pronunciationScore
             },
-            Words: assessment.NBest?.[0]?.Words ?? []
+            Words: words
           }]
         },
         audio_url: audioUrl,
