@@ -4,10 +4,9 @@ import { ArrowLeft, CheckCircle2, Info, Volume2, ExternalLink } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageBubble } from "@/components/chat/MessageBubble";
 import { cn } from "@/lib/utils";
+import { ConversationTranscript } from "@/components/feedback/ConversationTranscript";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -291,33 +290,12 @@ export default function ScenarioFeedback() {
         </Card>
 
         {/* Conversation Transcript */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <h3 className="font-medium mb-4">Conversation Transcript</h3>
-            <ScrollArea className="h-[400px] pr-4">
-              <div className="space-y-4">
-                {scenarioData.conversation.map((message) => (
-                  <div key={message.id} className="relative">
-                    <MessageBubble
-                      message={message}
-                      isUser={message.isUser}
-                    />
-                    {message.isUser && message.metrics && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-0 right-0 text-xs"
-                        onClick={() => setSelectedUtterance(message)}
-                      >
-                        View Details
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <ConversationTranscript
+            messages={scenarioData.conversation}
+            onViewDetails={setSelectedUtterance}
+          />
+        </div>
 
         {/* Suggested Scenarios */}
         <Card className="mb-8">
