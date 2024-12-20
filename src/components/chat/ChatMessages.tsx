@@ -1,18 +1,17 @@
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageBubble } from "@/components/chat/MessageBubble";
+import type { GuidedMessage } from "@/types/conversation";
 
-interface Message {
-  id: string;
-  text: string;
-  translation?: string;
-  transliteration?: string;
-  pronunciationScore?: number;
-  isUser: boolean;
-}
+// Transform GuidedMessage to Message format
+const transformMessage = (message: GuidedMessage) => ({
+  ...message,
+  text: message.content,
+  isUser: message.is_user,
+});
 
 interface ChatMessagesProps {
-  messages: Message[];
+  messages: GuidedMessage[];
   onPlayAudio: () => void;
 }
 
@@ -43,17 +42,18 @@ export function ChatMessages({ messages, onPlayAudio }: ChatMessagesProps) {
       ref={scrollAreaRef}
     >
       <div className="container max-w-2xl mx-auto px-4 pt-16">
-        {messages.map((message: Message, index) => {
+        {messages.map((message: GuidedMessage, index) => {
           const isLastMessage = index === messages.length - 1;
+          const transformedMessage = transformMessage(message);
           return (
             <div
               key={message.id}
               ref={isLastMessage ? lastMessageRef : null}
             >
               <MessageBubble
-                message={message}
-                isUser={message.isUser}
-                onPlayAudio={!message.isUser ? onPlayAudio : undefined}
+                message={transformedMessage}
+                isUser={message.is_user}
+                onPlayAudio={!message.is_user ? onPlayAudio : undefined}
               />
             </div>
           );

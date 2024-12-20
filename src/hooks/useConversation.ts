@@ -4,7 +4,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
 import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 
-export type Message = GuidedMessage;
+// Update the Message type to include the necessary transformations
+export type Message = Omit<GuidedMessage, 'content' | 'is_user'> & {
+  text: string;  // maps to content
+  isUser: boolean;  // maps to is_user
+};
 
 export const useConversation = (characterId: string | undefined) => {
   const { toast } = useToast();
