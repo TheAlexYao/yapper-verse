@@ -13,25 +13,57 @@ interface TextDisplayProps {
 
 type SpeedOption = {
   label: string;
-  value: number;
+  value: string;
+  rate: number;
 };
 
 const speedOptions: SpeedOption[] = [
-  { label: "Normal", value: 1 },
-  { label: "Slow", value: 0.8 },
-  { label: "Very Slow", value: 0.5 },
+  { label: "Normal", value: "normal", rate: 1 },
+  { label: "Slow", value: "slow", rate: 0.8 },
+  { label: "Very Slow", value: "very_slow", rate: 0.5 },
 ];
 
 export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
   const [volume, setVolume] = useState([1]);
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedOption>(speedOptions[0]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handlePlayAudio = () => {
-    if (audio_url && audioRef.current) {
-      audioRef.current.volume = volume[0];
-      audioRef.current.playbackRate = selectedSpeed.value;
-      audioRef.current.play();
+  const getAudioUrlForSpeed = (baseUrl: string, speed: string): string => {
+    if (!baseUrl) return '';
+    const urlParts = baseUrl.split('.');
+    const extension = urlParts.pop();
+    const baseUrlWithoutExtension = urlParts.join('.');
+    
+    switch (speed) {
+      case 'normal':
+        return `${baseUrlWithoutExtension}_normal.${extension}`;
+      case 'slow':
+        return `${baseUrlWithoutExtension}_slow.${extension}`;
+      case 'very_slow':
+        return `${baseUrlWithoutExtension}_very_slow.${extension}`;
+      default:
+        return baseUrl;
+    }
+  };
+
+  const handlePlayAudio = async () => {
+    if (!audio_url || isLoading) return;
+    
+    setIsLoading(true);
+    try {
+      const speedAudioUrl = getAudioUrlForSpeed(audio_url, selectedSpeed.value);
+      
+      if (audioRef.current) {
+        audioRef.current.src = speedAudioUrl;
+        audioRef.current.volume = volume[0];
+        audioRef.current.playbackRate = selectedSpeed.rate;
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -43,6 +75,7 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
           size="icon" 
           className="shrink-0"
           onClick={handlePlayAudio}
+          disabled={isLoading}
         >
           <PlayCircle className="h-4 w-4" />
         </Button>
@@ -100,7 +133,7 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
       </div>
 
       {audio_url && (
-        <audio ref={audioRef} src={audio_url} />
+        <audio ref={audioRef} />
       )}
     </div>
   );
