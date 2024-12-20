@@ -40,13 +40,21 @@ export async function generateSpeech(
       ssml,
       result => {
         synthesizer.close();
-        if (result.audioData.byteLength > 0) {
-          resolve(result.audioData);
+        
+        if (result) {
+          const { audioData } = result;
+          
+          if (audioData && audioData.byteLength > 0) {
+            resolve(audioData);
+          } else {
+            reject(new Error('No audio data generated'));
+          }
         } else {
-          reject(new Error('No audio data generated'));
+          reject(new Error('Speech synthesis failed'));
         }
       },
       error => {
+        console.error('Speech synthesis error:', error);
         synthesizer.close();
         reject(error);
       }
