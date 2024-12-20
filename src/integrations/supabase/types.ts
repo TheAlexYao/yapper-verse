@@ -109,27 +109,21 @@ export type Database = {
       }
       languages: {
         Row: {
-          city: string
           code: string
-          country: string
           created_at: string | null
           id: string
           name: string
           updated_at: string | null
         }
         Insert: {
-          city: string
           code: string
-          country: string
           created_at?: string | null
           id?: string
           name: string
           updated_at?: string | null
         }
         Update: {
-          city?: string
           code?: string
-          country?: string
           created_at?: string | null
           id?: string
           name?: string
