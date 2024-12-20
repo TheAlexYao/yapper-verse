@@ -6,6 +6,7 @@ import { HistoryView } from "@/components/scenarios/HistoryView";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export interface Scenario {
   id: string;
@@ -40,6 +41,17 @@ const ScenarioHub = () => {
 
       <div className="relative container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              className="hover:bg-background/60"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </div>
+
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent">
               Your Language Adventures
