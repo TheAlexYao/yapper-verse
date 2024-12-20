@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
+import { Play } from "lucide-react";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface PronunciationModalProps {
     text: string;
     translation: string;
     transliteration?: string;
+    audio_url?: string;
   };
   onSubmit: (score: number, audioBlob?: Blob) => void;
   isProcessing: boolean;
@@ -55,6 +57,13 @@ export function PronunciationModal({
     }
   };
 
+  const playReferenceAudio = () => {
+    if (response.audio_url) {
+      const audio = new Audio(response.audio_url);
+      audio.play();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] bg-card">
@@ -67,6 +76,22 @@ export function PronunciationModal({
 
         <div className="space-y-6 py-4">
           <TextDisplay {...response} />
+          
+          {response.audio_url && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/20">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                onClick={playReferenceAudio}
+              >
+                <Play className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Listen to correct pronunciation
+              </span>
+            </div>
+          )}
           
           <AudioRecorder
             onRecordingComplete={(blob) => setAudioBlob(blob)}

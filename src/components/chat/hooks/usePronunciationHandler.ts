@@ -9,6 +9,7 @@ interface UsePronunciationHandlerProps {
     text: string;
     translation: string;
     languageCode?: string;
+    audio_url?: string;
   };
 }
 
@@ -89,7 +90,7 @@ export function usePronunciationHandler({
         words
       });
       
-      // Create the message with detailed pronunciation data
+      // Create the message with detailed pronunciation data and both audio URLs
       const newMessage: Message = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
@@ -108,6 +109,7 @@ export function usePronunciationHandler({
           }]
         },
         audio_url: audioUrl,
+        reference_audio_url: selectedResponse.audio_url, // Include the reference audio
         isUser: true,
       };
 

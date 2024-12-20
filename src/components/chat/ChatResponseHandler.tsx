@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { MOCK_RESPONSES } from "./data/mockResponses";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -18,6 +19,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [pronunciationData, setPronunciationData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
@@ -35,9 +37,52 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
-  const handleResponseSelect = (response: any) => {
-    setSelectedResponse(response);
-    setShowPronunciationModal(true);
+  const handleResponseSelect = async (response: any) => {
+    try {
+      // Generate TTS for the selected response
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language, voice_preference')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set');
+      }
+
+      const ttsResponse = await fetch('/functions/v1/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          text: response.text,
+          languageCode: profile.target_language,
+          gender: profile.voice_preference || 'female'
+        })
+      });
+
+      if (!ttsResponse.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const { audioUrl } = await ttsResponse.json();
+      
+      // Set the selected response with the audio URL
+      setSelectedResponse({ ...response, audio_url: audioUrl });
+      setShowPronunciationModal(true);
+    } catch (error) {
+      console.error('TTS error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate audio for comparison",
+        variant: "destructive",
+      });
+      // Still show the modal even if TTS fails
+      setSelectedResponse(response);
+      setShowPronunciationModal(true);
+    }
   };
 
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
