@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { languages } from "@/components/onboarding/steps/language/languages";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,13 +96,12 @@ export function LanguageSelector({
           (payload: RealtimePostgresChangesPayload<ProfilesTable["Row"]>) => {
             if (payload.new && 'languages_learning' in payload.new && Array.isArray(payload.new.languages_learning)) {
               const newLanguages = payload.new.languages_learning;
-              if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
-                setActiveLanguages(newLanguages);
-                
-                if (newLanguages.length > activeLanguages.length) {
-                  const newLanguage = newLanguages[newLanguages.length - 1];
-                  handleLanguageChange(newLanguage);
-                }
+              setActiveLanguages(newLanguages);
+              
+              // If this is a newly added language, switch to it
+              if (newLanguages.length > activeLanguages.length) {
+                const newLanguage = newLanguages[newLanguages.length - 1];
+                handleLanguageChange(newLanguage);
               }
             }
           }
@@ -115,7 +114,7 @@ export function LanguageSelector({
     };
 
     setupSubscription();
-  }, []);
+  }, []); // Empty dependency array since we want this to run once
 
   return (
     <Card className="p-6">
