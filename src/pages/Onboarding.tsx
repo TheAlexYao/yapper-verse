@@ -11,6 +11,7 @@ import { VoiceStep } from "@/components/onboarding/steps/VoiceStep";
 import { GoalsStep } from "@/components/onboarding/steps/GoalsStep";
 import { ReviewStep } from "@/components/onboarding/steps/ReviewStep";
 import { useToast } from "@/hooks/use-toast";
+import { Form } from "@/components/ui/form";
 
 const formSchema = z.object({
   fullName: z.string().min(1, "Please enter your name"),
@@ -105,39 +106,41 @@ const OnboardingWizard = () => {
           </div>
           
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg p-8 shadow-lg">
-            {step === 1 && <WelcomeStep onNext={nextStep} form={form} />}
-            
-            {step === 2 && (
-              <LanguageStep
-                form={form}
-                onNext={nextStep}
-                onPrev={prevStep}
-              />
-            )}
+            <Form {...form}>
+              {step === 1 && <WelcomeStep onNext={nextStep} form={form} />}
+              
+              {step === 2 && (
+                <LanguageStep
+                  form={form}
+                  onNext={nextStep}
+                  onPrev={prevStep}
+                />
+              )}
 
-            {step === 3 && (
-              <VoiceStep
-                form={form}
-                onNext={nextStep}
-                onPrev={prevStep}
-              />
-            )}
+              {step === 3 && (
+                <VoiceStep
+                  form={form}
+                  onNext={nextStep}
+                  onPrev={prevStep}
+                />
+              )}
 
-            {step === 4 && (
-              <GoalsStep
-                form={form}
-                onNext={nextStep}
-                onPrev={prevStep}
-              />
-            )}
+              {step === 4 && (
+                <GoalsStep
+                  form={form}
+                  onNext={nextStep}
+                  onPrev={prevStep}
+                />
+              )}
 
-            {step === 5 && (
-              <ReviewStep
-                form={form}
-                onSubmit={onSubmit}
-                onPrev={prevStep}
-              />
-            )}
+              {step === 5 && (
+                <ReviewStep
+                  form={form}
+                  onSubmit={onSubmit}
+                  onPrev={prevStep}
+                />
+              )}
+            </Form>
           </div>
         </div>
       </div>
