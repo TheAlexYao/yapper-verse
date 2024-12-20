@@ -87,31 +87,35 @@ export function LanguageSelector({
     fetchUserLanguagesAndStats();
 
     // Subscribe to real-time updates for the profiles table
-    const { data: { user } } = supabase.auth.getUser();
-    if (!user) return;
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const channel = supabase
-      .channel('profile-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${user.id}`,
-        },
-        (payload) => {
-          const updatedLanguages = payload.new.languages_learning || [];
-          setActiveLanguages(updatedLanguages);
-          // Refetch stats for the updated languages
-          fetchUserLanguagesAndStats();
-        }
-      )
-      .subscribe();
+      const channel = supabase
+        .channel('profile-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            const updatedLanguages = payload.new.languages_learning || [];
+            setActiveLanguages(updatedLanguages);
+            // Refetch stats for the updated languages
+            fetchUserLanguagesAndStats();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
+
+    setupSubscription();
   }, []);
 
   return (
