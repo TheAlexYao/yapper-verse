@@ -71,46 +71,6 @@ export function PronunciationScoreModal({
         </DialogHeader>
 
         <div className="space-y-4 sm:space-y-6">
-          {/* Overall Scores */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Accuracy</div>
-              <div className="flex items-center gap-2">
-                <Progress value={assessment.AccuracyScore} className="h-2" />
-                <span className={`text-sm font-bold ${getScoreColor(assessment.AccuracyScore)}`}>
-                  {Math.round(assessment.AccuracyScore)}%
-                </span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Fluency</div>
-              <div className="flex items-center gap-2">
-                <Progress value={assessment.FluencyScore} className="h-2" />
-                <span className={`text-sm font-bold ${getScoreColor(assessment.FluencyScore)}`}>
-                  {Math.round(assessment.FluencyScore)}%
-                </span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Completeness</div>
-              <div className="flex items-center gap-2">
-                <Progress value={assessment.CompletenessScore} className="h-2" />
-                <span className={`text-sm font-bold ${getScoreColor(assessment.CompletenessScore)}`}>
-                  {Math.round(assessment.CompletenessScore)}%
-                </span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm font-medium">Overall</div>
-              <div className="flex items-center gap-2">
-                <Progress value={assessment.PronScore} className="h-2" />
-                <span className={`text-sm font-bold ${getScoreColor(assessment.PronScore)}`}>
-                  {Math.round(assessment.PronScore)}%
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Audio Comparison */}
           {(audioUrl || originalAudioUrl) && (
             <div className="space-y-3">
@@ -142,6 +102,55 @@ export function PronunciationScoreModal({
             </div>
           )}
 
+          {/* AI Advice */}
+          <div className="rounded-lg border border-border p-3 sm:p-4 bg-accent/30">
+            <h3 className="text-lg font-semibold mb-2">Improvement Tips</h3>
+            <p className="text-sm text-muted-foreground">{getAdvice()}</p>
+          </div>
+
+          {/* Overall Scores */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold">Pronunciation Analysis</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Accuracy</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={assessment.AccuracyScore} className="h-2" />
+                  <span className={`text-sm font-bold ${getScoreColor(assessment.AccuracyScore)}`}>
+                    {Math.round(assessment.AccuracyScore)}%
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Fluency</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={assessment.FluencyScore} className="h-2" />
+                  <span className={`text-sm font-bold ${getScoreColor(assessment.FluencyScore)}`}>
+                    {Math.round(assessment.FluencyScore)}%
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Completeness</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={assessment.CompletenessScore} className="h-2" />
+                  <span className={`text-sm font-bold ${getScoreColor(assessment.CompletenessScore)}`}>
+                    {Math.round(assessment.CompletenessScore)}%
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Overall</div>
+                <div className="flex items-center gap-2">
+                  <Progress value={assessment.PronScore} className="h-2" />
+                  <span className={`text-sm font-bold ${getScoreColor(assessment.PronScore)}`}>
+                    {Math.round(assessment.PronScore)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Word-level Analysis */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold">Word-by-Word Analysis</h3>
@@ -169,12 +178,6 @@ export function PronunciationScoreModal({
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* AI Advice */}
-          <div className="rounded-lg border border-border p-3 sm:p-4 bg-accent/30">
-            <h3 className="text-lg font-semibold mb-2">Improvement Tips</h3>
-            <p className="text-sm text-muted-foreground">{getAdvice()}</p>
           </div>
         </div>
       </DialogContent>
