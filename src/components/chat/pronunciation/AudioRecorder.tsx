@@ -16,6 +16,38 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
   const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
 
+  const createWavHeader = (sampleRate: number, bitsPerSample: number, channels: number, dataLength: number) => {
+    const buffer = new ArrayBuffer(44);
+    const view = new DataView(buffer);
+
+    // RIFF chunk descriptor
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    writeString(view, 8, 'WAVE');
+
+    // fmt sub-chunk
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true); // fmt chunk size
+    view.setUint16(20, 1, true); // audio format (1 for PCM)
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * channels * (bitsPerSample / 8), true); // byte rate
+    view.setUint16(32, channels * (bitsPerSample / 8), true); // block align
+    view.setUint16(34, bitsPerSample, true);
+
+    // data sub-chunk
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataLength, true);
+
+    return buffer;
+  };
+
+  const writeString = (view: DataView, offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -38,12 +70,38 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioUrl(URL.createObjectURL(audioBlob));
+        
+        // Convert to WAV format
+        const audioContext = new AudioContext({ sampleRate: 16000 });
+        const audioBuffer = await audioContext.decodeAudioData(await audioBlob.arrayBuffer());
+        
+        // Get the audio data
+        const channelData = audioBuffer.getChannelData(0);
+        const samples = new Int16Array(channelData.length);
+        
+        // Convert Float32 to Int16
+        for (let i = 0; i < channelData.length; i++) {
+          const s = Math.max(-1, Math.min(1, channelData[i]));
+          samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        
+        // Create WAV header
+        const wavHeader = createWavHeader(16000, 16, 1, samples.byteLength);
+        
+        // Combine header and audio data
+        const wavBytes = new Uint8Array(wavHeader.byteLength + samples.byteLength);
+        wavBytes.set(new Uint8Array(wavHeader), 0);
+        wavBytes.set(new Uint8Array(samples.buffer), wavHeader.byteLength);
+        
+        // Create final WAV blob
+        const wavBlob = new Blob([wavBytes], { type: 'audio/wav' });
+        
+        setAudioUrl(URL.createObjectURL(wavBlob));
         setHasRecording(true);
         setIsRecording(false);
-        onRecordingComplete(audioBlob);
+        onRecordingComplete(wavBlob);
       };
 
       mediaRecorder.start();
