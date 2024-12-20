@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./PronunciationModal";
+import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
@@ -14,9 +15,18 @@ interface ChatResponseHandlerProps {
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [pronunciationData, setPronunciationData] = useState<any>(null);
+
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
-    onMessageSend,
+    onMessageSend: (message: Message) => {
+      onMessageSend(message);
+      if (message.pronunciation_data) {
+        setPronunciationData(message.pronunciation_data);
+        setShowScoreModal(true);
+      }
+    },
     onComplete: () => {
       setSelectedResponse(null);
       setShowPronunciationModal(false);
@@ -42,6 +52,14 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           onClose={() => setShowPronunciationModal(false)}
           response={selectedResponse}
           onSubmit={handlePronunciationComplete}
+        />
+      )}
+
+      {pronunciationData && (
+        <PronunciationScoreModal
+          isOpen={showScoreModal}
+          onClose={() => setShowScoreModal(false)}
+          data={pronunciationData}
         />
       )}
     </>
