@@ -35,12 +35,29 @@ serve(async (req) => {
     const wavBuffer = new Uint8Array(arrayBuffer)
     
     // Skip WAV header (44 bytes) to get raw PCM data
+    // WAV header structure:
+    // 4 bytes: "RIFF"
+    // 4 bytes: File size (minus 8 bytes)
+    // 4 bytes: "WAVE"
+    // 4 bytes: "fmt "
+    // 4 bytes: Length of format data
+    // 2 bytes: Type of format (1 is PCM)
+    // 2 bytes: Number of channels
+    // 4 bytes: Sample rate
+    // 4 bytes: Bytes per second
+    // 2 bytes: Bytes per sample
+    // 2 bytes: Bits per sample
+    // 4 bytes: "data"
+    // 4 bytes: Size of data section
     const pcmData = wavBuffer.slice(44)
     
     console.log('Audio data details:', {
       originalSize: wavBuffer.length,
       pcmSize: pcmData.length,
-      type: Object.prototype.toString.call(pcmData)
+      type: Object.prototype.toString.call(pcmData),
+      sampleRate: new DataView(wavBuffer.buffer).getUint32(24, true),
+      channels: new DataView(wavBuffer.buffer).getUint16(22, true),
+      bitsPerSample: new DataView(wavBuffer.buffer).getUint16(34, true)
     })
 
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
@@ -58,6 +75,8 @@ serve(async (req) => {
       audioData: pcmData.buffer
     })
 
+    console.log('Speech recognition result:', result)
+
     const response = createDefaultResponse(referenceText, audioUrl)
 
     if (result && typeof result === 'object') {
@@ -71,23 +90,27 @@ serve(async (req) => {
         const pronunciationAssessment = JSON.parse(parsedResult.privPronJson)
         console.log('Pronunciation assessment:', pronunciationAssessment)
         
-        if (pronunciationAssessment.PronScore !== undefined) {
+        // Map the pronunciation assessment scores
+        if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0]) {
+          const assessment = pronunciationAssessment.NBest[0].PronunciationAssessment
           response.assessment.NBest[0].PronunciationAssessment = {
-            AccuracyScore: pronunciationAssessment.AccuracyScore || 0,
-            FluencyScore: pronunciationAssessment.FluencyScore || 0,
-            CompletenessScore: pronunciationAssessment.CompletenessScore || 0,
-            PronScore: pronunciationAssessment.PronScore || 0
+            AccuracyScore: assessment.AccuracyScore || 0,
+            FluencyScore: assessment.FluencyScore || 0,
+            CompletenessScore: assessment.CompletenessScore || 0,
+            PronScore: assessment.PronScore || 0
           }
-          response.assessment.pronunciationScore = pronunciationAssessment.PronScore
+          response.assessment.pronunciationScore = assessment.PronScore || 0
         }
 
-        if (pronunciationAssessment.Words) {
-          response.assessment.NBest[0].Words = pronunciationAssessment.Words.map((word: any) => ({
+        // Map the word-level assessment
+        if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0].Words) {
+          response.assessment.NBest[0].Words = pronunciationAssessment.NBest[0].Words.map((word: any) => ({
             Word: word.Word,
             PronunciationAssessment: {
               AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-              ErrorType: word.PronunciationAssessment?.ErrorType || "Unknown"
-            }
+              ErrorType: word.PronunciationAssessment?.ErrorType || "None"
+            },
+            Phonemes: word.Phonemes || []
           }))
         }
       }

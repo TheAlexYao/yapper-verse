@@ -18,69 +18,78 @@ export async function performSpeechRecognition({
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
   
-  // Configure pronunciation assessment with more detailed settings
+  // Configure pronunciation assessment with detailed settings
   const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
     referenceText,
     sdk.PronunciationAssessmentGradingSystem.HundredMark,
     sdk.PronunciationAssessmentGranularity.Phoneme,
     true
-  );
-
-  // Set up audio format specifically for 16kHz mono PCM
-  const format = sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1);
-  const pushStream = sdk.AudioInputStream.createPushStream(format);
+  )
   
-  // Convert audio data to proper format and write to stream
-  const audioArray = new Uint8Array(audioData);
-  pushStream.write(audioArray.buffer);
-  pushStream.close();
+  // Enable prosody assessment for more detailed feedback
+  pronunciationConfig.enableProsodyAssessment = true
+
+  // Set up audio format for 16kHz mono PCM
+  const format = sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1)
+  const pushStream = sdk.AudioInputStream.createPushStream(format)
   
-  const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
-
-  // Create recognizer with pronunciation assessment
-  const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-  pronunciationConfig.applyTo(recognizer);
-
-  // Enable detailed recognition logging
-  recognizer.recognizing = (s, e) => {
-    console.log(`RECOGNIZING: Text=${e.result.text}`);
-  };
-
-  recognizer.recognized = (s, e) => {
-    if (e.result.text) {
-      console.log(`RECOGNIZED: Text=${e.result.text}`);
-    }
-  };
-
-  recognizer.canceled = (s, e) => {
-    console.log(`CANCELED: Reason=${e.reason}`);
-    if (e.reason === sdk.CancellationReason.Error) {
-      console.error(`CANCELED: ErrorCode=${e.errorCode}`);
-      console.error(`CANCELED: ErrorDetails=${e.errorDetails}`);
-    }
-  };
+  // Write PCM data to stream
+  pushStream.write(audioData)
+  pushStream.close()
+  
+  const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream)
+  const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig)
+  
+  // Apply pronunciation assessment configuration
+  pronunciationConfig.applyTo(recognizer)
 
   try {
-    console.log("Starting speech recognition with format:", format);
+    console.log("Starting speech recognition with format:", format)
     
     const result = await new Promise((resolve, reject) => {
+      // Add detailed event handlers for better debugging
+      recognizer.recognizing = (s, e) => {
+        console.log(`RECOGNIZING: Text=${e.result.text}`)
+      }
+
+      recognizer.recognized = (s, e) => {
+        if (e.result.text) {
+          console.log(`RECOGNIZED: Text=${e.result.text}`)
+          const pronResult = sdk.PronunciationAssessmentResult.fromResult(e.result)
+          console.log("Pronunciation scores:", {
+            accuracyScore: pronResult.accuracyScore,
+            fluencyScore: pronResult.fluencyScore,
+            completenessScore: pronResult.completenessScore,
+            pronunciationScore: pronResult.pronunciationScore
+          })
+        }
+      }
+
+      recognizer.canceled = (s, e) => {
+        console.log(`CANCELED: Reason=${e.reason}`)
+        if (e.reason === sdk.CancellationReason.Error) {
+          console.error(`CANCELED: ErrorCode=${e.errorCode}`)
+          console.error(`CANCELED: ErrorDetails=${e.errorDetails}`)
+        }
+      }
+
       recognizer.recognizeOnceAsync(
         result => {
-          console.log("Recognition result:", result);
-          recognizer.close();
-          resolve(result);
+          console.log("Recognition result:", result)
+          recognizer.close()
+          resolve(result)
         },
         error => {
-          console.error("Recognition error:", error);
-          recognizer.close();
-          reject(error);
+          console.error("Recognition error:", error)
+          recognizer.close()
+          reject(error)
         }
-      );
-    });
+      )
+    })
 
-    return result;
+    return result
   } catch (error) {
-    console.error('Speech recognition error:', error);
-    throw error;
+    console.error('Speech recognition error:', error)
+    throw error
   }
 }
