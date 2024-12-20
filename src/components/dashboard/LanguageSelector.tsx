@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { ProfilesTable } from "@/integrations/supabase/types";
+import type { ProfilesTable } from "@/integrations/supabase/types/tables/profiles";
 
 interface LanguageSelectorProps {
   currentLanguage: string;
