@@ -1,33 +1,19 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSession } from "@supabase/auth-helpers-react";
-import { Loader2 } from "lucide-react";
+import { Navigate } from "react-router-dom";
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export const AuthGuard = ({ children }: AuthGuardProps) => {
   const session = useSession();
-  const navigate = useNavigate();
+  const isDevelopment = import.meta.env.DEV;
 
-  useEffect(() => {
-    if (session === null) {
-      navigate("/auth");
-    }
-  }, [session, navigate]);
-
-  if (session === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  // Allow access in development mode or if user is authenticated
+  if (isDevelopment || session) {
+    return <>{children}</>;
   }
 
-  if (session === null) {
-    return null;
-  }
-
-  return <>{children}</>;
-}
+  // Redirect to auth page if not in development and not authenticated
+  return <Navigate to="/auth" replace />;
+};
