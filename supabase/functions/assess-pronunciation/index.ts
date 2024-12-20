@@ -19,7 +19,8 @@ serve(async (req) => {
       hasAudio: !!audioFile,
       referenceText,
       languageCode,
-      audioType: audioFile?.type
+      audioType: audioFile?.type,
+      audioSize: audioFile?.size
     })
 
     if (!audioFile || !referenceText || !languageCode) {
@@ -34,21 +35,21 @@ serve(async (req) => {
     const arrayBuffer = await audioFile.arrayBuffer()
     const wavBuffer = new Uint8Array(arrayBuffer)
     
+    // Log WAV header information for debugging
+    console.log('WAV Header:', {
+      chunkID: new TextDecoder().decode(wavBuffer.slice(0, 4)),
+      fileSize: new DataView(arrayBuffer).getUint32(4, true),
+      format: new TextDecoder().decode(wavBuffer.slice(8, 12)),
+      subchunk1ID: new TextDecoder().decode(wavBuffer.slice(12, 16)),
+      audioFormat: new DataView(arrayBuffer).getUint16(20, true),
+      numChannels: new DataView(arrayBuffer).getUint16(22, true),
+      sampleRate: new DataView(arrayBuffer).getUint32(24, true),
+      byteRate: new DataView(arrayBuffer).getUint32(28, true),
+      blockAlign: new DataView(arrayBuffer).getUint16(32, true),
+      bitsPerSample: new DataView(arrayBuffer).getUint16(34, true)
+    })
+    
     // Skip WAV header (44 bytes) to get raw PCM data
-    // WAV header structure:
-    // 4 bytes: "RIFF"
-    // 4 bytes: File size (minus 8 bytes)
-    // 4 bytes: "WAVE"
-    // 4 bytes: "fmt "
-    // 4 bytes: Length of format data
-    // 2 bytes: Type of format (1 is PCM)
-    // 2 bytes: Number of channels
-    // 4 bytes: Sample rate
-    // 4 bytes: Bytes per second
-    // 2 bytes: Bytes per sample
-    // 2 bytes: Bits per sample
-    // 4 bytes: "data"
-    // 4 bytes: Size of data section
     const pcmData = wavBuffer.slice(44)
     
     console.log('Audio data details:', {
@@ -72,7 +73,10 @@ serve(async (req) => {
       speechRegion,
       languageCode,
       referenceText,
-      audioData: pcmData.buffer
+      audioData: pcmData.buffer,
+      sampleRate: new DataView(wavBuffer.buffer).getUint32(24, true),
+      channels: new DataView(wavBuffer.buffer).getUint16(22, true),
+      bitsPerSample: new DataView(wavBuffer.buffer).getUint16(34, true)
     })
 
     console.log('Speech recognition result:', result)
@@ -90,7 +94,6 @@ serve(async (req) => {
         const pronunciationAssessment = JSON.parse(parsedResult.privPronJson)
         console.log('Pronunciation assessment:', pronunciationAssessment)
         
-        // Map the pronunciation assessment scores
         if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0]) {
           const assessment = pronunciationAssessment.NBest[0].PronunciationAssessment
           response.assessment.NBest[0].PronunciationAssessment = {
@@ -102,7 +105,6 @@ serve(async (req) => {
           response.assessment.pronunciationScore = assessment.PronScore || 0
         }
 
-        // Map the word-level assessment
         if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0].Words) {
           response.assessment.NBest[0].Words = pronunciationAssessment.NBest[0].Words.map((word: any) => ({
             Word: word.Word,

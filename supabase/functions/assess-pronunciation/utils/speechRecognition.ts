@@ -6,6 +6,9 @@ interface SpeechConfig {
   languageCode: string
   referenceText: string
   audioData: ArrayBuffer
+  sampleRate: number
+  channels: number
+  bitsPerSample: number
 }
 
 export async function performSpeechRecognition({
@@ -13,8 +16,19 @@ export async function performSpeechRecognition({
   speechRegion,
   languageCode,
   referenceText,
-  audioData
+  audioData,
+  sampleRate,
+  channels,
+  bitsPerSample
 }: SpeechConfig) {
+  console.log('Configuring speech recognition with:', {
+    languageCode,
+    sampleRate,
+    channels,
+    bitsPerSample,
+    audioDataSize: audioData.byteLength
+  })
+
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
   
@@ -29,8 +43,14 @@ export async function performSpeechRecognition({
   // Enable prosody assessment for more detailed feedback
   pronunciationConfig.enableProsodyAssessment = true
 
-  // Set up audio format for 16kHz mono PCM
-  const format = sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1)
+  // Set up audio format for PCM
+  const format = sdk.AudioStreamFormat.getWaveFormatPCM(sampleRate, bitsPerSample, channels)
+  console.log('Configured audio format:', {
+    sampleRate: format.samplesPerSec,
+    bitsPerSample: format.bitsPerSample,
+    channels: format.channels
+  })
+
   const pushStream = sdk.AudioInputStream.createPushStream(format)
   
   // Write PCM data to stream
@@ -44,10 +64,9 @@ export async function performSpeechRecognition({
   pronunciationConfig.applyTo(recognizer)
 
   try {
-    console.log("Starting speech recognition with format:", format)
+    console.log("Starting speech recognition")
     
     const result = await new Promise((resolve, reject) => {
-      // Add detailed event handlers for better debugging
       recognizer.recognizing = (s, e) => {
         console.log(`RECOGNIZING: Text=${e.result.text}`)
       }
@@ -71,11 +90,12 @@ export async function performSpeechRecognition({
           console.error(`CANCELED: ErrorCode=${e.errorCode}`)
           console.error(`CANCELED: ErrorDetails=${e.errorDetails}`)
         }
+        reject(new Error(`Recognition canceled: ${e.errorDetails || e.reason}`))
       }
 
       recognizer.recognizeOnceAsync(
         result => {
-          console.log("Recognition result:", result)
+          console.log("Recognition completed:", result)
           recognizer.close()
           resolve(result)
         },
