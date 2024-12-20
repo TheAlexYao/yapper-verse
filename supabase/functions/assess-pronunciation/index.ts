@@ -5,6 +5,7 @@ import { performSpeechRecognition } from "./utils/speechRecognition.ts"
 import { createDefaultResponse } from "./utils/assessmentResponse.ts"
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -35,8 +36,8 @@ serve(async (req) => {
     const arrayBuffer = await audioFile.arrayBuffer()
     const wavBuffer = new Uint8Array(arrayBuffer)
     
-    // Log WAV header information for debugging
-    console.log('WAV Header:', {
+    // Parse WAV header
+    const wavHeader = {
       chunkID: new TextDecoder().decode(wavBuffer.slice(0, 4)),
       fileSize: new DataView(arrayBuffer).getUint32(4, true),
       format: new TextDecoder().decode(wavBuffer.slice(8, 12)),
@@ -47,8 +48,15 @@ serve(async (req) => {
       byteRate: new DataView(arrayBuffer).getUint32(28, true),
       blockAlign: new DataView(arrayBuffer).getUint16(32, true),
       bitsPerSample: new DataView(arrayBuffer).getUint16(34, true)
-    })
+    }
     
+    console.log('WAV Header:', wavHeader)
+    
+    // Validate WAV format
+    if (wavHeader.chunkID !== 'RIFF' || wavHeader.format !== 'WAVE') {
+      throw new Error('Invalid WAV format')
+    }
+
     // Skip WAV header (44 bytes) to get raw PCM data
     const pcmData = wavBuffer.slice(44)
     
@@ -56,9 +64,9 @@ serve(async (req) => {
       originalSize: wavBuffer.length,
       pcmSize: pcmData.length,
       type: Object.prototype.toString.call(pcmData),
-      sampleRate: new DataView(wavBuffer.buffer).getUint32(24, true),
-      channels: new DataView(wavBuffer.buffer).getUint16(22, true),
-      bitsPerSample: new DataView(wavBuffer.buffer).getUint16(34, true)
+      sampleRate: wavHeader.sampleRate,
+      channels: wavHeader.numChannels,
+      bitsPerSample: wavHeader.bitsPerSample
     })
 
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
@@ -74,9 +82,9 @@ serve(async (req) => {
       languageCode,
       referenceText,
       audioData: pcmData.buffer,
-      sampleRate: new DataView(wavBuffer.buffer).getUint32(24, true),
-      channels: new DataView(wavBuffer.buffer).getUint16(22, true),
-      bitsPerSample: new DataView(wavBuffer.buffer).getUint16(34, true)
+      sampleRate: wavHeader.sampleRate,
+      channels: wavHeader.numChannels,
+      bitsPerSample: wavHeader.bitsPerSample
     })
 
     console.log('Speech recognition result:', result)
