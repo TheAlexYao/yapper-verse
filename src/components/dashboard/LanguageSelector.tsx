@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Loader2 } from "lucide-react";
 import { languages } from "@/components/onboarding/steps/language/languages";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
@@ -48,7 +48,7 @@ export function LanguageSelector({
     }
   };
 
-  const handleLanguageChange = async (langCode: string) => {
+  const handleLanguageChange = useCallback(async (langCode: string) => {
     if (isLoading || currentLanguage === langCode) return;
     
     setIsLoading(true);
@@ -74,7 +74,7 @@ export function LanguageSelector({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, currentLanguage, onLanguageChange, toast]);
 
   useEffect(() => {
     fetchUserLanguages();
@@ -96,12 +96,16 @@ export function LanguageSelector({
           (payload: RealtimePostgresChangesPayload<ProfilesTable["Row"]>) => {
             if (payload.new && 'languages_learning' in payload.new && Array.isArray(payload.new.languages_learning)) {
               const newLanguages = payload.new.languages_learning;
-              setActiveLanguages(newLanguages);
               
-              // If this is a newly added language, switch to it
-              if (newLanguages.length > activeLanguages.length) {
-                const newLanguage = newLanguages[newLanguages.length - 1];
-                handleLanguageChange(newLanguage);
+              // Only update if the languages have actually changed
+              if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
+                setActiveLanguages(newLanguages);
+                
+                // If a new language was added, switch to it
+                if (newLanguages.length > activeLanguages.length) {
+                  const newLanguage = newLanguages[newLanguages.length - 1];
+                  handleLanguageChange(newLanguage);
+                }
               }
             }
           }
@@ -113,8 +117,11 @@ export function LanguageSelector({
       };
     };
 
-    setupSubscription();
-  }, []); // Empty dependency array since we want this to run once
+    const subscription = setupSubscription();
+    return () => {
+      subscription.then(cleanup => cleanup && cleanup());
+    };
+  }, [activeLanguages, handleLanguageChange]); // Add dependencies to ensure proper updates
 
   return (
     <Card className="p-6">
