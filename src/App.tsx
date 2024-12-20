@@ -7,6 +7,7 @@ import Character from "@/pages/Character";
 import GuidedChat from "@/pages/GuidedChat";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
+import ScenarioFeedback from "@/pages/ScenarioFeedback";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/chat" element={<GuidedChat />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/feedback" element={<ScenarioFeedback />} />
       </Routes>
     </Router>
   );
