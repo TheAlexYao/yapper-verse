@@ -117,12 +117,22 @@ serve(async (req) => {
         console.log('Pronunciation assessment from privJson:', privJsonData)
         
         if (privJsonData.NBest && privJsonData.NBest[0]) {
+          const nBestResult = privJsonData.NBest[0];
           assessment = {
             NBest: [{
-              PronunciationAssessment: privJsonData.NBest[0].PronunciationAssessment,
-              Words: privJsonData.NBest[0].Words
+              PronunciationAssessment: nBestResult.PronunciationAssessment,
+              Words: nBestResult.Words.map((word: any) => ({
+                Word: word.Word,
+                PronunciationAssessment: {
+                  AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
+                  ErrorType: word.PronunciationAssessment?.ErrorType || "None",
+                  Feedback: word.PronunciationAssessment?.Feedback || null
+                },
+                Syllables: word.Syllables || [],
+                Phonemes: word.Phonemes || []
+              }))
             }],
-            pronunciationScore: privJsonData.NBest[0].PronunciationAssessment?.PronScore || 0
+            pronunciationScore: nBestResult.PronunciationAssessment?.PronScore || 0
           }
         }
       }
