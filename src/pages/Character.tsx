@@ -56,6 +56,8 @@ export default function Character() {
   };
 
   const handleStartConversation = () => {
+    if (!selectedCharacter) return;
+    
     navigate("/chat", {
       state: {
         scenario,
