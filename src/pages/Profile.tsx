@@ -5,24 +5,14 @@ import { PersonalInfo } from "@/components/profile/PersonalInfo";
 import { LanguageSettings } from "@/components/profile/LanguageSettings";
 import { VoiceSettings } from "@/components/profile/VoiceSettings";
 import { LearningGoals } from "@/components/profile/LearningGoals";
+import { DangerZone } from "@/components/profile/DangerZone";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { LogOut, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface UserProfile {
+  id: string;
   full_name: string;
   native_language: string;
   target_language: string;
@@ -33,11 +23,8 @@ interface UserProfile {
 
 const Profile = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const form = useForm({
     defaultValues: {
@@ -64,7 +51,11 @@ const Profile = () => {
 
         if (error) throw error;
 
-        setProfile(data);
+        setProfile({
+          id: user.id,
+          ...data
+        });
+        
         form.reset({
           fullName: data.full_name || "",
           nativeLanguage: data.native_language || "",
@@ -87,62 +78,6 @@ const Profile = () => {
 
     fetchProfile();
   }, []);
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-      
-      navigate("/auth");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error signing out",
-        description: "There was a problem signing out. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteProfile = async () => {
-    setIsDeleting(true);
-    try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', profile?.id);
-
-      if (profileError) throw profileError;
-
-      const { error: authError } = await supabase.auth.admin.deleteUser(
-        profile?.id as string
-      );
-
-      if (authError) throw authError;
-
-      toast({
-        title: "Account deleted",
-        description: "Your account has been permanently deleted",
-      });
-
-      navigate("/auth");
-    } catch (error) {
-      console.error("Error deleting profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete your account. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -193,60 +128,7 @@ const Profile = () => {
 
               <Separator className="my-8" />
 
-              <div className="space-y-4">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </Button>
-
-                <div className="rounded-lg border border-destructive/50 p-4 mt-8">
-                  <div className="flex items-center gap-2 text-destructive mb-4">
-                    <AlertTriangle className="h-5 w-5" />
-                    <h3 className="font-semibold">Danger Zone</h3>
-                  </div>
-                  
-                  <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                    <DialogTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full border-destructive text-destructive hover:bg-destructive/90 hover:text-destructive-foreground"
-                      >
-                        Delete Account
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Are you absolutely sure?</DialogTitle>
-                        <DialogDescription>
-                          This action cannot be undone. This will permanently delete your
-                          account and remove all your data from our servers.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowDeleteDialog(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={handleDeleteProfile}
-                          disabled={isDeleting}
-                        >
-                          {isDeleting ? "Deleting..." : "Delete Account"}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
+              <DangerZone userId={profile?.id || ''} />
             </form>
           </Form>
         </div>
