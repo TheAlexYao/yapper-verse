@@ -26,7 +26,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       if (message.pronunciation_data) {
         setPronunciationData(message.pronunciation_data);
         setIsProcessing(false);
-        setShowScoreModal(true);
       }
     },
     onComplete: () => {
