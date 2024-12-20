@@ -1,7 +1,7 @@
 import * as sdk from "npm:microsoft-cognitiveservices-speech-sdk"
 import { createClient } from "npm:@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts";
-import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts"
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 interface RequestBody {
   text: string;
@@ -16,9 +16,9 @@ const supabaseAdmin = createClient(
 );
 
 Deno.serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -37,9 +37,12 @@ Deno.serve(async (req) => {
     console.log('Received TTS request:', { text, languageCode, voiceGender });
 
     // Generate hash of the text + language + gender combination
-    const textHash = createHash('md5')
-      .update(`${text}-${languageCode}-${voiceGender}`)
-      .toString();
+    const textToHash = `${text}-${languageCode}-${voiceGender}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(textToHash);
+    const hashBuffer = await crypto.subtle.digest('MD5', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Check cache first
     const { data: cacheData, error: cacheError } = await supabaseAdmin
