@@ -17,6 +17,10 @@ export async function performSpeechRecognition({
 }: SpeechConfig) {
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
+  
+  // Configure speech recognition to be more lenient
+  speechConfig.setProperty("SpeechServiceConnection_InitialSilenceTimeoutMs", "5000")
+  speechConfig.setProperty("SpeechServiceConnection_EndSilenceTimeoutMs", "5000")
 
   const pushStream = sdk.AudioInputStream.createPushStream()
   pushStream.write(new Uint8Array(audioData))
@@ -34,13 +38,24 @@ export async function performSpeechRecognition({
   pronunciationConfig.applyTo(recognizer)
 
   try {
+    console.log("Starting speech recognition with config:", {
+      language: languageCode,
+      referenceText,
+      silenceTimeouts: {
+        initial: speechConfig.getProperty("SpeechServiceConnection_InitialSilenceTimeoutMs"),
+        end: speechConfig.getProperty("SpeechServiceConnection_EndSilenceTimeoutMs")
+      }
+    })
+
     const result = await new Promise((resolve, reject) => {
       recognizer.recognizeOnceAsync(
         result => {
+          console.log("Recognition completed with status:", result.privJson)
           recognizer.close()
           resolve(result)
         },
         error => {
+          console.error("Speech recognition error:", error)
           recognizer.close()
           reject(error)
         }

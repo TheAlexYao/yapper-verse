@@ -23,22 +23,26 @@ export interface AssessmentResponse {
 }
 
 export function createDefaultResponse(referenceText: string, audioUrl: string): AssessmentResponse {
+  // Set a default score of 50 when no assessment is available
+  // This helps distinguish between "no audio detected" (0) and "no assessment available" (50)
+  const defaultScore = 50;
+  
   return {
     success: true,
     audioUrl,
     assessment: {
-      pronunciationScore: 0,
+      pronunciationScore: defaultScore,
       NBest: [{
         PronunciationAssessment: {
-          AccuracyScore: 0,
-          FluencyScore: 0,
-          CompletenessScore: 0,
-          PronScore: 0
+          AccuracyScore: defaultScore,
+          FluencyScore: defaultScore,
+          CompletenessScore: defaultScore,
+          PronScore: defaultScore
         },
         Words: [{
           Word: referenceText,
           PronunciationAssessment: {
-            AccuracyScore: 0,
+            AccuracyScore: defaultScore,
             ErrorType: "None"
           }
         }],
