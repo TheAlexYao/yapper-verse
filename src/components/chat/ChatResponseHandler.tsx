@@ -20,7 +20,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onComplete: () => {
       setSelectedResponse(null);
       setShowPronunciationModal(false);
-    }
+    },
+    selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
   const handleResponseSelect = (response: any) => {

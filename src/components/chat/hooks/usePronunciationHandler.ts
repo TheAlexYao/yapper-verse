@@ -5,12 +5,17 @@ interface UsePronunciationHandlerProps {
   conversationId: string;
   onMessageSend: (message: Message) => void;
   onComplete: () => void;
+  selectedResponse: {
+    text: string;
+    translation: string;
+  };
 }
 
 export function usePronunciationHandler({ 
   conversationId, 
   onMessageSend, 
-  onComplete 
+  onComplete,
+  selectedResponse 
 }: UsePronunciationHandlerProps) {
   const handlePronunciationComplete = async (score: number, audioBlob?: Blob) => {
     try {
