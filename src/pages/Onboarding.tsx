@@ -13,6 +13,7 @@ import { ReviewStep } from "@/components/onboarding/steps/ReviewStep";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
+  fullName: z.string().min(1, "Please enter your name"),
   nativeLanguage: z.string().min(1, "Please select your native language"),
   targetLanguage: z.string().min(1, "Please select your target language"),
   voicePreference: z.enum(["male", "female", "nonBinary", "noPreference"]),
@@ -30,6 +31,7 @@ const OnboardingWizard = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      fullName: "",
       nativeLanguage: "",
       targetLanguage: "",
       voicePreference: "noPreference",
@@ -52,6 +54,7 @@ const OnboardingWizard = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: values.fullName,
           native_language: values.nativeLanguage,
           target_language: values.targetLanguage,
           voice_preference: values.voicePreference,
@@ -102,7 +105,7 @@ const OnboardingWizard = () => {
           </div>
           
           <div className="bg-background/50 backdrop-blur-sm border rounded-lg p-8 shadow-lg">
-            {step === 1 && <WelcomeStep onNext={nextStep} />}
+            {step === 1 && <WelcomeStep onNext={nextStep} form={form} />}
             
             {step === 2 && (
               <LanguageStep
