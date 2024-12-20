@@ -7,7 +7,7 @@ import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 export type Message = Omit<GuidedMessage, 'content' | 'is_user'> & {
   text: string;  // maps to content
   isUser: boolean;  // maps to is_user
-  reference_audio_url?: string;  // add this line
+  reference_audio_url?: string;
 };
 
 export const useConversation = (characterId: string | undefined) => {
@@ -22,28 +22,19 @@ export const useConversation = (characterId: string | undefined) => {
       // First fetch the character
       const { data: characterData, error: characterError } = await supabase
         .from('characters')
-        .select('*')
+        .select(`
+          *,
+          scenario:scenarios(
+            *,
+            languages:scenario_languages(
+              language:languages(*)
+            )
+          )
+        `)
         .eq('id', characterId)
         .single();
 
       if (characterError) throw characterError;
-
-      // Then fetch the associated scenario if there is one
-      if (characterData.scenario_id) {
-        const { data: scenarioData, error: scenarioError } = await supabase
-          .from('scenarios')
-          .select('language_id')
-          .eq('id', characterData.scenario_id)
-          .single();
-
-        if (scenarioError) throw scenarioError;
-
-        return {
-          ...characterData,
-          scenario: scenarioData
-        };
-      }
-
       return characterData;
     },
     enabled: !!characterId,
@@ -57,6 +48,17 @@ export const useConversation = (characterId: string | undefined) => {
       targetLanguageId: string;
     }) => {
       if (!user?.id) throw new Error('No user authenticated');
+
+      // First verify the language IDs exist
+      const { data: languageData, error: languageError } = await supabase
+        .from('languages')
+        .select('id')
+        .in('id', [params.nativeLanguageId, params.targetLanguageId]);
+
+      if (languageError) throw languageError;
+      if (!languageData || languageData.length !== 2) {
+        throw new Error('Invalid language IDs provided');
+      }
       
       const { data: conversationData, error } = await supabase
         .from('guided_conversations')
@@ -77,14 +79,17 @@ export const useConversation = (characterId: string | undefined) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating conversation:', error);
+        throw error;
+      }
       return conversationData;
     },
     onError: (error) => {
       console.error('Error creating conversation:', error);
       toast({
         title: "Error",
-        description: "Failed to start conversation",
+        description: "Failed to start conversation. Please try again.",
         variant: "destructive",
       });
     },
