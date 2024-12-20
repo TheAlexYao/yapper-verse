@@ -50,17 +50,28 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
           return;
         }
 
-        // Fetch scenarios for the user's target language
+        // First, get the language ID for the target language
+        const { data: languageData } = await supabase
+          .from('languages')
+          .select('id')
+          .eq('code', profileData.target_language)
+          .single();
+
+        if (!languageData) {
+          console.error('Language not found');
+          return;
+        }
+
+        // Fetch scenarios that either have a language association or no language associations
         const { data: scenariosData, error } = await supabase
           .from('scenarios')
           .select(`
             *,
-            languages!inner (
-              code,
-              name
+            scenario_languages!left (
+              language_id
             )
           `)
-          .eq('languages.code', profileData.target_language);
+          .or(`scenario_languages.language_id.eq.${languageData.id},and(scenario_languages.language_id.is.null)`);
 
         if (error) {
           console.error('Error fetching scenarios:', error);
