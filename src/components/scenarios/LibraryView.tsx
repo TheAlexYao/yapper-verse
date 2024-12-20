@@ -62,16 +62,12 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
           return;
         }
 
-        // Fetch scenarios that either have a language association or no language associations
+        // Fetch all scenarios (they are now available for all languages)
         const { data: scenariosData, error } = await supabase
           .from('scenarios')
           .select(`
-            *,
-            scenario_languages!left (
-              language_id
-            )
-          `)
-          .or(`scenario_languages.language_id.eq.${languageData.id},and(scenario_languages.language_id.is.null)`);
+            *
+          `);
 
         if (error) {
           console.error('Error fetching scenarios:', error);

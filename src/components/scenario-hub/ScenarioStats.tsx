@@ -25,22 +25,15 @@ export function ScenarioStats() {
         if (profileData?.target_language) {
           setTargetLanguage(profileData.target_language);
           
-          const { data: scenariosData, error: scenariosError } = await supabase
+          // Get completed scenarios count
+          const { data: completedData, error: completedError } = await supabase
             .from('user_scenarios')
-            .select(`
-              id,
-              scenarios!inner (
-                languages!inner (
-                  code
-                )
-              )
-            `)
+            .select('id')
             .eq('user_id', user.id)
-            .eq('status', 'completed')
-            .eq('scenarios.languages.code', profileData.target_language);
+            .eq('status', 'completed');
 
-          if (scenariosError) throw scenariosError;
-          setCompletedCount(scenariosData?.length || 0);
+          if (completedError) throw completedError;
+          setCompletedCount(completedData?.length || 0);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
