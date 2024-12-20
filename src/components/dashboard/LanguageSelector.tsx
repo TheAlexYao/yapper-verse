@@ -28,7 +28,7 @@ export function LanguageSelector({
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('languages_learning')
+        .select('languages_learning, target_language')
         .eq('id', user.id)
         .single();
 
@@ -36,6 +36,11 @@ export function LanguageSelector({
       
       const userLanguages = profileData?.languages_learning || [];
       setActiveLanguages(userLanguages);
+      
+      // If this is a newly added language, it should be selected
+      if (profileData?.target_language && profileData.target_language !== currentLanguage) {
+        onLanguageChange(profileData.target_language);
+      }
     } catch (error) {
       console.error('Error fetching user languages:', error);
       toast({
