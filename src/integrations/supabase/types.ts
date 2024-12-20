@@ -585,6 +585,39 @@ export type Database = {
           },
         ]
       }
+      tts_cache: {
+        Row: {
+          audio_url: string
+          created_at: string | null
+          id: string
+          language_code: string
+          text_content: string
+          text_hash: string
+          updated_at: string | null
+          voice_gender: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string | null
+          id?: string
+          language_code: string
+          text_content: string
+          text_hash: string
+          updated_at?: string | null
+          voice_gender: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string | null
+          id?: string
+          language_code?: string
+          text_content?: string
+          text_hash?: string
+          updated_at?: string | null
+          voice_gender?: string
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           average_pronunciation_score: number
