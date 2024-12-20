@@ -8,7 +8,7 @@ interface UsePronunciationHandlerProps {
   selectedResponse: {
     text: string;
     translation: string;
-    languageCode?: string; // Add language code to the interface
+    languageCode?: string;
   };
 }
 
@@ -24,7 +24,6 @@ export function usePronunciationHandler({
         throw new Error('No audio recording provided');
       }
 
-      // Get user's target language if not provided in selectedResponse
       if (!selectedResponse.languageCode) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not found');
@@ -59,6 +58,8 @@ export function usePronunciationHandler({
       }
 
       const { audioUrl, assessment } = assessmentData;
+      const pronunciationScore = assessment.pronunciationScore || 
+        (assessment.NBest?.[0]?.PronunciationAssessment?.PronScore ?? 0);
 
       // Create the message with pronunciation data
       const newMessage: Message = {
@@ -66,17 +67,20 @@ export function usePronunciationHandler({
         conversation_id: conversationId,
         text: selectedResponse.text,
         translation: selectedResponse.translation,
-        pronunciation_score: Math.round(assessment.pronunciationScore),
+        pronunciation_score: Math.round(pronunciationScore),
         pronunciation_data: assessment,
         audio_url: audioUrl,
         isUser: true,
       };
 
+      console.log('Pronunciation score:', pronunciationScore);
+      console.log('Assessment data:', assessment);
+
       onMessageSend(newMessage);
       onComplete();
     } catch (error) {
       console.error('Error handling pronunciation:', error);
-      throw error; // Let the component handle the error display
+      throw error;
     }
   };
 

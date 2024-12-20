@@ -1,24 +1,25 @@
 export interface AssessmentResponse {
-  success: boolean
-  audioUrl: string
+  success: boolean;
+  audioUrl: string;
   assessment: {
+    pronunciationScore: number;
     NBest: Array<{
       PronunciationAssessment: {
-        AccuracyScore: number
-        FluencyScore: number
-        CompletenessScore: number
-        PronScore: number
-      }
+        AccuracyScore: number;
+        FluencyScore: number;
+        CompletenessScore: number;
+        PronScore: number;
+      };
       Words: Array<{
-        Word: string
+        Word: string;
         PronunciationAssessment: {
-          AccuracyScore: number
-          ErrorType: string
-        }
-      }>
-      AudioUrl: string
-    }>
-  }
+          AccuracyScore: number;
+          ErrorType: string;
+        };
+      }>;
+      AudioUrl: string;
+    }>;
+  };
 }
 
 export function createDefaultResponse(referenceText: string, audioUrl: string): AssessmentResponse {
@@ -26,6 +27,7 @@ export function createDefaultResponse(referenceText: string, audioUrl: string): 
     success: true,
     audioUrl,
     assessment: {
+      pronunciationScore: 0,
       NBest: [{
         PronunciationAssessment: {
           AccuracyScore: 0,
@@ -43,5 +45,5 @@ export function createDefaultResponse(referenceText: string, audioUrl: string): 
         AudioUrl: audioUrl
       }]
     }
-  }
+  };
 }

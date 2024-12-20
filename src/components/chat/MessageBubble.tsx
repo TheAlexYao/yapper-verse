@@ -74,7 +74,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                   {message.translation}
                 </p>
               )}
-              {isUser && message.pronunciation_score !== undefined && (
+              {isUser && typeof message.pronunciation_score === 'number' && (
                 <button
                   onClick={() => setShowScoreModal(true)}
                   className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
