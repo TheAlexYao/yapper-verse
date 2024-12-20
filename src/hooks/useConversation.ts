@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@supabase/auth-helpers-react";
 
 export interface Message {
   id: string;
@@ -15,6 +16,7 @@ export interface Message {
 
 export const useConversation = (characterId: string | undefined) => {
   const { toast } = useToast();
+  const auth = useAuth();
 
   const { data: character } = useQuery({
     queryKey: ['character', characterId],
@@ -22,7 +24,7 @@ export const useConversation = (characterId: string | undefined) => {
       if (!characterId) return null;
       const { data, error } = await supabase
         .from('characters')
-        .select('*')
+        .select('*, scenario:scenarios(language_id)')
         .eq('id', characterId)
         .single();
 
@@ -34,14 +36,17 @@ export const useConversation = (characterId: string | undefined) => {
 
   const createConversation = useMutation({
     mutationFn: async () => {
-      if (!character) throw new Error('No character selected');
+      if (!character?.scenario?.language_id) throw new Error('No language selected');
+      if (!auth.user?.id) throw new Error('No user authenticated');
       
       const { data: conversationData, error } = await supabase
         .from('conversations')
         .insert({
           agent_id: character.id,
-          language_id: character.language_id,
+          language_id: character.scenario.language_id,
           status: 'active',
+          telegram_id: parseInt(auth.user.id), // Convert UUID to number for telegram_id
+          native_language_code: 'en', // Default to English for now, should come from user profile
         })
         .select()
         .single();
