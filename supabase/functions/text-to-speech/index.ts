@@ -1,187 +1,147 @@
 import * as sdk from "npm:microsoft-cognitiveservices-speech-sdk"
-import { createClient } from "npm:@supabase/supabase-js@2"
-import { corsHeaders } from "../_shared/cors.ts";
-import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
-interface RequestBody {
-  text: string;
-  languageCode: string;
-  voiceGender: 'male' | 'female';
+// CORS headers for browser access
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-// Create a Supabase client with the service role key
-const supabaseAdmin = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     // Parse request body
-    const requestBody = await req.json().catch((error) => {
-      console.error('Failed to parse request body:', error);
-      throw new Error('Invalid request body');
-    });
+    const { text, languageCode, voiceGender } = await req.json()
 
-    const { text, languageCode, voiceGender } = requestBody as RequestBody;
-    
+    console.log('Received TTS request:', { text, languageCode, voiceGender })
+
     if (!text || !languageCode || !voiceGender) {
-      throw new Error('Missing required fields: text, languageCode, or voiceGender');
+      throw new Error('Missing required fields: text, languageCode, or voiceGender')
     }
 
-    console.log('Received TTS request:', { text, languageCode, voiceGender });
-
-    // Generate hash of the text + language + gender combination
-    const textToHash = `${text}-${languageCode}-${voiceGender}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(textToHash);
-    const hashBuffer = await crypto.subtle.digest('MD5', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Check cache first
-    const { data: cacheData, error: cacheError } = await supabaseAdmin
-      .from('tts_cache')
-      .select('audio_url')
-      .eq('text_hash', textHash)
-      .eq('language_code', languageCode)
-      .eq('voice_gender', voiceGender)
-      .single();
-
-    if (cacheError && cacheError.code !== 'PGRST116') {
-      console.error('Cache lookup error:', cacheError);
-      throw cacheError;
-    }
-
-    if (cacheData?.audio_url) {
-      console.log('Cache hit:', cacheData.audio_url);
-      return new Response(
-        JSON.stringify({ audioUrl: cacheData.audio_url }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get voice configuration for the language
-    const { data: languageData, error: languageError } = await supabaseAdmin
-      .from('languages')
-      .select('male_voice, female_voice')
-      .eq('code', languageCode)
-      .single();
-
-    if (languageError) {
-      console.error('Language lookup error:', languageError);
-      throw languageError;
-    }
-
-    const voiceName = voiceGender === 'male' ? 
-      (languageCode === 'fr-FR' ? 'fr-FR-AlainNeural' : languageData.male_voice) : 
-      (languageCode === 'fr-FR' ? 'fr-FR-DeniseNeural' : languageData.female_voice);
-
-    if (!voiceName) {
-      throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
-    }
-
-    console.log('Using voice:', voiceName);
-
-    // Configure speech SDK
-    const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
-    const speechRegion = Deno.env.get('AZURE_SPEECH_REGION');
+    // Get Azure credentials
+    const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
+    const speechRegion = Deno.env.get('AZURE_SPEECH_REGION')
 
     if (!speechKey || !speechRegion) {
-      throw new Error('Azure Speech credentials not configured');
+      throw new Error('Azure Speech credentials not configured')
     }
 
-    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-    speechConfig.speechSynthesisVoiceName = voiceName;
+    // Configure speech service
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
+    
+    // Get voice configuration for the language
+    const { data: languageData, error: languageError } = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/rest/v1/languages?code=eq.${languageCode}&select=male_voice,female_voice`,
+      {
+        headers: {
+          'apikey': Deno.env.get('SUPABASE_ANON_KEY') || '',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        }
+      }
+    ).then(res => res.json())
 
-    // Create the synthesizer
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+    if (languageError) {
+      console.error('Language lookup error:', languageError)
+      throw new Error(`Failed to get voice configuration: ${languageError.message}`)
+    }
 
-    // Generate audio
-    console.log('Generating audio with voice:', voiceName);
-    const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
+    if (!languageData || languageData.length === 0) {
+      throw new Error(`No voice configuration found for language: ${languageCode}`)
+    }
+
+    // Set voice based on gender preference
+    const voiceName = voiceGender === 'male' ? 
+      languageData[0].male_voice : 
+      languageData[0].female_voice
+
+    if (!voiceName) {
+      throw new Error(`No ${voiceGender} voice available for language: ${languageCode}`)
+    }
+
+    console.log('Using voice:', voiceName)
+    speechConfig.speechSynthesisVoiceName = voiceName
+
+    // Set output format to MP3
+    speechConfig.speechSynthesisOutputFormat = 
+      sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+
+    // Create synthesizer
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig)
+
+    // Generate speech
+    console.log('Generating speech...')
+    const result = await new Promise((resolve, reject) => {
       synthesizer.speakTextAsync(
         text,
         result => {
-          synthesizer.close();
-          resolve(result);
+          synthesizer.close()
+          resolve(result)
         },
         error => {
-          synthesizer.close();
-          reject(error);
+          synthesizer.close()
+          reject(error)
         }
-      );
-    });
+      )
+    })
 
-    if (result.errorDetails) {
-      console.error('Speech synthesis error:', result.errorDetails);
-      throw new Error(result.errorDetails);
+    // Check if we got audio data
+    if (!result.audioData || result.audioData.length === 0) {
+      throw new Error('No audio data generated')
     }
 
-    // Get audio data
-    const audioData = result.audioData;
-    
-    // Generate a unique filename
-    const filename = `${textHash}.wav`;
-    
+    console.log('Generated audio data length:', result.audioData.length)
+
+    // Generate unique filename
+    const filename = `${crypto.randomUUID()}.mp3`
+
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin
-      .storage
-      .from('tts_cache')
-      .upload(filename, audioData, {
-        contentType: 'audio/wav',
-        cacheControl: '3600',
-        upsert: true
-      });
+    const { data: uploadData, error: uploadError } = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/tts_cache/${filename}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: result.audioData
+      }
+    ).then(res => res.json())
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError);
-      throw uploadError;
+      console.error('Storage upload error:', uploadError)
+      throw new Error(`Failed to upload audio: ${uploadError.message}`)
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabaseAdmin
-      .storage
-      .from('tts_cache')
-      .getPublicUrl(filename);
+    const publicUrl = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/tts_cache/${filename}`
 
-    // Cache the result
-    const { error: insertError } = await supabaseAdmin
-      .from('tts_cache')
-      .insert({
-        text_hash: textHash,
-        text_content: text,
-        language_code: languageCode,
-        voice_gender: voiceGender,
-        audio_url: publicUrl
-      });
-
-    if (insertError) {
-      console.error('Cache insert error:', insertError);
-      throw insertError;
-    }
-
-    console.log('Successfully generated and cached audio:', publicUrl);
     return new Response(
       JSON.stringify({ audioUrl: publicUrl }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
 
   } catch (error) {
-    console.error('Error in text-to-speech function:', error);
+    console.error('Error in text-to-speech function:', error)
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       { 
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
       }
-    );
+    )
   }
-});
+})
