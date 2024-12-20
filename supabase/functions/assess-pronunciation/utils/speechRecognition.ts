@@ -18,16 +18,28 @@ export async function performSpeechRecognition({
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
   
-  // Configure speech recognition with more permissive settings
-  speechConfig.setProperty("SpeechServiceConnection_InitialSilenceTimeoutMs", "10000")
-  speechConfig.setProperty("SpeechServiceConnection_EndSilenceTimeoutMs", "10000")
-  speechConfig.setProperty("SpeechServiceConnection_NoSignalTimeoutMs", "10000")
+  // Configure speech recognition with more sensitive settings
+  speechConfig.setProperty("SpeechServiceConnection_InitialSilenceTimeoutMs", "2000")
+  speechConfig.setProperty("SpeechServiceConnection_EndSilenceTimeoutMs", "2000")
+  speechConfig.setProperty("SpeechServiceConnection_NoSignalTimeoutMs", "2000")
   speechConfig.setProfanity(sdk.ProfanityOption.Raw)
   speechConfig.enableAudioLogging()
 
-  const pushStream = sdk.AudioInputStream.createPushStream()
-  pushStream.write(new Uint8Array(audioData))
-  pushStream.close()
+  // Log audio details for debugging
+  console.log("Audio data details:", {
+    byteLength: audioData.byteLength,
+    type: Object.prototype.toString.call(audioData)
+  });
+
+  const pushStream = sdk.AudioInputStream.createPushStream(
+    sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1)
+  );
+  
+  // Convert audio data to proper format
+  const audioArray = new Uint8Array(audioData);
+  pushStream.write(audioArray);
+  pushStream.close();
+  
   const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream)
 
   const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
@@ -44,6 +56,7 @@ export async function performSpeechRecognition({
     console.log("Starting speech recognition with config:", {
       language: languageCode,
       referenceText,
+      audioFormat: "PCM 16kHz 16bit mono",
       silenceTimeouts: {
         initial: speechConfig.getProperty("SpeechServiceConnection_InitialSilenceTimeoutMs"),
         end: speechConfig.getProperty("SpeechServiceConnection_EndSilenceTimeoutMs"),
@@ -58,6 +71,7 @@ export async function performSpeechRecognition({
 
       recognizer.recognized = (s, e) => {
         console.log(`RECOGNIZED: Text=${e.result.text}`)
+        console.log("Recognition details:", e.result)
       }
 
       recognizer.canceled = (s, e) => {
@@ -65,6 +79,7 @@ export async function performSpeechRecognition({
         if (e.reason === sdk.CancellationReason.Error) {
           console.error(`CANCELED: ErrorCode=${e.errorCode}`)
           console.error(`CANCELED: ErrorDetails=${e.errorDetails}`)
+          reject(new Error(e.errorDetails))
         }
       }
 
