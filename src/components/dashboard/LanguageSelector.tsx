@@ -34,13 +34,19 @@ export function LanguageSelector({
       // Fetch user's active languages
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('languages_learning')
+        .select('languages_learning, target_language')
         .eq('id', user.id)
         .single();
 
       if (profileError) throw profileError;
       const userLanguages = profileData.languages_learning || [];
       setActiveLanguages(userLanguages);
+
+      // If this is a newly added language, switch to it
+      if (userLanguages.length > activeLanguages.length) {
+        const newLanguage = userLanguages[userLanguages.length - 1];
+        handleLanguageChange(newLanguage);
+      }
 
       // Fetch completed scenarios count for each language
       const { data: scenariosData, error: scenariosError } = await supabase
@@ -78,6 +84,30 @@ export function LanguageSelector({
       toast({
         title: "Error",
         description: "Failed to load language data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLanguageChange = async (langCode: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update target language in profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ target_language: langCode })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      onLanguageChange(langCode);
+    } catch (error) {
+      console.error('Error updating target language:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update target language",
         variant: "destructive",
       });
     }
@@ -132,7 +162,7 @@ export function LanguageSelector({
               <Button
                 key={lang}
                 variant={currentLanguage === lang ? "default" : "outline"}
-                onClick={() => onLanguageChange(lang)}
+                onClick={() => handleLanguageChange(lang)}
                 className="gap-2"
               >
                 <span>{language.emoji}</span>
