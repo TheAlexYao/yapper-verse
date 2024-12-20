@@ -38,6 +38,7 @@ export async function generateSpeech(
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
 
   return new Promise((resolve, reject) => {
+    let audioData: ArrayBuffer | null = null;
     let hasResolved = false;
 
     // Set a timeout to prevent hanging
@@ -48,28 +49,42 @@ export async function generateSpeech(
       }
     }, 30000); // 30 second timeout
 
+    synthesizer.synthesisCompleted = (s, e) => {
+      console.log('Synthesis completed event received');
+      if (e.result.audioData) {
+        audioData = e.result.audioData;
+      }
+    };
+
+    synthesizer.synthesisStarted = (s, e) => {
+      console.log('Synthesis started');
+    };
+
     synthesizer.speakSsmlAsync(
       ssml,
       result => {
         clearTimeout(timeout);
         
         try {
-          if (!result) {
-            throw new Error('No synthesis result received');
-          }
-
-          const { audioData } = result;
+          console.log('Synthesis result received:', result);
           
-          if (!audioData) {
-            throw new Error('No audio data in synthesis result');
+          // First try to use the audio data from the completed event
+          if (audioData) {
+            console.log('Using audio data from synthesis completed event');
+            hasResolved = true;
+            resolve(audioData);
+            return;
           }
 
-          if (audioData.byteLength === 0) {
-            throw new Error('Audio data is empty');
+          // Fallback to the result's audio data
+          if (result?.audioData) {
+            console.log('Using audio data from synthesis result');
+            hasResolved = true;
+            resolve(result.audioData);
+            return;
           }
 
-          hasResolved = true;
-          resolve(audioData);
+          reject(new Error('No audio data in synthesis result'));
         } catch (error) {
           console.error('Error processing synthesis result:', error);
           reject(error);
@@ -84,5 +99,15 @@ export async function generateSpeech(
         reject(error);
       }
     );
+
+    // Additional error handler
+    synthesizer.synthesisCanceled = (s, e) => {
+      console.error('Synthesis canceled:', e);
+      if (!hasResolved) {
+        clearTimeout(timeout);
+        synthesizer.close();
+        reject(new Error(`Synthesis canceled: ${e.errorDetails}`));
+      }
+    };
   });
 }
