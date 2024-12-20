@@ -10,9 +10,9 @@ interface MessageBubbleProps {
     text: string;
     translation?: string;
     transliteration?: string;
-    pronunciationScore?: number;
-    pronunciationData?: any;
-    audioUrl?: string;
+    pronunciation_score?: number;
+    pronunciation_data?: any;
+    audio_url?: string;
   };
   onPlayAudio?: () => void;
 }
@@ -21,8 +21,8 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
   const [showScoreModal, setShowScoreModal] = useState(false);
 
   const handlePlayAudio = () => {
-    if (message.audioUrl) {
-      const audio = new Audio(message.audioUrl);
+    if (message.audio_url) {
+      const audio = new Audio(message.audio_url);
       audio.play();
     } else if (onPlayAudio) {
       onPlayAudio();
@@ -39,7 +39,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
             : "bg-gradient-to-r from-card to-accent/30 hover:from-accent/20 hover:to-accent/40"
         )}>
           <div className="flex items-start gap-2">
-            {((!isUser && onPlayAudio) || (isUser && message.audioUrl)) && (
+            {((!isUser && onPlayAudio) || (isUser && message.audio_url)) && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -74,12 +74,12 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                   {message.translation}
                 </p>
               )}
-              {isUser && message.pronunciationScore !== undefined && (
+              {isUser && message.pronunciation_score !== undefined && (
                 <button
                   onClick={() => setShowScoreModal(true)}
                   className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
                 >
-                  Pronunciation Score: {message.pronunciationScore}%
+                  Pronunciation Score: {message.pronunciation_score}%
                 </button>
               )}
             </div>
@@ -87,11 +87,11 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
         </div>
       </div>
 
-      {message.pronunciationData && (
+      {message.pronunciation_data && (
         <PronunciationScoreModal
           isOpen={showScoreModal}
           onClose={() => setShowScoreModal(false)}
-          data={message.pronunciationData}
+          data={message.pronunciation_data}
         />
       )}
     </>
