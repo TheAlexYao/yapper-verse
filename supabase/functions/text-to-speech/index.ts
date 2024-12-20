@@ -22,7 +22,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { text, languageCode, voiceGender } = await req.json() as RequestBody;
+    // Parse request body
+    const requestBody = await req.json().catch((error) => {
+      console.error('Failed to parse request body:', error);
+      throw new Error('Invalid request body');
+    });
+
+    const { text, languageCode, voiceGender } = requestBody as RequestBody;
+    
+    if (!text || !languageCode || !voiceGender) {
+      throw new Error('Missing required fields: text, languageCode, or voiceGender');
+    }
+
     console.log('Received TTS request:', { text, languageCode, voiceGender });
 
     // Generate hash of the text + language + gender combination
@@ -40,6 +51,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (cacheError && cacheError.code !== 'PGRST116') {
+      console.error('Cache lookup error:', cacheError);
       throw cacheError;
     }
 
@@ -58,7 +70,10 @@ Deno.serve(async (req) => {
       .eq('code', languageCode)
       .single();
 
-    if (languageError) throw languageError;
+    if (languageError) {
+      console.error('Language lookup error:', languageError);
+      throw languageError;
+    }
 
     const voiceName = voiceGender === 'male' ? languageData.male_voice : languageData.female_voice;
     if (!voiceName) {
@@ -66,10 +81,14 @@ Deno.serve(async (req) => {
     }
 
     // Configure speech SDK
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      Deno.env.get('AZURE_SPEECH_KEY') ?? '',
-      Deno.env.get('AZURE_SPEECH_REGION') ?? ''
-    );
+    const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
+    const speechRegion = Deno.env.get('AZURE_SPEECH_REGION');
+
+    if (!speechKey || !speechRegion) {
+      throw new Error('Azure Speech credentials not configured');
+    }
+
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
     speechConfig.speechSynthesisVoiceName = voiceName;
 
     // Create the synthesizer
@@ -92,6 +111,7 @@ Deno.serve(async (req) => {
     });
 
     if (result.errorDetails) {
+      console.error('Speech synthesis error:', result.errorDetails);
       throw new Error(result.errorDetails);
     }
 
@@ -111,7 +131,10 @@ Deno.serve(async (req) => {
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw uploadError;
+    }
 
     // Get public URL
     const { data: { publicUrl } } = supabaseAdmin
@@ -130,7 +153,10 @@ Deno.serve(async (req) => {
         audio_url: publicUrl
       });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Cache insert error:', insertError);
+      throw insertError;
+    }
 
     console.log('Successfully generated and cached audio:', publicUrl);
     return new Response(
@@ -141,9 +167,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in text-to-speech function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      }),
       { 
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
