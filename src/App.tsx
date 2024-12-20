@@ -5,6 +5,7 @@ import OnboardingWizard from "@/pages/Onboarding";
 import ScenarioHub from "@/pages/ScenarioHub";
 import Character from "@/pages/Character";
 import GuidedChat from "@/pages/GuidedChat";
+import Dashboard from "@/pages/Dashboard";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/scenarios" element={<ScenarioHub />} />
         <Route path="/character" element={<Character />} />
         <Route path="/chat" element={<GuidedChat />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   );
