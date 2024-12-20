@@ -18,7 +18,7 @@ interface PronunciationModalProps {
     translation: string;
     transliteration?: string;
   };
-  onSubmit: (score: number, audioUrl?: string) => void;
+  onSubmit: (score: number, audioBlob?: Blob) => void;
 }
 
 export function PronunciationModal({
@@ -30,14 +30,26 @@ export function PronunciationModal({
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        } 
+      });
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm'
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -45,10 +57,12 @@ export function PronunciationModal({
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setAudioUrl(audioUrl);
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // Convert to WAV format for better compatibility
+        const wavBlob = await convertToWav(audioBlob);
+        setAudioBlob(wavBlob);
+        setAudioUrl(URL.createObjectURL(wavBlob));
         setHasRecording(true);
         setIsRecording(false);
       };
@@ -80,14 +94,15 @@ export function PronunciationModal({
       URL.revokeObjectURL(audioUrl);
     }
     setAudioUrl(null);
+    setAudioBlob(null);
     setHasRecording(false);
     setShowResults(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (!audioBlob) return;
     setShowResults(true);
-    const score = Math.floor(Math.random() * 30) + 70;
-    onSubmit(score, audioUrl);
+    await onSubmit(0, audioBlob); // The score will be calculated by the edge function
   };
 
   return (
@@ -190,4 +205,10 @@ export function PronunciationModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+async function convertToWav(blob: Blob): Promise<Blob> {
+  // For now, return the original blob
+  // TODO: Implement proper audio conversion if needed
+  return blob;
 }
