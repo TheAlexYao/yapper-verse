@@ -14,6 +14,8 @@ const Auth = () => {
       // Check if user has a profile
       const checkProfile = async () => {
         try {
+          console.log('Checking profile for user:', session.user.id);
+          
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
