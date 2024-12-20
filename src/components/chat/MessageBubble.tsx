@@ -21,8 +21,12 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
   const [showScoreModal, setShowScoreModal] = useState(false);
 
   const handlePlayAudio = () => {
-    const audio = new Audio(message.audioUrl);
-    audio.play();
+    if (message.audioUrl) {
+      const audio = new Audio(message.audioUrl);
+      audio.play();
+    } else if (onPlayAudio) {
+      onPlayAudio();
+    }
   };
 
   return (
@@ -45,7 +49,7 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                     ? "hover:bg-white/10 text-white" 
                     : "hover:bg-accent-foreground/10"
                 )}
-                onClick={isUser ? handlePlayAudio : onPlayAudio}
+                onClick={handlePlayAudio}
               >
                 <Play className="h-4 w-4" />
               </Button>
@@ -70,12 +74,12 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
                   {message.translation}
                 </p>
               )}
-              {isUser && message.pronunciationScore && (
+              {isUser && message.pronunciationScore !== undefined && (
                 <button
                   onClick={() => setShowScoreModal(true)}
                   className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
                 >
-                  Pronunciation: {message.pronunciationScore}%
+                  Pronunciation Score: {message.pronunciationScore}%
                 </button>
               )}
             </div>
