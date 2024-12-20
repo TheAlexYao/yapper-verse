@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Mic, Play, RefreshCw, Volume2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -29,11 +30,12 @@ export function PronunciationModal({
 }: PronunciationModalProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
-  const [showResults, setShowResults] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
 
   const startRecording = async () => {
     try {
@@ -57,12 +59,10 @@ export function PronunciationModal({
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        // Convert to WAV format for better compatibility
-        const wavBlob = await convertToWav(audioBlob);
-        setAudioBlob(wavBlob);
-        setAudioUrl(URL.createObjectURL(wavBlob));
+        setAudioBlob(audioBlob);
+        setAudioUrl(URL.createObjectURL(audioBlob));
         setHasRecording(true);
         setIsRecording(false);
       };
@@ -71,6 +71,11 @@ export function PronunciationModal({
       setIsRecording(true);
     } catch (error) {
       console.error('Error accessing microphone:', error);
+      toast({
+        title: "Error",
+        description: "Could not access microphone. Please check your permissions.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -96,13 +101,32 @@ export function PronunciationModal({
     setAudioUrl(null);
     setAudioBlob(null);
     setHasRecording(false);
-    setShowResults(false);
   };
 
   const handleSubmit = async () => {
-    if (!audioBlob) return;
-    setShowResults(true);
-    await onSubmit(0, audioBlob); // The score will be calculated by the edge function
+    if (!audioBlob) {
+      toast({
+        title: "Error",
+        description: "Please record your pronunciation first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await onSubmit(0, audioBlob);
+      onClose();
+    } catch (error) {
+      console.error('Error submitting recording:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your recording. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -138,6 +162,7 @@ export function PronunciationModal({
               <Button
                 variant={isRecording ? "destructive" : "default"}
                 onClick={handleRecord}
+                disabled={isProcessing}
                 className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
               >
                 <Mic className="mr-2 h-4 w-4" />
@@ -147,6 +172,7 @@ export function PronunciationModal({
                 <Button 
                   variant="outline" 
                   onClick={resetRecording}
+                  disabled={isProcessing}
                   className="min-w-[140px]"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
@@ -161,54 +187,18 @@ export function PronunciationModal({
               </div>
             )}
 
-            {hasRecording && !showResults && (
+            {hasRecording && (
               <Button
                 className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
                 onClick={handleSubmit}
+                disabled={isProcessing}
               >
-                Submit Recording
+                {isProcessing ? "Processing..." : "Submit Recording"}
               </Button>
-            )}
-
-            {showResults && (
-              <div className="space-y-4">
-                <div className="rounded-lg border border-border p-6 bg-card">
-                  <div className="text-center space-y-2">
-                    <div className="text-4xl font-bold text-primary">85%</div>
-                    <Progress value={85} className="h-2" />
-                    <div className="text-sm text-muted-foreground">
-                      Pronunciation Score
-                    </div>
-                  </div>
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium mb-2">Tips:</h4>
-                    <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-                      <li>Pay attention to the stress on the second syllable</li>
-                      <li>Try to soften the 'r' sound at the end</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
-                  onClick={() => {
-                    onSubmit(85);
-                    onClose();
-                  }}
-                >
-                  Continue
-                </Button>
-              </div>
             )}
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
-
-async function convertToWav(blob: Blob): Promise<Blob> {
-  // For now, return the original blob
-  // TODO: Implement proper audio conversion if needed
-  return blob;
 }

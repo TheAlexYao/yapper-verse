@@ -45,7 +45,7 @@ export function usePronunciationHandler({
         conversation_id: conversationId,
         text: selectedResponse.text,
         translation: selectedResponse.translation,
-        pronunciation_score: assessment.pronunciationScore,
+        pronunciation_score: Math.round(assessment.pronunciationScore),
         pronunciation_data: assessment,
         audio_url: audioUrl,
         isUser: true,
