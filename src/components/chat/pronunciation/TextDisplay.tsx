@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Volume2, PlayCircle } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils";
 
 interface TextDisplayProps {
   text: string;
@@ -10,15 +11,26 @@ interface TextDisplayProps {
   audio_url?: string;
 }
 
+type SpeedOption = {
+  label: string;
+  value: number;
+};
+
+const speedOptions: SpeedOption[] = [
+  { label: "Normal", value: 1 },
+  { label: "Slow", value: 0.8 },
+  { label: "Very Slow", value: 0.5 },
+];
+
 export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
   const [volume, setVolume] = useState([1]);
-  const [speed, setSpeed] = useState([1]);
+  const [selectedSpeed, setSelectedSpeed] = useState<SpeedOption>(speedOptions[0]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handlePlayAudio = () => {
     if (audio_url && audioRef.current) {
       audioRef.current.volume = volume[0];
-      audioRef.current.playbackRate = speed[0];
+      audioRef.current.playbackRate = selectedSpeed.value;
       audioRef.current.play();
     }
   };
@@ -66,22 +78,24 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">
-              Speed
-            </label>
-            <span className="text-sm text-muted-foreground">
-              {speed[0]}x
-            </span>
+          <label className="text-sm font-medium">
+            Speed
+          </label>
+          <div className="flex gap-2">
+            {speedOptions.map((option) => (
+              <Button
+                key={option.label}
+                variant={selectedSpeed.value === option.value ? "default" : "outline"}
+                className={cn(
+                  "flex-1",
+                  selectedSpeed.value === option.value && "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90"
+                )}
+                onClick={() => setSelectedSpeed(option)}
+              >
+                {option.label}
+              </Button>
+            ))}
           </div>
-          <Slider
-            value={speed}
-            onValueChange={setSpeed}
-            min={0.25}
-            max={1}
-            step={0.05}
-            className="w-full"
-          />
         </div>
       </div>
 
