@@ -81,7 +81,7 @@ export function PronunciationModal({
             text: response.text,
             languageCode: response.languageCode,
             gender: response.voiceGender || 'female',
-            speed: 'very-slow'
+            speed: 0.5
           }
         });
 

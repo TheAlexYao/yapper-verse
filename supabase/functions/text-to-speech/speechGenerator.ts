@@ -26,9 +26,9 @@ export async function generateSpeech(
 
   // Simplified rate values that are well-supported across voices
   const rateMap = {
-    'normal': 'default',
-    'slow': 'x-slow',
-    'very-slow': 'x-slow'
+    'normal': '1.0',
+    'slow': '0.7',
+    'very-slow': '0.5'
   };
 
   const ssml = `

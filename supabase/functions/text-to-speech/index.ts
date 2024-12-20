@@ -21,6 +21,11 @@ Deno.serve(async (req) => {
 
     console.log('Received TTS request:', { text, languageCode, voiceGender, speed });
 
+    // Add type validation for speed
+    if (!['normal', 'slow', 'very-slow'].includes(speed)) {
+      throw new Error('Invalid speed value. Must be normal, slow, or very-slow');
+    }
+
     // Generate hash of the text + language + gender combination
     const textToHash = `${text}-${languageCode}-${voiceGender}`;
     const encoder = new TextEncoder();
@@ -64,6 +69,10 @@ Deno.serve(async (req) => {
     // Generate the audio for the requested speed
     console.log(`Generating ${speed} speed audio...`);
     const audioData = await generateSpeech(text, languageCode, voiceName, speed);
+
+    if (audioData?.byteLength) {
+      console.log('Audio data received:', audioData.byteLength, 'bytes');
+    }
 
     // Upload to storage with correct extension and content type
     const filename = `${textHash}_${speed}.mp3`;
