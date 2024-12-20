@@ -1,21 +1,9 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ScenarioCard } from "./ScenarioCard";
-import { Scenario } from "@/pages/ScenarioHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-
-const CATEGORIES = [
-  { id: "All", emoji: "✨" },
-  { id: "Food", emoji: "🍜" },
-  { id: "Dating", emoji: "💏" },
-  { id: "Learning", emoji: "🧠" },
-  { id: "Work", emoji: "💼" },
-  { id: "Friends", emoji: "👥" },
-  { id: "Travel", emoji: "✈️" },
-  { id: "Shopping", emoji: "🛍️" },
-  { id: "Play", emoji: "🎮" }
-];
+import { Scenario } from "@/pages/ScenarioHub";
+import { CategoryFilters } from "./CategoryFilters";
+import { ScenariosGrid } from "./ScenariosGrid";
 
 interface LibraryViewProps {
   searchQuery: string;
@@ -31,7 +19,6 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
   useEffect(() => {
     const fetchScenarios = async () => {
       try {
-        // Get current user's target language
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -50,24 +37,10 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
           return;
         }
 
-        // First, get the language ID for the target language
-        const { data: languageData } = await supabase
-          .from('languages')
-          .select('id')
-          .eq('code', profileData.target_language)
-          .single();
-
-        if (!languageData) {
-          console.error('Language not found');
-          return;
-        }
-
         // Fetch all scenarios (they are now available for all languages)
         const { data: scenariosData, error } = await supabase
           .from('scenarios')
-          .select(`
-            *
-          `);
+          .select(`*`);
 
         if (error) {
           console.error('Error fetching scenarios:', error);
@@ -110,45 +83,15 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
   return (
     <div className="space-y-8">
-      {/* Category Filters */}
-      <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-        {CATEGORIES.map(({ id, emoji }) => (
-          <Button
-            key={id}
-            variant={selectedCategory === id ? "default" : "outline"}
-            onClick={() => setSelectedCategory(id)}
-            className={`transition-all duration-300 ease-out ${
-              selectedCategory === id
-                ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90 shadow-lg scale-105"
-                : "hover:bg-accent hover:text-accent-foreground hover:scale-105"
-            } gap-2 text-base px-6`}
-          >
-            <span role="img" aria-label={id} className="text-lg">{emoji}</span>
-            {id}
-          </Button>
-        ))}
-      </div>
-
-      {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
-        {isLoading ? (
-          <div className="col-span-full text-center text-muted-foreground">
-            Loading scenarios...
-          </div>
-        ) : filteredScenarios.length === 0 ? (
-          <div className="col-span-full text-center text-muted-foreground">
-            No scenarios found for the selected criteria.
-          </div>
-        ) : (
-          filteredScenarios.map((scenario) => (
-            <ScenarioCard
-              key={scenario.id}
-              scenario={scenario}
-              onClick={() => onScenarioSelect(scenario)}
-            />
-          ))
-        )}
-      </div>
+      <CategoryFilters 
+        selectedCategory={selectedCategory} 
+        onCategorySelect={setSelectedCategory} 
+      />
+      <ScenariosGrid 
+        scenarios={filteredScenarios}
+        isLoading={isLoading}
+        onScenarioSelect={onScenarioSelect}
+      />
     </div>
   );
 }
