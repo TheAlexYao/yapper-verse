@@ -61,29 +61,50 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       let audioUrl = ttsCache.get(cacheKey);
 
       if (!audioUrl) {
-        console.log('Cache miss, generating TTS...');
+        console.log('Cache miss, generating TTS for normal and slow speeds...');
         
-        // Call the Edge Function using supabase.functions.invoke
-        const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+        // Generate normal speed version
+        const { data: normalData, error: normalError } = await supabase.functions.invoke('text-to-speech', {
           body: {
             text: response.text,
             languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female'
+            voiceGender: profile.voice_preference || 'female',
+            speed: 'normal'
           }
         });
 
-        if (ttsError) {
-          console.error('TTS function error:', ttsError);
-          throw new Error(`Failed to generate speech: ${ttsError.message}`);
+        if (normalError) {
+          console.error('TTS function error (normal speed):', normalError);
+          throw new Error(`Failed to generate normal speed speech: ${normalError.message}`);
         }
 
-        if (!ttsData?.audioUrl) {
-          throw new Error('No audio URL in response');
+        // Generate slow speed version
+        const { data: slowData, error: slowError } = await supabase.functions.invoke('text-to-speech', {
+          body: {
+            text: response.text,
+            languageCode: profile.target_language,
+            voiceGender: profile.voice_preference || 'female',
+            speed: 'slow'
+          }
+        });
+
+        if (slowError) {
+          console.error('TTS function error (slow speed):', slowError);
+          throw new Error(`Failed to generate slow speed speech: ${slowError.message}`);
         }
 
-        audioUrl = ttsData.audioUrl;
+        if (!normalData?.audioUrl) {
+          throw new Error('No audio URL in response for normal speed');
+        }
+
+        audioUrl = normalData.audioUrl;
         // Cache the result
         ttsCache.set(cacheKey, audioUrl);
+
+        console.log('Generated audio URLs:', {
+          normal: normalData.audioUrl,
+          slow: slowData?.audioUrl
+        });
       } else {
         console.log('Cache hit, using cached audio URL');
       }
