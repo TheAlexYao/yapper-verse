@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
 import { LanguageSelector } from "./language/LanguageSelector";
 import { languages } from "./language/languages";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LanguageStepProps {
   form: UseFormReturn<any>;
@@ -14,6 +16,7 @@ interface LanguageStepProps {
 export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
   const nativeLanguage = form.watch("nativeLanguage");
   const targetLanguage = form.watch("targetLanguage");
+  const { toast } = useToast();
 
   // Set default value for native language if it's not already set
   React.useEffect(() => {
@@ -22,10 +25,33 @@ export function LanguageStep({ form, onNext, onPrev }: LanguageStepProps) {
     }
   }, [form]);
 
-  const handleNext = () => {
-    const isValid = form.trigger(["nativeLanguage", "targetLanguage"]);
-    if (isValid) {
+  const handleNext = async () => {
+    const isValid = await form.trigger(["nativeLanguage", "targetLanguage"]);
+    if (!isValid) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      // Update the languages_learning array to include the target language
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          languages_learning: [targetLanguage],
+          target_language: targetLanguage,
+          native_language: nativeLanguage
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
       onNext();
+    } catch (error) {
+      console.error('Error updating languages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save language preferences",
+        variant: "destructive",
+      });
     }
   };
 
