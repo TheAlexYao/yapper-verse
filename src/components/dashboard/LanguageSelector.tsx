@@ -28,7 +28,7 @@ export function LanguageSelector({
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('languages_learning, target_language')
+        .select('languages_learning')
         .eq('id', user.id)
         .single();
 
@@ -36,12 +36,6 @@ export function LanguageSelector({
       
       const userLanguages = profileData.languages_learning || [];
       setActiveLanguages(userLanguages);
-
-      // If this is a newly added language, switch to it
-      if (userLanguages.length > activeLanguages.length) {
-        const newLanguage = userLanguages[userLanguages.length - 1];
-        handleLanguageChange(newLanguage);
-      }
     } catch (error) {
       console.error('Error fetching user languages:', error);
       toast({
@@ -83,24 +77,36 @@ export function LanguageSelector({
   useEffect(() => {
     fetchUserLanguages();
 
-    // Subscribe to real-time updates for the profiles table
+    // Subscribe only to languages_learning changes
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const channel = supabase
-        .channel('profile-changes')
+        .channel('languages-changes')
         .on(
           'postgres_changes',
           {
-            event: 'UPDATE',
+            event: '*',
             schema: 'public',
             table: 'profiles',
             filter: `id=eq.${user.id}`,
           },
           (payload) => {
-            const updatedLanguages = payload.new.languages_learning || [];
-            setActiveLanguages(updatedLanguages);
+            // Only update if languages_learning has changed
+            if (payload.new && payload.new.languages_learning) {
+              const newLanguages = payload.new.languages_learning;
+              // Only update state if the languages have actually changed
+              if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
+                setActiveLanguages(newLanguages);
+                
+                // If this is a newly added language, switch to it
+                if (newLanguages.length > activeLanguages.length) {
+                  const newLanguage = newLanguages[newLanguages.length - 1];
+                  handleLanguageChange(newLanguage);
+                }
+              }
+            }
           }
         )
         .subscribe();
