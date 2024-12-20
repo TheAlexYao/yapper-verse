@@ -27,6 +27,8 @@ serve(async (req) => {
     }
 
     const audioUrl = await uploadAudioToStorage(audioFile)
+    console.log('Audio uploaded successfully:', audioUrl)
+    
     const audioData = await audioFile.arrayBuffer()
 
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
@@ -44,18 +46,27 @@ serve(async (req) => {
       audioData
     })
 
+    console.log('Speech recognition result:', JSON.stringify(result, null, 2))
+
     const response = createDefaultResponse(referenceText, audioUrl)
 
     // Handle the assessment result
     if (result && typeof result === 'object') {
       const jsonResult = JSON.stringify(result)
+      console.log('Raw recognition result:', jsonResult)
+      
       const parsedResult = JSON.parse(jsonResult)
+      console.log('Parsed recognition result:', parsedResult)
       
       if (parsedResult.privPronJson) {
         const pronunciationAssessment = JSON.parse(parsedResult.privPronJson)
+        console.log('Pronunciation assessment:', pronunciationAssessment)
         response.assessment.NBest[0].PronunciationAssessment = pronunciationAssessment
+        response.assessment.pronunciationScore = pronunciationAssessment.PronScore || 0
       }
     }
+
+    console.log('Final response:', JSON.stringify(response, null, 2))
 
     return new Response(
       JSON.stringify(response),
