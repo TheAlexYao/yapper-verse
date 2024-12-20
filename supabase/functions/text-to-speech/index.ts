@@ -21,9 +21,10 @@ Deno.serve(async (req) => {
 
     console.log('Received TTS request:', { text, languageCode, voiceGender, speed });
 
-    // Add type validation for speed
-    if (!['normal', 'slow', 'very-slow'].includes(speed)) {
-      throw new Error('Invalid speed value. Must be normal, slow, or very-slow');
+    // Validate speed is one of the allowed values
+    const allowedSpeeds = ['normal', 'slow', 'very-slow'];
+    if (!allowedSpeeds.includes(speed)) {
+      throw new Error(`Invalid speed value. Must be one of: ${allowedSpeeds.join(', ')}`);
     }
 
     // Generate hash of the text + language + gender combination

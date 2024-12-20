@@ -4,7 +4,7 @@ export async function generateSpeech(
   text: string, 
   languageCode: string, 
   voiceName: string, 
-  speed: 'normal' | 'slow' | 'very-slow'
+  speed: string
 ): Promise<ArrayBuffer> {
   const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
   const speechRegion = Deno.env.get('AZURE_SPEECH_REGION');
@@ -25,7 +25,7 @@ export async function generateSpeech(
   speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
   // Simplified rate values that are well-supported across voices
-  const rateMap = {
+  const rateMap: Record<string, string> = {
     'normal': '1.0',
     'slow': '0.7',
     'very-slow': '0.5'
