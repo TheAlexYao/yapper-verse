@@ -10,9 +10,10 @@ import { Loader2 } from "lucide-react";
 interface AddLanguageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLanguageChange?: (language: string) => void;
 }
 
-export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) {
+export function AddLanguageModal({ open, onOpenChange, onLanguageChange }: AddLanguageModalProps) {
   const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingLanguage, setLoadingLanguage] = useState<string | null>(null);
@@ -75,6 +76,9 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
         newValue: Date.now().toString()
       }));
 
+      // Notify parent about the target language change
+      onLanguageChange?.(language);
+      
       toast({
         title: "Success",
         description: "Language added successfully",
