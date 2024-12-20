@@ -1,7 +1,7 @@
 import * as sdk from "npm:microsoft-cognitiveservices-speech-sdk"
 import { createClient } from "npm:@supabase/supabase-js@2"
 import { corsHeaders } from "../_shared/cors.ts";
-import { createHash } from "https://deno.land/std@0.168.0/hash/mod.ts"
+import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts"
 
 interface RequestBody {
   text: string;
