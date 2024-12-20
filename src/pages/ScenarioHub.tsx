@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LibraryView } from "@/components/scenarios/LibraryView";
 import { CreateScenarioView } from "@/components/scenarios/CreateScenarioView";
@@ -7,6 +7,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { languages } from "@/components/onboarding/steps/language/languages";
 
 export interface Scenario {
   id: string;
@@ -21,12 +24,92 @@ export interface Scenario {
 
 const ScenarioHub = () => {
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
+  const [targetLanguage, setTargetLanguage] = useState<string>("");
+  const [completedCount, setCompletedCount] = useState<number>(0);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleStartScenario = () => {
-    setSelectedScenario(null);
-    navigate("/character", { state: { scenario: selectedScenario } });
+  useEffect(() => {
+    const fetchUserLanguageAndStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch user's target language
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('target_language')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        
+        if (profileData?.target_language) {
+          setTargetLanguage(profileData.target_language);
+          
+          // Fetch completed scenarios count for this language
+          const { data: scenariosData, error: scenariosError } = await supabase
+            .from('user_scenarios')
+            .select(`
+              id,
+              scenarios!inner (
+                languages!inner (
+                  code
+                )
+              )
+            `)
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .eq('scenarios.languages.code', profileData.target_language);
+
+          if (scenariosError) throw scenariosError;
+          setCompletedCount(scenariosData?.length || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load user language preferences",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchUserLanguageAndStats();
+  }, [toast]);
+
+  const handleStartScenario = async () => {
+    if (!selectedScenario) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Create or update user_scenario record
+      const { error } = await supabase
+        .from('user_scenarios')
+        .upsert({
+          user_id: user.id,
+          scenario_id: selectedScenario.id,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      setSelectedScenario(null);
+      navigate("/character", { state: { scenario: selectedScenario } });
+    } catch (error) {
+      console.error('Error starting scenario:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start scenario",
+        variant: "destructive",
+      });
+    }
   };
+
+  const languageName = languages.find(l => l.value === targetLanguage)?.label || targetLanguage;
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +139,8 @@ const ScenarioHub = () => {
               Your Language Adventures
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              You're ready to practice [Target Language] through real conversations. Choose a scenario, 
+              You're ready to practice {languageName} through real conversations. 
+              You've completed {completedCount} scenarios so far. Choose a new scenario, 
               meet the characters, and dive into interactive dialogue. Think of it like leveling up 
               your language skills as you play.
             </p>
