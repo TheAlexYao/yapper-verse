@@ -43,7 +43,9 @@ const Auth = () => {
                 },
               },
             }}
-            providers={["google", "github"]}
+            providers={["google"]}
+            view="sign_in"
+            showLinks={false}
           />
         </div>
 
