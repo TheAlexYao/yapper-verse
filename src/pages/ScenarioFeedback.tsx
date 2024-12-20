@@ -154,22 +154,69 @@ export default function ScenarioFeedback() {
         text: "Je voudrais un café, s'il vous plaît.",
         translation: "I would like a coffee, please.",
         audioUrl: "/audio/user-response.mp3", // Mock audio URL
-        metrics: {
-          pronunciation: 89,
-          accuracy: 92,
-          fluency: 88,
-          completeness: 95,
-          overall: 91,
-          words: [
-            { word: "Je", score: 95, phonetic: "zhuh" },
-            { word: "voudrais", score: 88, phonetic: "voo-DREH" },
-            { word: "un", score: 98, phonetic: "uhn" },
-            { word: "café", score: 94, phonetic: "kah-FAY" },
-            { word: "s'il", score: 85, phonetic: "seel" },
-            { word: "vous", score: 92, phonetic: "voo" },
-            { word: "plaît", score: 87, phonetic: "pleh" }
-          ],
-          improvementTip: "Try to enunciate the 's'il' more clearly, focusing on the 'il' sound at the end."
+        pronunciationScore: 89,
+        pronunciationData: {
+          NBest: [{
+            PronunciationAssessment: {
+              AccuracyScore: 92,
+              FluencyScore: 88,
+              CompletenessScore: 95,
+              PronScore: 91,
+            },
+            Words: [
+              {
+                Word: "Je",
+                PronunciationAssessment: {
+                  AccuracyScore: 95,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "voudrais",
+                PronunciationAssessment: {
+                  AccuracyScore: 88,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "un",
+                PronunciationAssessment: {
+                  AccuracyScore: 98,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "café",
+                PronunciationAssessment: {
+                  AccuracyScore: 94,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "s'il",
+                PronunciationAssessment: {
+                  AccuracyScore: 85,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "vous",
+                PronunciationAssessment: {
+                  AccuracyScore: 92,
+                  ErrorType: "None",
+                }
+              },
+              {
+                Word: "plaît",
+                PronunciationAssessment: {
+                  AccuracyScore: 87,
+                  ErrorType: "None",
+                }
+              }
+            ],
+            AudioUrl: "/audio/user-response.mp3",
+            OriginalAudioUrl: "/audio/native-speaker.mp3"
+          }]
         }
       }
     ],

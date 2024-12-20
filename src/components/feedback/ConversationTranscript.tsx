@@ -55,7 +55,17 @@ export function ConversationTranscript({ messages, onViewDetails }: Conversation
         <ScrollArea className="h-[400px] pr-4">
           <div className="flex-1 relative space-y-4">
             <ChatMessages
-              messages={messages}
+              messages={messages.map(message => ({
+                ...message,
+                id: message.id,
+                text: message.text,
+                translation: message.translation,
+                transliteration: message.transliteration,
+                pronunciationScore: message.pronunciationScore,
+                pronunciationData: message.pronunciationData,
+                audioUrl: message.audioUrl,
+                isUser: message.isUser
+              }))}
               onPlayAudio={() => {}}
             />
           </div>
