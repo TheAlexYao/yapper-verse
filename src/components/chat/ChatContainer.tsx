@@ -6,7 +6,7 @@ import type { Message } from "@/hooks/useConversation";
 interface ChatContainerProps {
   messages: Message[];
   onMessageSend: (message: Message) => void;
-  onPlayTTS: () => void;
+  onPlayTTS: (text: string) => void;
   conversationId: string;
 }
 

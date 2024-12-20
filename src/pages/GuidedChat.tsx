@@ -5,6 +5,7 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useConversation } from "@/hooks/useConversation";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@supabase/auth-helpers-react";
+import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
 
 export default function GuidedChat() {
@@ -13,8 +14,9 @@ export default function GuidedChat() {
   const { scenario, character } = location.state || {};
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [ttsAudioUrl, setTtsAudioUrl] = useState<string>("/dummy-tts.mp3");
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const user = useUser();
+  const { toast } = useToast();
   
   const { character: characterData, createConversation } = useConversation(character?.id);
 
@@ -92,9 +94,51 @@ export default function GuidedChat() {
     setMessages(prev => [...prev, aiResponse]);
   };
 
-  const handlePlayTTS = () => {
-    const audio = new Audio(ttsAudioUrl);
-    audio.play();
+  const handlePlayTTS = async (text: string) => {
+    if (isPlayingTTS) return;
+
+    try {
+      setIsPlayingTTS(true);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language, voice_preference')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set');
+      }
+
+      const response = await fetch('/functions/v1/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          text,
+          languageCode: profile.target_language,
+          gender: profile.voice_preference || 'female'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      const { audioUrl } = await response.json();
+      const audio = new Audio(audioUrl);
+      await audio.play();
+    } catch (error) {
+      console.error('TTS error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to play audio",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPlayingTTS(false);
+    }
   };
 
   if (!scenario || !character) {

@@ -12,7 +12,7 @@ const transformMessage = (message: GuidedMessage) => ({
 
 interface ChatMessagesProps {
   messages: GuidedMessage[];
-  onPlayAudio: () => void;
+  onPlayAudio: (text: string) => void;
 }
 
 export function ChatMessages({ messages, onPlayAudio }: ChatMessagesProps) {
@@ -53,7 +53,7 @@ export function ChatMessages({ messages, onPlayAudio }: ChatMessagesProps) {
               <MessageBubble
                 message={transformedMessage}
                 isUser={message.is_user}
-                onPlayAudio={!message.is_user ? onPlayAudio : undefined}
+                onPlayAudio={!message.is_user ? () => onPlayAudio(message.content) : undefined}
               />
             </div>
           );
