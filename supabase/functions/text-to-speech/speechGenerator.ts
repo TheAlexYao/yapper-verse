@@ -19,9 +19,7 @@ export async function generateSpeech(
   speechConfig.speechSynthesisVoiceName = voiceName;
   
   // Set output format to high quality audio
-  speechConfig.setSpeechSynthesisOutputFormat(
-    sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
-  );
+  speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
   // Set rate adjustment based on speed
   let rateAdjustment = '';
