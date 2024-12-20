@@ -450,6 +450,42 @@ export type Database = {
           },
         ]
       }
+      scenario_languages: {
+        Row: {
+          created_at: string | null
+          id: string
+          language_id: string
+          scenario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          language_id: string
+          scenario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          language_id?: string
+          scenario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_languages_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scenario_languages_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scenarios: {
         Row: {
           category: string
@@ -459,7 +495,6 @@ export type Database = {
           description: string | null
           description_translations: Json | null
           id: string
-          language_id: string | null
           location_details: string | null
           location_details_translations: Json | null
           primary_goal: string | null
@@ -478,7 +513,6 @@ export type Database = {
           description?: string | null
           description_translations?: Json | null
           id?: string
-          language_id?: string | null
           location_details?: string | null
           location_details_translations?: Json | null
           primary_goal?: string | null
@@ -497,7 +531,6 @@ export type Database = {
           description?: string | null
           description_translations?: Json | null
           id?: string
-          language_id?: string | null
           location_details?: string | null
           location_details_translations?: Json | null
           primary_goal?: string | null
@@ -508,15 +541,7 @@ export type Database = {
           useful_phrases?: string[] | null
           useful_phrases_translations?: Json | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "scenarios_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transformations: {
         Row: {
