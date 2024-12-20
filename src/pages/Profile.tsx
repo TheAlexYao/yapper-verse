@@ -12,7 +12,7 @@ import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 
 interface UserProfile {
-  id: string;
+  id: string;  // Added the missing id property
   full_name: string;
   native_language: string;
   target_language: string;
