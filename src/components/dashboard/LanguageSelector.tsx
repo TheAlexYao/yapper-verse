@@ -36,7 +36,7 @@ export function LanguageSelector({
 
       if (error) throw error;
       
-      const userLanguages = profileData.languages_learning || [];
+      const userLanguages = profileData?.languages_learning || [];
       setActiveLanguages(userLanguages);
     } catch (error) {
       console.error('Error fetching user languages:', error);
@@ -79,7 +79,6 @@ export function LanguageSelector({
   useEffect(() => {
     fetchUserLanguages();
 
-    // Subscribe only to languages_learning changes
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -95,14 +94,11 @@ export function LanguageSelector({
             filter: `id=eq.${user.id}`,
           },
           (payload: RealtimePostgresChangesPayload<ProfilesTable["Row"]>) => {
-            // Only update if languages_learning has changed
-            if (payload.new && Array.isArray(payload.new.languages_learning)) {
+            if (payload.new && 'languages_learning' in payload.new && Array.isArray(payload.new.languages_learning)) {
               const newLanguages = payload.new.languages_learning;
-              // Only update state if the languages have actually changed
               if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
                 setActiveLanguages(newLanguages);
                 
-                // If this is a newly added language, switch to it
                 if (newLanguages.length > activeLanguages.length) {
                   const newLanguage = newLanguages[newLanguages.length - 1];
                   handleLanguageChange(newLanguage);
