@@ -15,13 +15,16 @@ serve(async (req) => {
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
     const referenceText = formData.get('text') as string
+    const languageCode = formData.get('languageCode') as string
 
-    if (!audioFile || !referenceText) {
+    if (!audioFile || !referenceText || !languageCode) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
+
+    console.log('Processing pronunciation assessment for language:', languageCode)
 
     // Upload audio to Supabase Storage
     const supabase = createClient(
@@ -58,7 +61,8 @@ serve(async (req) => {
       throw new Error('Azure Speech Services configuration missing')
     }
 
-    const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US`
+    // Use the provided language code for speech recognition
+    const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${languageCode}`
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -71,12 +75,14 @@ serve(async (req) => {
     })
 
     if (!response.ok) {
+      console.error('Speech service error:', await response.text())
       throw new Error(`Speech service error: ${response.statusText}`)
     }
 
     const recognitionResult = await response.json()
+    console.log('Recognition result:', recognitionResult)
 
-    // Call pronunciation assessment
+    // Call pronunciation assessment with language code
     const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/api/v1/assessment`
     
     const assessmentResponse = await fetch(assessmentEndpoint, {
@@ -89,14 +95,17 @@ serve(async (req) => {
         referenceText,
         recognizedText: recognitionResult.DisplayText,
         audioFileUrl: publicUrl,
+        locale: languageCode // Include language code in assessment request
       }),
     })
 
     if (!assessmentResponse.ok) {
+      console.error('Assessment service error:', await assessmentResponse.text())
       throw new Error(`Assessment service error: ${assessmentResponse.statusText}`)
     }
 
     const assessmentResult = await assessmentResponse.json()
+    console.log('Assessment result:', assessmentResult)
 
     return new Response(
       JSON.stringify({
