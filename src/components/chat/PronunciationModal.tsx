@@ -56,6 +56,15 @@ export function PronunciationModal({
     }
   };
 
+  // Convert the audio_url to use the new format if it exists
+  const getFormattedAudioUrl = (url?: string) => {
+    if (!url) return undefined;
+    const urlParts = url.split('.');
+    const extension = urlParts.pop();
+    const baseUrlWithoutExtension = urlParts.join('.');
+    return `${baseUrlWithoutExtension}_normal.${extension}`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] bg-card">
@@ -67,7 +76,10 @@ export function PronunciationModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          <TextDisplay {...response} />
+          <TextDisplay 
+            {...response} 
+            audio_url={getFormattedAudioUrl(response.audio_url)}
+          />
           
           <AudioRecorder
             onRecordingComplete={(blob) => setAudioBlob(blob)}
