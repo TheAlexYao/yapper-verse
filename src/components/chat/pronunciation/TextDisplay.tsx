@@ -9,6 +9,7 @@ interface TextDisplayProps {
   translation: string;
   transliteration?: string;
   audio_url?: string;
+  onSpeedChange?: (speed: string) => void;
 }
 
 type SpeedOption = {
@@ -23,7 +24,13 @@ const speedOptions: SpeedOption[] = [
   { label: "Very Slow", value: "very_slow", rate: 0.5 },
 ];
 
-export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
+export function TextDisplay({ 
+  text, 
+  translation, 
+  transliteration, 
+  audio_url,
+  onSpeedChange 
+}: TextDisplayProps) {
   const [volume, setVolume] = useState([1]);
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedOption>(speedOptions[0]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,6 +59,11 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
     
     setIsLoading(true);
     try {
+      // Notify parent component about speed change (for dynamic generation if needed)
+      if (onSpeedChange) {
+        await onSpeedChange(selectedSpeed.value);
+      }
+
       const speedAudioUrl = getAudioUrlForSpeed(audio_url, selectedSpeed.value);
       
       if (audioRef.current) {

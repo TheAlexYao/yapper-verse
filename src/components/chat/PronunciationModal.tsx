@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -56,13 +57,45 @@ export function PronunciationModal({
     }
   };
 
-  // Convert the audio_url to use the new format if it exists
-  const getFormattedAudioUrl = (url?: string) => {
-    if (!url) return undefined;
-    const urlParts = url.split('.');
-    const extension = urlParts.pop();
-    const baseUrlWithoutExtension = urlParts.join('.');
-    return `${baseUrlWithoutExtension}_normal.${extension}`;
+  // Function to handle dynamic generation of very slow audio if needed
+  const handleSpeedChange = async (speed: string) => {
+    if (speed === 'very_slow' && response.audio_url) {
+      // Extract the text and language from the URL or response
+      const urlParts = response.audio_url.split('/');
+      const filename = urlParts[urlParts.length - 1];
+      const [textHash] = filename.split('_');
+
+      // Check if very slow version exists, if not generate it
+      const { data: cacheEntry } = await supabase
+        .from('tts_cache')
+        .select('audio_url_very_slow')
+        .eq('text_hash', textHash)
+        .single();
+
+      if (!cacheEntry?.audio_url_very_slow) {
+        console.log('Generating very slow version...');
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: {
+            text: response.text,
+            languageCode: 'ja', // This should come from the response
+            voiceGender: 'female', // This should come from user preferences
+            speed: 'very-slow'
+          }
+        });
+
+        if (error) {
+          console.error('Error generating very slow audio:', error);
+          toast({
+            title: "Error",
+            description: "Failed to generate slower version. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log('Generated very slow version:', data);
+      }
+    }
   };
 
   return (
@@ -77,8 +110,8 @@ export function PronunciationModal({
 
         <div className="space-y-6 py-4">
           <TextDisplay 
-            {...response} 
-            audio_url={getFormattedAudioUrl(response.audio_url)}
+            {...response}
+            onSpeedChange={handleSpeedChange}
           />
           
           <AudioRecorder
