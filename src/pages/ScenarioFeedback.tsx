@@ -145,13 +145,15 @@ export default function ScenarioFeedback() {
         id: "1",
         isUser: false,
         text: "Bonjour! Que puis-je vous servir aujourd'hui?",
-        translation: "Hello! What can I get you today?"
+        translation: "Hello! What can I get you today?",
+        audioUrl: "/audio/barista-greeting.mp3" // Mock audio URL
       },
       {
         id: "2",
         isUser: true,
         text: "Je voudrais un café, s'il vous plaît.",
         translation: "I would like a coffee, please.",
+        audioUrl: "/audio/user-response.mp3", // Mock audio URL
         metrics: {
           pronunciation: 89,
           accuracy: 92,
