@@ -17,14 +17,15 @@ serve(async (req) => {
     const referenceText = formData.get('text') as string
     const languageCode = formData.get('languageCode') as string
 
-    if (!audioFile || !referenceText || !languageCode) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
+    console.log('Processing request with:', {
+      hasAudio: !!audioFile,
+      referenceText,
+      languageCode
+    })
 
-    console.log('Processing pronunciation assessment for language:', languageCode)
+    if (!audioFile || !referenceText || !languageCode) {
+      throw new Error('Missing required fields')
+    }
 
     // Upload audio to Supabase Storage
     const supabase = createClient(
@@ -61,46 +62,53 @@ serve(async (req) => {
       throw new Error('Azure Speech Services configuration missing')
     }
 
-    // Use the provided language code for speech recognition
-    const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${languageCode}`
+    console.log('Calling Azure Speech Services with language:', languageCode)
 
-    const response = await fetch(endpoint, {
+    // First, get speech recognition
+    const recognitionEndpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${languageCode}`
+
+    const recognitionResponse = await fetch(recognitionEndpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': speechKey,
         'Content-Type': 'audio/wav',
-        'Accept': 'application/json',
       },
       body: audioArrayBuffer,
     })
 
-    if (!response.ok) {
-      console.error('Speech service error:', await response.text())
-      throw new Error(`Speech service error: ${response.statusText}`)
+    if (!recognitionResponse.ok) {
+      const errorText = await recognitionResponse.text()
+      console.error('Speech recognition error:', errorText)
+      throw new Error(`Speech recognition failed: ${recognitionResponse.statusText}`)
     }
 
-    const recognitionResult = await response.json()
+    const recognitionResult = await recognitionResponse.json()
     console.log('Recognition result:', recognitionResult)
 
-    // Call pronunciation assessment with language code
+    // Then, call pronunciation assessment
     const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/api/v1/assessment`
     
+    const assessmentPayload = {
+      referenceText,
+      recognizedText: recognitionResult.DisplayText || recognitionResult.RecognitionStatus,
+      audioFileUrl: publicUrl,
+      locale: languageCode
+    }
+
+    console.log('Calling pronunciation assessment with:', assessmentPayload)
+
     const assessmentResponse = await fetch(assessmentEndpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': speechKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        referenceText,
-        recognizedText: recognitionResult.DisplayText,
-        audioFileUrl: publicUrl,
-        locale: languageCode // Include language code in assessment request
-      }),
+      body: JSON.stringify(assessmentPayload),
     })
 
     if (!assessmentResponse.ok) {
-      console.error('Assessment service error:', await assessmentResponse.text())
+      const errorText = await assessmentResponse.text()
+      console.error('Assessment service error:', errorText)
       throw new Error(`Assessment service error: ${assessmentResponse.statusText}`)
     }
 
@@ -126,10 +134,16 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in assess-pronunciation:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 500 
+      }
     )
   }
 })
