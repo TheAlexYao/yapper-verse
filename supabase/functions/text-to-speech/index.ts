@@ -78,10 +78,15 @@ Deno.serve(async (req) => {
       throw languageError;
     }
 
-    const voiceName = voiceGender === 'male' ? languageData.male_voice : languageData.female_voice;
+    const voiceName = voiceGender === 'male' ? 
+      (languageCode === 'fr-FR' ? 'fr-FR-AlainNeural' : languageData.male_voice) : 
+      (languageCode === 'fr-FR' ? 'fr-FR-DeniseNeural' : languageData.female_voice);
+
     if (!voiceName) {
       throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
     }
+
+    console.log('Using voice:', voiceName);
 
     // Configure speech SDK
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
