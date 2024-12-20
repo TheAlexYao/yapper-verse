@@ -46,6 +46,7 @@ const Auth = () => {
             providers={["google"]}
             view="sign_in"
             showLinks={false}
+            onlyThirdPartyProviders={true}
             redirectTo="https://preview--yapper-verse.lovable.app/auth/callback"
           />
         </div>
