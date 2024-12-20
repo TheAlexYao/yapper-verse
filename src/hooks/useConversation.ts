@@ -4,7 +4,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
 import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 
-// Update the Message type to include the necessary transformations
 export type Message = Omit<GuidedMessage, 'content' | 'is_user'> & {
   text: string;  // maps to content
   isUser: boolean;  // maps to is_user
@@ -18,14 +17,33 @@ export const useConversation = (characterId: string | undefined) => {
     queryKey: ['character', characterId],
     queryFn: async () => {
       if (!characterId) return null;
-      const { data, error } = await supabase
+      
+      // First fetch the character
+      const { data: characterData, error: characterError } = await supabase
         .from('characters')
-        .select('*, scenario:scenarios(language_id)')
+        .select('*')
         .eq('id', characterId)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (characterError) throw characterError;
+
+      // Then fetch the associated scenario if there is one
+      if (characterData.scenario_id) {
+        const { data: scenarioData, error: scenarioError } = await supabase
+          .from('scenarios')
+          .select('language_id')
+          .eq('id', characterData.scenario_id)
+          .single();
+
+        if (scenarioError) throw scenarioError;
+
+        return {
+          ...characterData,
+          scenario: scenarioData
+        };
+      }
+
+      return characterData;
     },
     enabled: !!characterId,
   });
