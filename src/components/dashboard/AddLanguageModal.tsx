@@ -60,10 +60,20 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
       
       const { error } = await supabase
         .from('profiles')
-        .update({ languages_learning: newLanguages })
+        .update({ 
+          languages_learning: newLanguages,
+          target_language: language // Set the new language as target
+        })
         .eq('id', user.id);
 
       if (error) throw error;
+
+      // Notify about the language change
+      localStorage.setItem('languageAdded', Date.now().toString());
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'languageAdded',
+        newValue: Date.now().toString()
+      }));
 
       toast({
         title: "Success",

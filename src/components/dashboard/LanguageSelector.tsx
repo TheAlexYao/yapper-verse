@@ -2,11 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Loader2 } from "lucide-react";
 import { languages } from "@/components/onboarding/steps/language/languages";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import type { ProfilesTable } from "@/integrations/supabase/types/tables/profiles";
 
 interface LanguageSelectorProps {
   currentLanguage: string;
@@ -48,7 +46,7 @@ export function LanguageSelector({
     }
   };
 
-  const handleLanguageChange = useCallback(async (langCode: string) => {
+  const handleLanguageChange = async (langCode: string) => {
     if (isLoading || currentLanguage === langCode) return;
     
     setIsLoading(true);
@@ -74,54 +72,24 @@ export function LanguageSelector({
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, currentLanguage, onLanguageChange, toast]);
+  };
 
+  // Initial fetch of languages
   useEffect(() => {
     fetchUserLanguages();
+  }, []);
 
-    const setupSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const channel = supabase
-        .channel('languages-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'profiles',
-            filter: `id=eq.${user.id}`,
-          },
-          (payload: RealtimePostgresChangesPayload<ProfilesTable["Row"]>) => {
-            if (payload.new && 'languages_learning' in payload.new && Array.isArray(payload.new.languages_learning)) {
-              const newLanguages = payload.new.languages_learning;
-              
-              // Only update if the languages have actually changed
-              if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
-                setActiveLanguages(newLanguages);
-                
-                // If a new language was added, switch to it
-                if (newLanguages.length > activeLanguages.length) {
-                  const newLanguage = newLanguages[newLanguages.length - 1];
-                  handleLanguageChange(newLanguage);
-                }
-              }
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+  // Re-fetch languages when a new one is added
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'languageAdded') {
+        fetchUserLanguages();
+      }
     };
 
-    const subscription = setupSubscription();
-    return () => {
-      subscription.then(cleanup => cleanup && cleanup());
-    };
-  }, [activeLanguages, handleLanguageChange]); // Add dependencies to ensure proper updates
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   return (
     <Card className="p-6">
@@ -150,7 +118,11 @@ export function LanguageSelector({
           })}
           <Button 
             variant="outline" 
-            onClick={onAddLanguage}
+            onClick={() => {
+              onAddLanguage();
+              // Trigger a re-fetch after a short delay to ensure the new language is loaded
+              setTimeout(fetchUserLanguages, 500);
+            }}
             className="gap-2"
             disabled={isLoading}
           >
