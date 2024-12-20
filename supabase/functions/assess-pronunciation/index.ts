@@ -20,7 +20,8 @@ serve(async (req) => {
     console.log('Processing request with:', {
       hasAudio: !!audioFile,
       referenceText,
-      languageCode
+      languageCode,
+      audioType: audioFile?.type
     })
 
     if (!audioFile || !referenceText || !languageCode) {
@@ -54,7 +55,7 @@ serve(async (req) => {
     // Get audio file as ArrayBuffer for Azure
     const audioArrayBuffer = await audioFile.arrayBuffer()
 
-    // Call Azure Speech Services
+    // Azure Speech Services configuration
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
     const speechRegion = Deno.env.get('AZURE_SPEECH_REGION')
 
@@ -62,18 +63,20 @@ serve(async (req) => {
       throw new Error('Azure Speech Services configuration missing')
     }
 
-    console.log('Calling Azure Speech Services with language:', languageCode)
+    console.log('Starting speech recognition with language:', languageCode)
 
     // First, get speech recognition
-    const recognitionEndpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${languageCode}`
-
+    const recognitionEndpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`
+    
     const recognitionResponse = await fetch(recognitionEndpoint, {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': speechKey,
         'Content-Type': 'audio/wav',
+        'Accept': 'application/json',
       },
       body: audioArrayBuffer,
+      query: { language: languageCode }
     })
 
     if (!recognitionResponse.ok) {
@@ -85,12 +88,16 @@ serve(async (req) => {
     const recognitionResult = await recognitionResponse.json()
     console.log('Recognition result:', recognitionResult)
 
+    if (recognitionResult.RecognitionStatus !== 'Success') {
+      throw new Error(`Speech recognition failed: ${recognitionResult.RecognitionStatus}`)
+    }
+
     // Then, call pronunciation assessment
-    const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/api/v1/assessment`
+    const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/speech/assessment/v1.0/transcript`
     
     const assessmentPayload = {
       referenceText,
-      recognizedText: recognitionResult.DisplayText || recognitionResult.RecognitionStatus,
+      recognizedText: recognitionResult.DisplayText,
       audioFileUrl: publicUrl,
       locale: languageCode
     }
@@ -120,11 +127,11 @@ serve(async (req) => {
         success: true,
         audioUrl: publicUrl,
         assessment: {
-          pronunciationScore: assessmentResult.pronunciationScore,
-          accuracyScore: assessmentResult.accuracyScore,
-          fluencyScore: assessmentResult.fluencyScore,
-          completenessScore: assessmentResult.completenessScore,
-          words: assessmentResult.words.map((word: any) => ({
+          pronunciationScore: assessmentResult.pronunciationScore || 0,
+          accuracyScore: assessmentResult.accuracyScore || 0,
+          fluencyScore: assessmentResult.fluencyScore || 0,
+          completenessScore: assessmentResult.completenessScore || 0,
+          words: (assessmentResult.words || []).map((word: any) => ({
             word: word.word,
             accuracyScore: word.accuracyScore,
             errorType: word.errorType
