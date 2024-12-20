@@ -13,12 +13,16 @@ interface ChatResponseHandlerProps {
   conversationId: string;
 }
 
+// Cache for TTS responses
+const ttsCache = new Map<string, string>();
+
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [pronunciationData, setPronunciationData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const { toast } = useToast();
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
@@ -39,6 +43,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
 
   const handleResponseSelect = async (response: any) => {
     try {
+      setIsGeneratingTTS(true);
+      
       // Get user profile for language and voice settings
       const { data: profile } = await supabase
         .from('profiles')
@@ -50,34 +56,40 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      console.log('Calling text-to-speech function with:', {
-        text: response.text,
-        languageCode: profile.target_language,
-        voiceGender: profile.voice_preference || 'female'
-      });
+      // Check cache first
+      const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}`;
+      let audioUrl = ttsCache.get(cacheKey);
 
-      // Call the Edge Function using supabase.functions.invoke
-      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
-        body: {
-          text: response.text,
-          languageCode: profile.target_language,
-          voiceGender: profile.voice_preference || 'female'
+      if (!audioUrl) {
+        console.log('Cache miss, generating TTS...');
+        
+        // Call the Edge Function using supabase.functions.invoke
+        const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+          body: {
+            text: response.text,
+            languageCode: profile.target_language,
+            voiceGender: profile.voice_preference || 'female'
+          }
+        });
+
+        if (ttsError) {
+          console.error('TTS function error:', ttsError);
+          throw new Error(`Failed to generate speech: ${ttsError.message}`);
         }
-      });
 
-      if (ttsError) {
-        console.error('TTS function error:', ttsError);
-        throw new Error(`Failed to generate speech: ${ttsError.message}`);
+        if (!ttsData?.audioUrl) {
+          throw new Error('No audio URL in response');
+        }
+
+        audioUrl = ttsData.audioUrl;
+        // Cache the result
+        ttsCache.set(cacheKey, audioUrl);
+      } else {
+        console.log('Cache hit, using cached audio URL');
       }
-
-      if (!ttsData?.audioUrl) {
-        throw new Error('No audio URL in response');
-      }
-
-      console.log('TTS function response:', ttsData);
       
       // Set the selected response with the audio URL
-      setSelectedResponse({ ...response, audio_url: ttsData.audioUrl });
+      setSelectedResponse({ ...response, audio_url: audioUrl });
       setShowPronunciationModal(true);
     } catch (error) {
       console.error('TTS error:', error);
@@ -89,6 +101,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       // Still show the modal even if TTS fails
       setSelectedResponse(response);
       setShowPronunciationModal(true);
+    } finally {
+      setIsGeneratingTTS(false);
     }
   };
 
@@ -102,6 +116,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       <RecommendedResponses
         responses={MOCK_RESPONSES}
         onSelectResponse={handleResponseSelect}
+        isLoading={isGeneratingTTS}
       />
 
       {selectedResponse && (

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 interface Response {
@@ -12,14 +12,16 @@ interface Response {
 interface RecommendedResponsesProps {
   responses: Response[];
   onSelectResponse: (response: Response) => void;
+  isLoading?: boolean;
 }
 
 export function RecommendedResponses({
   responses,
   onSelectResponse,
+  isLoading = false,
 }: RecommendedResponsesProps) {
   const [currentPage, setCurrentPage] = useState(0);
-  const responsesPerPage = 1; // Changed to show only one response
+  const responsesPerPage = 1;
   const totalPages = Math.ceil(responses.length / responsesPerPage);
 
   const nextPage = () => {
@@ -49,7 +51,7 @@ export function RecommendedResponses({
           variant="ghost"
           size="icon"
           onClick={prevPage}
-          disabled={totalPages <= 1}
+          disabled={totalPages <= 1 || isLoading}
           className="shrink-0 p-0 w-8 h-8 hover:bg-accent/50 rounded-full"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -60,13 +62,19 @@ export function RecommendedResponses({
             <Button
               key={response.id}
               variant="outline"
-              className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/50 transition-all duration-200 bg-gradient-to-r from-background to-accent/10 rounded-xl overflow-hidden"
+              className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent/50 transition-all duration-200 bg-gradient-to-r from-background to-accent/10 rounded-xl overflow-hidden disabled:opacity-50"
               onClick={() => onSelectResponse(response)}
+              disabled={isLoading}
             >
-              <div className="w-full overflow-hidden">
-                <div className="font-medium truncate">{response.text}</div>
-                <div className="text-sm text-muted-foreground truncate">
-                  {response.translation}
+              <div className="w-full overflow-hidden flex items-center gap-2">
+                {isLoading && (
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{response.text}</div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {response.translation}
+                  </div>
                 </div>
               </div>
             </Button>
@@ -77,7 +85,7 @@ export function RecommendedResponses({
           variant="ghost"
           size="icon"
           onClick={nextPage}
-          disabled={totalPages <= 1}
+          disabled={totalPages <= 1 || isLoading}
           className="shrink-0 p-0 w-8 h-8 hover:bg-accent/50 rounded-full"
         >
           <ChevronRight className="h-4 w-4" />
