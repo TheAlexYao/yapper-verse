@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface AddLanguageModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface AddLanguageModalProps {
 
 export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) {
   const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingLanguage, setLoadingLanguage] = useState<string | null>(null);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -22,6 +25,7 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
   }, [open]);
 
   async function fetchUserLanguages() {
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -41,10 +45,13 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
         description: "Failed to load language preferences",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   }
 
   const handleAddLanguage = async (language: string) => {
+    setLoadingLanguage(language);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
@@ -71,6 +78,8 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
         description: "Failed to add language",
         variant: "destructive",
       });
+    } finally {
+      setLoadingLanguage(null);
     }
   };
 
@@ -83,19 +92,29 @@ export function AddLanguageModal({ open, onOpenChange }: AddLanguageModalProps) 
           <DialogTitle>Add a New Language</DialogTitle>
         </DialogHeader>
         <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-2">
-            {availableLanguages.map((lang) => (
-              <Button
-                key={lang.value}
-                variant="outline"
-                onClick={() => handleAddLanguage(lang.value)}
-                className="w-full justify-start gap-2"
-              >
-                <span>{lang.emoji}</span>
-                <span>{lang.label}</span>
-              </Button>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {availableLanguages.map((lang) => (
+                <Button
+                  key={lang.value}
+                  variant="outline"
+                  onClick={() => handleAddLanguage(lang.value)}
+                  disabled={loadingLanguage === lang.value}
+                  className="w-full justify-start gap-2"
+                >
+                  <span>{lang.emoji}</span>
+                  <span>{lang.label}</span>
+                  {loadingLanguage === lang.value && (
+                    <Loader2 className="ml-auto h-4 w-4 animate-spin" />
+                  )}
+                </Button>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </DialogContent>
     </Dialog>
