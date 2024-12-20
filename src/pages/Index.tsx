@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LanguageTicker from "@/components/LanguageTicker";
 import FloatingElements from "@/components/FloatingElements";
@@ -5,8 +7,18 @@ import Hero from "@/components/sections/Hero";
 import Features from "@/components/sections/Features";
 import HowItWorks from "@/components/sections/HowItWorks";
 import CTA from "@/components/sections/CTA";
+import { useSession } from "@supabase/auth-helpers-react";
 
 const Index = () => {
+  const session = useSession();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (session) {
+      navigate("/dashboard");
+    }
+  }, [session, navigate]);
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <FloatingElements />
@@ -34,9 +46,9 @@ const Index = () => {
             <Button 
               size="xl"
               className="bg-[#7843e6] hover:bg-[#7843e6]/90 hover:scale-105 transform transition-all duration-200 shadow-[0_0_15px_rgba(120,67,230,0.3)] hover:shadow-[0_0_25px_rgba(120,67,230,0.5)] text-xl py-6 px-8"
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => navigate('/auth')}
             >
-              Start Your Adventure
+              Get Started
             </Button>
           </div>
         </div>
