@@ -69,7 +69,7 @@ const OnboardingWizard = () => {
         description: "Your profile has been updated successfully",
       });
       
-      navigate("/dashboard");
+      navigate("/scenarios");
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
