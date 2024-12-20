@@ -102,8 +102,8 @@ serve(async (req) => {
 
     console.log('Speech recognition result:', result)
 
-    const response = createDefaultResponse(referenceText, audioUrl)
-
+    // Extract the pronunciation assessment from the result
+    let assessment;
     if (result && typeof result === 'object') {
       const jsonResult = JSON.stringify(result)
       console.log('Raw recognition result:', jsonResult)
@@ -111,38 +111,31 @@ serve(async (req) => {
       const parsedResult = JSON.parse(jsonResult)
       console.log('Parsed recognition result:', parsedResult)
       
-      if (parsedResult.privPronJson) {
-        const pronunciationAssessment = JSON.parse(parsedResult.privPronJson)
-        console.log('Pronunciation assessment:', pronunciationAssessment)
+      if (parsedResult.privJson) {
+        // Parse the privJson string which contains the detailed assessment
+        const privJsonData = JSON.parse(parsedResult.privJson)
+        console.log('Pronunciation assessment from privJson:', privJsonData)
         
-        if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0]) {
-          const assessment = pronunciationAssessment.NBest[0].PronunciationAssessment
-          response.assessment.NBest[0].PronunciationAssessment = {
-            AccuracyScore: assessment.AccuracyScore || 0,
-            FluencyScore: assessment.FluencyScore || 0,
-            CompletenessScore: assessment.CompletenessScore || 0,
-            PronScore: assessment.PronScore || 0
+        if (privJsonData.NBest && privJsonData.NBest[0]) {
+          assessment = {
+            NBest: [{
+              PronunciationAssessment: privJsonData.NBest[0].PronunciationAssessment,
+              Words: privJsonData.NBest[0].Words
+            }],
+            pronunciationScore: privJsonData.NBest[0].PronunciationAssessment?.PronScore || 0
           }
-          response.assessment.pronunciationScore = assessment.PronScore || 0
-        }
-
-        if (pronunciationAssessment.NBest && pronunciationAssessment.NBest[0].Words) {
-          response.assessment.NBest[0].Words = pronunciationAssessment.NBest[0].Words.map((word: any) => ({
-            Word: word.Word,
-            PronunciationAssessment: {
-              AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-              ErrorType: word.PronunciationAssessment?.ErrorType || "None"
-            },
-            Phonemes: word.Phonemes || []
-          }))
         }
       }
     }
 
-    console.log('Final response:', JSON.stringify(response, null, 2))
+    if (!assessment) {
+      assessment = createDefaultResponse(referenceText, audioUrl).assessment
+    }
+
+    console.log('Final assessment data:', assessment)
 
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify({ audioUrl, assessment }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

@@ -57,9 +57,11 @@ export function usePronunciationHandler({
         throw assessmentError;
       }
 
+      console.log('Received assessment data:', assessmentData);
+
       const { audioUrl, assessment } = assessmentData;
       
-      // Extract the full pronunciation assessment data
+      // Extract the pronunciation assessment from NBest array
       const nBestResult = assessment.NBest?.[0];
       const pronunciationAssessment = nBestResult?.PronunciationAssessment;
       
@@ -68,7 +70,6 @@ export function usePronunciationHandler({
       const fluencyScore = pronunciationAssessment?.FluencyScore ?? 0;
       const completenessScore = pronunciationAssessment?.CompletenessScore ?? 0;
       const pronunciationScore = pronunciationAssessment?.PronScore ?? 
-                               pronunciationAssessment?.pronunciationScore ?? 
                                assessment.pronunciationScore ?? 0;
 
       // Get the word-by-word analysis
@@ -80,11 +81,12 @@ export function usePronunciationHandler({
         }
       })) ?? [];
 
-      console.log('Pronunciation scores:', {
+      console.log('Extracted pronunciation data:', {
         accuracyScore,
         fluencyScore,
         completenessScore,
-        pronunciationScore
+        pronunciationScore,
+        words
       });
       
       // Create the message with detailed pronunciation data
