@@ -5,6 +5,8 @@ import { languages } from "@/components/onboarding/steps/language/languages";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { ProfilesTable } from "@/integrations/supabase/types";
 
 interface LanguageSelectorProps {
   currentLanguage: string;
@@ -92,9 +94,9 @@ export function LanguageSelector({
             table: 'profiles',
             filter: `id=eq.${user.id}`,
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<ProfilesTable["Row"]>) => {
             // Only update if languages_learning has changed
-            if (payload.new && payload.new.languages_learning) {
+            if (payload.new && Array.isArray(payload.new.languages_learning)) {
               const newLanguages = payload.new.languages_learning;
               // Only update state if the languages have actually changed
               if (JSON.stringify(newLanguages) !== JSON.stringify(activeLanguages)) {
