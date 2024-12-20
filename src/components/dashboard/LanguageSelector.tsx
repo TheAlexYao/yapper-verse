@@ -1,10 +1,8 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, Loader2 } from "lucide-react";
-import { languages } from "@/components/onboarding/steps/language/languages";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageList } from "./language/LanguageList";
 
 interface LanguageSelectorProps {
   currentLanguage: string;
@@ -100,41 +98,17 @@ export function LanguageSelector({
     <Card className="p-6">
       <div className="space-y-4">
         <h3 className="font-medium">Currently Learning</h3>
-        <div className="flex flex-wrap gap-2">
-          {activeLanguages.map((lang) => {
-            const language = languages.find(l => l.value === lang);
-            if (!language) return null;
-            
-            const isSelected = currentLanguage === lang;
-            const isDisabled = isLoading && !isSelected;
-            
-            return (
-              <Button
-                key={lang}
-                variant={isSelected ? "default" : "outline"}
-                onClick={() => handleLanguageChange(lang)}
-                className="gap-2"
-                disabled={isDisabled}
-              >
-                <span>{language.emoji}</span>
-                <span>{language.label}</span>
-              </Button>
-            );
-          })}
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              onAddLanguage();
-              // Trigger a re-fetch after a short delay to ensure the new language is loaded
-              setTimeout(fetchUserLanguages, 500);
-            }}
-            className="gap-2"
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4" />
-            Add Language
-          </Button>
-        </div>
+        <LanguageList
+          activeLanguages={activeLanguages}
+          currentLanguage={currentLanguage}
+          isLoading={isLoading}
+          onLanguageChange={handleLanguageChange}
+          onAddLanguage={() => {
+            onAddLanguage();
+            // Trigger a re-fetch after a short delay to ensure the new language is loaded
+            setTimeout(fetchUserLanguages, 500);
+          }}
+        />
       </div>
     </Card>
   );
