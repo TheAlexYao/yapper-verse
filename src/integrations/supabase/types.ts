@@ -105,10 +105,9 @@ export type Database = {
           created_at: string | null
           id: string
           language_id: string
-          native_language_code: string
           status: string
-          telegram_id: number
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           agent_id: string
@@ -116,10 +115,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id: string
-          native_language_code: string
           status?: string
-          telegram_id: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           agent_id?: string
@@ -127,10 +125,9 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id?: string
-          native_language_code?: string
           status?: string
-          telegram_id?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -146,20 +143,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "languages"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "conversations_native_language_code_fkey"
-            columns: ["native_language_code"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "conversations_telegram_id_fkey"
-            columns: ["telegram_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["telegram_id"]
           },
         ]
       }

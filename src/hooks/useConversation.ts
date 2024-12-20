@@ -45,8 +45,7 @@ export const useConversation = (characterId: string | undefined) => {
           agent_id: character.id,
           language_id: character.scenario.language_id,
           status: 'active',
-          telegram_id: parseInt(auth.user.id), // Convert UUID to number for telegram_id
-          native_language_code: 'en', // Default to English for now, should come from user profile
+          user_id: auth.user.id,
         })
         .select()
         .single();
