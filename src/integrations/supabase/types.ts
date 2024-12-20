@@ -42,6 +42,53 @@ export type Database = {
         }
         Relationships: []
       }
+      characters: {
+        Row: {
+          age: number | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          gender: string | null
+          id: string
+          language_style: string[] | null
+          name: string
+          scenario_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          age?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          language_style?: string[] | null
+          name: string
+          scenario_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          age?: number | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          language_style?: string[] | null
+          name?: string
+          scenario_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           agent_id: string
@@ -111,6 +158,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string | null
+          emoji: string | null
           id: string
           name: string
           updated_at: string | null
@@ -118,6 +166,7 @@ export type Database = {
         Insert: {
           code: string
           created_at?: string | null
+          emoji?: string | null
           id?: string
           name: string
           updated_at?: string | null
@@ -125,6 +174,7 @@ export type Database = {
         Update: {
           code?: string
           created_at?: string | null
+          emoji?: string | null
           id?: string
           name?: string
           updated_at?: string | null
@@ -325,6 +375,56 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenarios: {
+        Row: {
+          category: string
+          created_at: string | null
+          cultural_notes: string | null
+          description: string | null
+          id: string
+          language_id: string | null
+          location_details: string | null
+          primary_goal: string | null
+          title: string
+          updated_at: string | null
+          useful_phrases: string[] | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          cultural_notes?: string | null
+          description?: string | null
+          id?: string
+          language_id?: string | null
+          location_details?: string | null
+          primary_goal?: string | null
+          title: string
+          updated_at?: string | null
+          useful_phrases?: string[] | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          cultural_notes?: string | null
+          description?: string | null
+          id?: string
+          language_id?: string | null
+          location_details?: string | null
+          primary_goal?: string | null
+          title?: string
+          updated_at?: string | null
+          useful_phrases?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenarios_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
             referencedColumns: ["id"]
           },
         ]
