@@ -38,20 +38,17 @@ export function TextDisplay({
 
   const getAudioUrlForSpeed = (baseUrl: string, speed: string): string => {
     if (!baseUrl) return '';
-    const urlParts = baseUrl.split('.');
+    
+    // Remove any existing speed suffix if present
+    let cleanUrl = baseUrl.replace(/_normal\.|_slow\.|_very_slow\./, '.');
+    
+    // Split the URL to insert the speed before the extension
+    const urlParts = cleanUrl.split('.');
     const extension = urlParts.pop();
     const baseUrlWithoutExtension = urlParts.join('.');
     
-    switch (speed) {
-      case 'normal':
-        return `${baseUrlWithoutExtension}_normal.${extension}`;
-      case 'slow':
-        return `${baseUrlWithoutExtension}_slow.${extension}`;
-      case 'very_slow':
-        return `${baseUrlWithoutExtension}_very_slow.${extension}`;
-      default:
-        return baseUrl;
-    }
+    // Add the appropriate suffix based on speed
+    return `${baseUrlWithoutExtension}_${speed}.${extension}`;
   };
 
   const handlePlayAudio = async () => {
@@ -60,11 +57,12 @@ export function TextDisplay({
     setIsLoading(true);
     try {
       // Notify parent component about speed change (for dynamic generation if needed)
-      if (onSpeedChange) {
+      if (selectedSpeed.value === 'very_slow' && onSpeedChange) {
         await onSpeedChange(selectedSpeed.value);
       }
 
       const speedAudioUrl = getAudioUrlForSpeed(audio_url, selectedSpeed.value);
+      console.log('Playing audio URL:', speedAudioUrl);
       
       if (audioRef.current) {
         audioRef.current.src = speedAudioUrl;
