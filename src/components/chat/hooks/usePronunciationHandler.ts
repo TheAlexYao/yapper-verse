@@ -24,9 +24,9 @@ export function usePronunciationHandler({
       }
 
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-      
-      // Call the assess-pronunciation edge function
+      formData.append('audio', audioBlob);
+      formData.append('text', selectedResponse.text);
+
       const { data: assessmentData, error: assessmentError } = await supabase.functions
         .invoke('assess-pronunciation', {
           body: formData
@@ -50,22 +50,6 @@ export function usePronunciationHandler({
         audio_url: audioUrl,
         isUser: true,
       };
-
-      // Update conversation metrics
-      const { error: metricsError } = await supabase
-        .from('guided_conversations')
-        .update({
-          metrics: {
-            pronunciationScore: assessment.pronunciationScore,
-            sentencesUsed: 1,
-            sentenceLimit: 10
-          }
-        })
-        .eq('id', conversationId);
-
-      if (metricsError) {
-        console.error('Error updating metrics:', metricsError);
-      }
 
       onMessageSend(newMessage);
       onComplete();

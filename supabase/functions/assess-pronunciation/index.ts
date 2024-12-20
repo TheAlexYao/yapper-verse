@@ -7,30 +7,28 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const formData = await req.formData()
-    const audioFile = formData.get('audio')
-    const text = formData.get('text')
+    const audioFile = formData.get('audio') as File
+    const referenceText = formData.get('text') as string
 
-    if (!audioFile || !text) {
+    if (!audioFile || !referenceText) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
-    // Create Supabase client
+    // Upload audio to Supabase Storage
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Upload audio file to storage
     const fileName = `${crypto.randomUUID()}.wav`
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('audio')
@@ -44,30 +42,77 @@ serve(async (req) => {
       throw new Error('Failed to upload audio file')
     }
 
-    // Get public URL for the uploaded file
+    // Get the public URL for the uploaded file
     const { data: { publicUrl } } = supabase.storage
       .from('audio')
       .getPublicUrl(fileName)
 
-    // For now, return mock assessment data
-    // TODO: Integrate with Azure Speech Services or similar
-    const mockAssessment = {
-      pronunciationScore: Math.floor(Math.random() * 30) + 70,
-      accuracyScore: Math.floor(Math.random() * 20) + 80,
-      fluencyScore: Math.floor(Math.random() * 15) + 85,
-      completenessScore: 100,
-      words: text.split(' ').map(word => ({
-        word,
-        accuracyScore: Math.floor(Math.random() * 20) + 80,
-        errorType: 'None'
-      }))
+    // Get audio file as ArrayBuffer for Azure
+    const audioArrayBuffer = await audioFile.arrayBuffer()
+
+    // Call Azure Speech Services
+    const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
+    const speechRegion = Deno.env.get('AZURE_SPEECH_REGION')
+
+    if (!speechKey || !speechRegion) {
+      throw new Error('Azure Speech Services configuration missing')
     }
+
+    const endpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US`
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': speechKey,
+        'Content-Type': 'audio/wav',
+        'Accept': 'application/json',
+      },
+      body: audioArrayBuffer,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Speech service error: ${response.statusText}`)
+    }
+
+    const recognitionResult = await response.json()
+
+    // Call pronunciation assessment
+    const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/api/v1/assessment`
+    
+    const assessmentResponse = await fetch(assessmentEndpoint, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': speechKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        referenceText,
+        recognizedText: recognitionResult.DisplayText,
+        audioFileUrl: publicUrl,
+      }),
+    })
+
+    if (!assessmentResponse.ok) {
+      throw new Error(`Assessment service error: ${assessmentResponse.statusText}`)
+    }
+
+    const assessmentResult = await assessmentResponse.json()
 
     return new Response(
       JSON.stringify({
         success: true,
         audioUrl: publicUrl,
-        assessment: mockAssessment
+        assessment: {
+          pronunciationScore: assessmentResult.pronunciationScore,
+          accuracyScore: assessmentResult.accuracyScore,
+          fluencyScore: assessmentResult.fluencyScore,
+          completenessScore: assessmentResult.completenessScore,
+          words: assessmentResult.words.map((word: any) => ({
+            word: word.word,
+            accuracyScore: word.accuracyScore,
+            errorType: word.errorType
+          }))
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
