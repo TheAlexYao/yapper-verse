@@ -1,9 +1,19 @@
-import { corsHeaders, type RequestBody } from "../_shared/tts-utils.ts";
-import { generateSpeech } from "./speechGenerator.ts";
-import { CacheManager } from "./cacheManager.ts";
+import * as sdk from "npm:microsoft-cognitiveservices-speech-sdk"
+import { createClient } from "npm:@supabase/supabase-js@2"
+import { corsHeaders } from "../_shared/cors.ts";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
-const cacheManager = new CacheManager();
+interface RequestBody {
+  text: string;
+  languageCode: string;
+  voiceGender: 'male' | 'female';
+}
+
+// Create a Supabase client with the service role key
+const supabaseAdmin = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -12,20 +22,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const requestBody = await req.json() as RequestBody;
-    const { text, languageCode, voiceGender, speed = 'normal' } = requestBody;
+    // Parse request body
+    const requestBody = await req.json().catch((error) => {
+      console.error('Failed to parse request body:', error);
+      throw new Error('Invalid request body');
+    });
+
+    const { text, languageCode, voiceGender } = requestBody as RequestBody;
     
     if (!text || !languageCode || !voiceGender) {
       throw new Error('Missing required fields: text, languageCode, or voiceGender');
     }
 
-    console.log('Received TTS request:', { text, languageCode, voiceGender, speed });
-
-    // Validate speed is one of the allowed values
-    const allowedSpeeds = ['normal', 'slow', 'very-slow'];
-    if (!allowedSpeeds.includes(speed)) {
-      throw new Error(`Invalid speed value. Must be one of: ${allowedSpeeds.join(', ')}`);
-    }
+    console.log('Received TTS request:', { text, languageCode, voiceGender });
 
     // Generate hash of the text + language + gender combination
     const textToHash = `${text}-${languageCode}-${voiceGender}`;
@@ -35,8 +44,30 @@ Deno.serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
+    // Check cache first
+    const { data: cacheData, error: cacheError } = await supabaseAdmin
+      .from('tts_cache')
+      .select('audio_url')
+      .eq('text_hash', textHash)
+      .eq('language_code', languageCode)
+      .eq('voice_gender', voiceGender)
+      .single();
+
+    if (cacheError && cacheError.code !== 'PGRST116') {
+      console.error('Cache lookup error:', cacheError);
+      throw cacheError;
+    }
+
+    if (cacheData?.audio_url) {
+      console.log('Cache hit:', cacheData.audio_url);
+      return new Response(
+        JSON.stringify({ audioUrl: cacheData.audio_url }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get voice configuration for the language
-    const { data: languageData, error: languageError } = await cacheManager.getSupabaseClient()
+    const { data: languageData, error: languageError } = await supabaseAdmin
       .from('languages')
       .select('male_voice, female_voice')
       .eq('code', languageCode)
@@ -48,47 +79,92 @@ Deno.serve(async (req) => {
     }
 
     const voiceName = voiceGender === 'male' ? 
-      languageData.male_voice : 
-      languageData.female_voice;
+      (languageCode === 'fr-FR' ? 'fr-FR-AlainNeural' : languageData.male_voice) : 
+      (languageCode === 'fr-FR' ? 'fr-FR-DeniseNeural' : languageData.female_voice);
 
     if (!voiceName) {
       throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
     }
 
-    // Check cache first
-    const cacheEntry = await cacheManager.getCacheEntry(textHash, languageCode, voiceGender);
-    const audioUrlField = `audio_url_${speed}`;
-    
-    // If the requested speed version exists in cache, return it
-    if (cacheEntry && cacheEntry[audioUrlField]) {
-      return new Response(
-        JSON.stringify({ audioUrl: cacheEntry[audioUrlField] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    console.log('Using voice:', voiceName);
+
+    // Configure speech SDK
+    const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
+    const speechRegion = Deno.env.get('AZURE_SPEECH_REGION');
+
+    if (!speechKey || !speechRegion) {
+      throw new Error('Azure Speech credentials not configured');
+    }
+
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
+    speechConfig.speechSynthesisVoiceName = voiceName;
+
+    // Create the synthesizer
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+
+    // Generate audio
+    console.log('Generating audio with voice:', voiceName);
+    const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
+      synthesizer.speakTextAsync(
+        text,
+        result => {
+          synthesizer.close();
+          resolve(result);
+        },
+        error => {
+          synthesizer.close();
+          reject(error);
+        }
       );
+    });
+
+    if (result.errorDetails) {
+      console.error('Speech synthesis error:', result.errorDetails);
+      throw new Error(result.errorDetails);
     }
 
-    // Generate the audio for the requested speed
-    console.log(`Generating ${speed} speed audio...`);
-    const audioData = await generateSpeech(text, languageCode, voiceName, speed);
+    // Get audio data
+    const audioData = result.audioData;
+    
+    // Generate a unique filename
+    const filename = `${textHash}.wav`;
+    
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin
+      .storage
+      .from('tts_cache')
+      .upload(filename, audioData, {
+        contentType: 'audio/wav',
+        cacheControl: '3600',
+        upsert: true
+      });
 
-    if (audioData?.byteLength) {
-      console.log('Audio data received:', audioData.byteLength, 'bytes');
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw uploadError;
     }
 
-    // Upload to storage with correct extension and content type
-    const filename = `${textHash}_${speed}.mp3`;
-    const publicUrl = await cacheManager.uploadAudio(filename, audioData);
+    // Get public URL
+    const { data: { publicUrl } } = supabaseAdmin
+      .storage
+      .from('tts_cache')
+      .getPublicUrl(filename);
 
-    // Update cache entry
-    await cacheManager.updateCacheEntry(
-      textHash,
-      speed,
-      publicUrl,
-      cacheEntry,
-      text,
-      languageCode,
-      voiceGender
-    );
+    // Cache the result
+    const { error: insertError } = await supabaseAdmin
+      .from('tts_cache')
+      .insert({
+        text_hash: textHash,
+        text_content: text,
+        language_code: languageCode,
+        voice_gender: voiceGender,
+        audio_url: publicUrl
+      });
+
+    if (insertError) {
+      console.error('Cache insert error:', insertError);
+      throw insertError;
+    }
 
     console.log('Successfully generated and cached audio:', publicUrl);
     return new Response(

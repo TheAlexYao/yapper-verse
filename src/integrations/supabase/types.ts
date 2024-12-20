@@ -587,9 +587,7 @@ export type Database = {
       }
       tts_cache: {
         Row: {
-          audio_url_normal: string | null
-          audio_url_slow: string | null
-          audio_url_very_slow: string | null
+          audio_url: string
           created_at: string | null
           id: string
           language_code: string
@@ -599,9 +597,7 @@ export type Database = {
           voice_gender: string
         }
         Insert: {
-          audio_url_normal?: string | null
-          audio_url_slow?: string | null
-          audio_url_very_slow?: string | null
+          audio_url: string
           created_at?: string | null
           id?: string
           language_code: string
@@ -611,9 +607,7 @@ export type Database = {
           voice_gender: string
         }
         Update: {
-          audio_url_normal?: string | null
-          audio_url_slow?: string | null
-          audio_url_very_slow?: string | null
+          audio_url?: string
           created_at?: string | null
           id?: string
           language_code?: string

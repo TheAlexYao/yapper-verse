@@ -9,71 +9,29 @@ interface TextDisplayProps {
   translation: string;
   transliteration?: string;
   audio_url?: string;
-  onSpeedChange?: (speed: string) => void;
 }
 
 type SpeedOption = {
   label: string;
-  value: string;
-  rate: number;
+  value: number;
 };
 
 const speedOptions: SpeedOption[] = [
-  { label: "Normal", value: "normal", rate: 1 },
-  { label: "Slow", value: "slow", rate: 0.8 },
-  { label: "Very Slow", value: "very_slow", rate: 0.5 },
+  { label: "Normal", value: 1 },
+  { label: "Slow", value: 0.8 },
+  { label: "Very Slow", value: 0.5 },
 ];
 
-export function TextDisplay({ 
-  text, 
-  translation, 
-  transliteration, 
-  audio_url,
-  onSpeedChange 
-}: TextDisplayProps) {
+export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
   const [volume, setVolume] = useState([1]);
   const [selectedSpeed, setSelectedSpeed] = useState<SpeedOption>(speedOptions[0]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const getAudioUrlForSpeed = (baseUrl: string, speed: string): string => {
-    if (!baseUrl) return '';
-    
-    // Remove any existing speed suffix if present
-    let cleanUrl = baseUrl.replace(/_normal\.|_slow\.|_very_slow\./, '.');
-    
-    // Split the URL to insert the speed before the extension
-    const urlParts = cleanUrl.split('.');
-    const extension = urlParts.pop();
-    const baseUrlWithoutExtension = urlParts.join('.');
-    
-    // Add the appropriate suffix based on speed
-    return `${baseUrlWithoutExtension}_${speed}.${extension}`;
-  };
-
-  const handlePlayAudio = async () => {
-    if (!audio_url || isLoading) return;
-    
-    setIsLoading(true);
-    try {
-      // Notify parent component about speed change (for dynamic generation if needed)
-      if (selectedSpeed.value === 'very_slow' && onSpeedChange) {
-        await onSpeedChange(selectedSpeed.value);
-      }
-
-      const speedAudioUrl = getAudioUrlForSpeed(audio_url, selectedSpeed.value);
-      console.log('Playing audio URL:', speedAudioUrl);
-      
-      if (audioRef.current) {
-        audioRef.current.src = speedAudioUrl;
-        audioRef.current.volume = volume[0];
-        audioRef.current.playbackRate = selectedSpeed.rate;
-        await audioRef.current.play();
-      }
-    } catch (error) {
-      console.error('Error playing audio:', error);
-    } finally {
-      setIsLoading(false);
+  const handlePlayAudio = () => {
+    if (audio_url && audioRef.current) {
+      audioRef.current.volume = volume[0];
+      audioRef.current.playbackRate = selectedSpeed.value;
+      audioRef.current.play();
     }
   };
 
@@ -85,7 +43,6 @@ export function TextDisplay({
           size="icon" 
           className="shrink-0"
           onClick={handlePlayAudio}
-          disabled={isLoading}
         >
           <PlayCircle className="h-4 w-4" />
         </Button>
@@ -143,7 +100,7 @@ export function TextDisplay({
       </div>
 
       {audio_url && (
-        <audio ref={audioRef} />
+        <audio ref={audioRef} src={audio_url} />
       )}
     </div>
   );

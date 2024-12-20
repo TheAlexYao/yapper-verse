@@ -41,40 +41,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
-  const generateTTSForSpeed = async (response: any, profile: any, speed: 'normal' | 'slow') => {
-    const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`;
-    let audioUrl = ttsCache.get(cacheKey);
-
-    if (!audioUrl) {
-      console.log(`Cache miss, generating TTS for ${speed} speed...`);
-      
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: {
-          text: response.text,
-          languageCode: profile.target_language,
-          voiceGender: profile.voice_preference || 'female',
-          speed
-        }
-      });
-
-      if (error) {
-        console.error(`TTS function error (${speed} speed):`, error);
-        throw new Error(`Failed to generate ${speed} speed speech: ${error.message}`);
-      }
-
-      if (!data?.audioUrl) {
-        throw new Error(`No audio URL in response for ${speed} speed`);
-      }
-
-      audioUrl = data.audioUrl;
-      ttsCache.set(cacheKey, audioUrl);
-    } else {
-      console.log(`Cache hit for ${speed} speed, using cached audio URL`);
-    }
-
-    return audioUrl;
-  };
-
   const handleResponseSelect = async (response: any) => {
     try {
       setIsGeneratingTTS(true);
@@ -90,23 +56,40 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Generate normal speed version
-      const normalSpeedUrl = await generateTTSForSpeed(response, profile, 'normal');
-      
-      // Generate slow speed version
-      const slowSpeedUrl = await generateTTSForSpeed(response, profile, 'slow');
+      // Check cache first
+      const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}`;
+      let audioUrl = ttsCache.get(cacheKey);
 
-      console.log('Generated audio URLs:', {
-        normal: normalSpeedUrl,
-        slow: slowSpeedUrl
-      });
+      if (!audioUrl) {
+        console.log('Cache miss, generating TTS...');
+        
+        // Call the Edge Function using supabase.functions.invoke
+        const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+          body: {
+            text: response.text,
+            languageCode: profile.target_language,
+            voiceGender: profile.voice_preference || 'female'
+          }
+        });
+
+        if (ttsError) {
+          console.error('TTS function error:', ttsError);
+          throw new Error(`Failed to generate speech: ${ttsError.message}`);
+        }
+
+        if (!ttsData?.audioUrl) {
+          throw new Error('No audio URL in response');
+        }
+
+        audioUrl = ttsData.audioUrl;
+        // Cache the result
+        ttsCache.set(cacheKey, audioUrl);
+      } else {
+        console.log('Cache hit, using cached audio URL');
+      }
       
-      // Set the selected response with the audio URLs
-      setSelectedResponse({ 
-        ...response, 
-        audio_url: normalSpeedUrl,
-        audio_url_slow: slowSpeedUrl 
-      });
+      // Set the selected response with the audio URL
+      setSelectedResponse({ ...response, audio_url: audioUrl });
       setShowPronunciationModal(true);
     } catch (error) {
       console.error('TTS error:', error);
