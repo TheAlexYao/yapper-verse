@@ -6,6 +6,7 @@ import ScenarioHub from "@/pages/ScenarioHub";
 import Character from "@/pages/Character";
 import GuidedChat from "@/pages/GuidedChat";
 import Dashboard from "@/pages/Dashboard";
+import Profile from "@/pages/Profile";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/character" element={<Character />} />
         <Route path="/chat" element={<GuidedChat />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
