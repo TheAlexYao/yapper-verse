@@ -113,7 +113,7 @@ export default function GuidedChat() {
         body: {
           text,
           languageCode: profile.target_language,
-          gender: profile.voice_preference || 'female',
+          voiceGender: profile.voice_preference || 'female',
           speed: 'normal'
         }
       });

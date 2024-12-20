@@ -24,11 +24,11 @@ export async function generateSpeech(
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
   speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
-  // Simplified rate values that are well-supported across voices
+  // Adjusted rate values for better reliability
   const rateMap: Record<string, string> = {
     'normal': '1.0',
-    'slow': '0.7',
-    'very-slow': '0.5'
+    'slow': '0.8',
+    'very-slow': '0.6'
   };
 
   const ssml = `
