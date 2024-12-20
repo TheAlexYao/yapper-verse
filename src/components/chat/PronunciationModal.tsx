@@ -18,7 +18,7 @@ interface PronunciationModalProps {
     translation: string;
     transliteration?: string;
   };
-  onSubmit: (score: number) => void;
+  onSubmit: (score: number, audioUrl?: string) => void;
 }
 
 export function PronunciationModal({
@@ -86,9 +86,8 @@ export function PronunciationModal({
 
   const handleSubmit = () => {
     setShowResults(true);
-    // Simulated score for now
     const score = Math.floor(Math.random() * 30) + 70;
-    onSubmit(score);
+    onSubmit(score, audioUrl);
   };
 
   return (

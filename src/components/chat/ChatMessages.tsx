@@ -13,9 +13,10 @@ interface Message {
 
 interface ChatMessagesProps {
   messages: Message[];
+  onPlayAudio: () => void;
 }
 
-export function ChatMessages({ messages }: ChatMessagesProps) {
+export function ChatMessages({ messages, onPlayAudio }: ChatMessagesProps) {
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,7 +53,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
               <MessageBubble
                 message={message}
                 isUser={message.isUser}
-                onPlayAudio={!message.isUser ? () => {} : undefined}
+                onPlayAudio={!message.isUser ? onPlayAudio : undefined}
               />
             </div>
           );

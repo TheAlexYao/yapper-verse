@@ -208,6 +208,7 @@ export default function GuidedChat() {
     sentencesUsed: 1,
     sentenceLimit: 10,
   });
+  const [ttsAudioUrl, setTtsAudioUrl] = useState<string>("/dummy-tts.mp3");
 
   const simulateAIResponse = () => {
     const aiResponse: Message = {
@@ -232,7 +233,14 @@ export default function GuidedChat() {
       text: selectedResponse.text,
       translation: selectedResponse.translation,
       pronunciationScore: score,
-      pronunciationData: selectedResponse.pronunciationData,
+      pronunciationData: {
+        ...selectedResponse.pronunciationData,
+        NBest: [{
+          ...selectedResponse.pronunciationData.NBest[0],
+          AudioUrl: audioUrl,
+          OriginalAudioUrl: ttsAudioUrl,
+        }]
+      },
       audioUrl,
       isUser: true,
     };
@@ -249,6 +257,11 @@ export default function GuidedChat() {
     simulateAIResponse();
   };
 
+  const handlePlayTTS = () => {
+    const audio = new Audio(ttsAudioUrl);
+    audio.play();
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <ChatHeader
@@ -261,7 +274,7 @@ export default function GuidedChat() {
       />
 
       <div className="flex-1 relative">
-        <ChatMessages messages={messages} />
+        <ChatMessages messages={messages} onPlayAudio={handlePlayTTS} />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm">
