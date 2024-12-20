@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Form } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   full_name: string;
@@ -21,6 +24,7 @@ interface UserProfile {
 
 const Profile = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   
@@ -73,6 +77,27 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account",
+      });
+      
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        description: "There was a problem signing out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,6 +144,18 @@ const Profile = () => {
                   }
                 }}
               />
+
+              <Separator className="my-8" />
+
+              <Button
+                type="button"
+                variant="destructive"
+                className="w-full"
+                onClick={handleSignOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
             </form>
           </Form>
         </div>

@@ -6,12 +6,36 @@ import { LanguageSelector } from "@/components/dashboard/LanguageSelector";
 import { DailyTip } from "@/components/dashboard/DailyTip";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { UserGreeting } from "@/components/dashboard/UserGreeting";
-import { Bell, User } from "lucide-react";
+import { Bell, User, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const [isAddLanguageOpen, setIsAddLanguageOpen] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState("fr-FR");
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account",
+      });
+      
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        description: "There was a problem signing out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,6 +54,14 @@ export default function Dashboard() {
             </Button>
             <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
               <User className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleSignOut}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
