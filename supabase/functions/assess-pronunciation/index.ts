@@ -57,6 +57,19 @@ serve(async (req) => {
       throw new Error('Invalid WAV format')
     }
 
+    // Validate audio format requirements
+    if (wavHeader.sampleRate !== 16000) {
+      throw new Error('Sample rate must be 16000 Hz')
+    }
+
+    if (wavHeader.numChannels !== 1) {
+      throw new Error('Audio must be mono (1 channel)')
+    }
+
+    if (wavHeader.bitsPerSample !== 16) {
+      throw new Error('Bits per sample must be 16')
+    }
+
     // Skip WAV header (44 bytes) to get raw PCM data
     const pcmData = wavBuffer.slice(44)
     
@@ -136,7 +149,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in assess-pronunciation:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

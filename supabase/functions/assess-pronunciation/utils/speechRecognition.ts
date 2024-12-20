@@ -74,13 +74,17 @@ export async function performSpeechRecognition({
       recognizer.recognized = (s, e) => {
         if (e.result.text) {
           console.log(`RECOGNIZED: Text=${e.result.text}`)
-          const pronResult = sdk.PronunciationAssessmentResult.fromResult(e.result)
-          console.log("Pronunciation scores:", {
-            accuracyScore: pronResult.accuracyScore,
-            fluencyScore: pronResult.fluencyScore,
-            completenessScore: pronResult.completenessScore,
-            pronunciationScore: pronResult.pronunciationScore
-          })
+          try {
+            const pronResult = sdk.PronunciationAssessmentResult.fromResult(e.result)
+            console.log("Pronunciation scores:", {
+              accuracyScore: pronResult.accuracyScore,
+              fluencyScore: pronResult.fluencyScore,
+              completenessScore: pronResult.completenessScore,
+              pronunciationScore: pronResult.pronunciationScore
+            })
+          } catch (error) {
+            console.error("Error getting pronunciation result:", error)
+          }
         }
       }
 
@@ -89,8 +93,10 @@ export async function performSpeechRecognition({
         if (e.reason === sdk.CancellationReason.Error) {
           console.error(`CANCELED: ErrorCode=${e.errorCode}`)
           console.error(`CANCELED: ErrorDetails=${e.errorDetails}`)
+          reject(new Error(`Recognition canceled: ${e.errorDetails}`))
+        } else {
+          reject(new Error(`Recognition canceled: ${e.reason}`))
         }
-        reject(new Error(`Recognition canceled: ${e.errorDetails || e.reason}`))
       }
 
       recognizer.recognizeOnceAsync(
