@@ -26,13 +26,21 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
+    // Upload original WAV file to storage
     const audioUrl = await uploadAudioToStorage(audioFile)
     console.log('Audio uploaded successfully:', audioUrl)
     
-    const audioData = await audioFile.arrayBuffer()
+    // Convert WAV to raw PCM data
+    const arrayBuffer = await audioFile.arrayBuffer()
+    const wavBuffer = new Uint8Array(arrayBuffer)
+    
+    // Skip WAV header (44 bytes) to get raw PCM data
+    const pcmData = wavBuffer.slice(44)
+    
     console.log('Audio data details:', {
-      byteLength: audioData.byteLength,
-      type: Object.prototype.toString.call(audioData)
+      originalSize: wavBuffer.length,
+      pcmSize: pcmData.length,
+      type: Object.prototype.toString.call(pcmData)
     })
 
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
@@ -47,7 +55,7 @@ serve(async (req) => {
       speechRegion,
       languageCode,
       referenceText,
-      audioData
+      audioData: pcmData.buffer
     })
 
     const response = createDefaultResponse(referenceText, audioUrl)
