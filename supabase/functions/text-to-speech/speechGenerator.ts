@@ -14,7 +14,14 @@ export async function generateSpeech(
   }
 
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
-  speechConfig.speechSynthesisVoiceName = voiceName;
+  
+  // Set neural voice format
+  speechConfig.speechSynthesisVoiceName = `${voiceName}-Neural`;
+  
+  // Set output format to high quality audio
+  speechConfig.setSpeechSynthesisOutputFormat(
+    sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3
+  );
 
   // Set rate adjustment based on speed
   let rateAdjustment = '';
@@ -26,7 +33,7 @@ export async function generateSpeech(
 
   const ssml = `
     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
-      <voice name="${voiceName}">
+      <voice name="${speechConfig.speechSynthesisVoiceName}">
         <prosody${rateAdjustment}>
           ${text}
         </prosody>
