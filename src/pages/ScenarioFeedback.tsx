@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Info, Volume2, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Info, Volume2, ExternalLink, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -240,7 +240,7 @@ export default function ScenarioFeedback() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header - Simplified */}
         <div className="flex items-center justify-between mb-8">
           <Button
             variant="ghost"
@@ -248,163 +248,147 @@ export default function ScenarioFeedback() {
             onClick={() => navigate("/scenarios")}
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Scenarios
+            Back
           </Button>
-          <div className="text-right">
+          <div className="text-center flex-1">
             <h1 className="text-2xl font-bold">{scenarioData.title}</h1>
-            <p className="text-sm text-muted-foreground">{scenarioData.completedAt}</p>
+          </div>
+          <div className="w-[72px]" /> {/* Spacer for alignment */}
+        </div>
+
+        {/* Quick Summary - Most important info first */}
+        <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-[#9b87f5]/10 to-[#7843e6]/10 border border-accent/20">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold mb-1">Overall Performance</h2>
+              <p className="text-sm text-muted-foreground">{scenarioData.completedAt}</p>
+            </div>
+            {scenarioData.goalAchieved && (
+              <div className="flex items-center gap-2 text-[#7843e6]">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-medium">Goal Achieved</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg bg-background/50 backdrop-blur-sm">
+              <div className="text-2xl font-bold text-[#7843e6] mb-1">
+                {scenarioData.metrics.pronunciation}%
+              </div>
+              <div className="text-sm text-muted-foreground">Pronunciation</div>
+            </div>
+            <div className="p-4 rounded-lg bg-background/50 backdrop-blur-sm">
+              <div className="text-2xl font-bold text-[#7843e6] mb-1">
+                {scenarioData.metrics.style}%
+              </div>
+              <div className="text-sm text-muted-foreground">Style</div>
+            </div>
+            <div className="p-4 rounded-lg bg-background/50 backdrop-blur-sm">
+              <div className="text-sm font-medium mb-1">{scenarioData.metrics.formality}</div>
+              <div className="text-sm text-muted-foreground">Tone</div>
+            </div>
           </div>
         </div>
 
-        {/* Goal & Character */}
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="font-medium mb-2">Scenario Goal</h3>
-                  <p className="text-sm text-muted-foreground mb-4">{scenarioData.goal}</p>
-                  {scenarioData.goalAchieved && (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Goal Achieved</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
-                  <img
-                    src={scenarioData.character.avatar}
-                    alt={scenarioData.character.name}
-                    className="h-8 w-8"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium mb-2">{scenarioData.character.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {scenarioData.character.description}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Metrics */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <h3 className="font-medium mb-4">Overall Performance</h3>
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Pronunciation</span>
-                  <span>{scenarioData.metrics.pronunciation}%</span>
-                </div>
-                <Progress value={scenarioData.metrics.pronunciation} />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Style</span>
-                  <span>{scenarioData.metrics.style}%</span>
-                </div>
-                <Progress value={scenarioData.metrics.style} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{scenarioData.metrics.formality}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tips */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <h3 className="font-medium mb-4">Improvement Tips</h3>
-            <ul className="space-y-2">
-              {scenarioData.tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="select-none">•</span>
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* Conversation Transcript */}
+        {/* Conversation Review - Focus on learning */}
         <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Conversation Review</h2>
           <ConversationTranscript
             messages={scenarioData.conversation}
-            onViewDetails={setSelectedUtterance}
+            onViewDetails={(utterance) => {
+              setSelectedUtterance({
+                text: utterance.text,
+                metrics: {
+                  accuracy: utterance.pronunciationData?.NBest[0].PronunciationAssessment.AccuracyScore || 0,
+                  fluency: utterance.pronunciationData?.NBest[0].PronunciationAssessment.FluencyScore || 0,
+                  completeness: utterance.pronunciationData?.NBest[0].PronunciationAssessment.CompletenessScore || 0,
+                  overall: utterance.pronunciationData?.NBest[0].PronunciationAssessment.PronScore || 0,
+                },
+                words: utterance.pronunciationData?.NBest[0].Words.map(w => ({
+                  word: w.Word,
+                  score: w.PronunciationAssessment.AccuracyScore,
+                  phonetic: "", // Add if available
+                })) || [],
+              });
+            }}
           />
         </div>
 
-        {/* Suggested Scenarios */}
+        {/* Key Takeaways - Actionable feedback */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-medium mb-4">What You Did Well</h3>
+              <ul className="space-y-2">
+                {scenarioData.tips
+                  .filter(tip => tip.includes("well") || tip.includes("good"))
+                  .map((tip, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="font-medium mb-4">Areas to Practice</h3>
+              <ul className="space-y-2">
+                {scenarioData.tips
+                  .filter(tip => !tip.includes("well") && !tip.includes("good"))
+                  .map((tip, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Next Steps */}
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <h3 className="font-medium mb-4">Suggested Next Scenarios</h3>
+            <h3 className="font-medium mb-4">Recommended Next Steps</h3>
             <div className="grid gap-4 md:grid-cols-2">
               {scenarioData.suggestedScenarios.map((scenario, index) => (
                 <Button
                   key={index}
                   variant="outline"
-                  className="h-auto p-4 justify-start"
+                  className="h-auto p-4 justify-start bg-gradient-to-r from-background to-accent/5 hover:to-accent/10"
                   onClick={() => navigate("/scenarios")}
                 >
                   <div className="text-left">
                     <h4 className="font-medium mb-1">{scenario.title}</h4>
                     <p className="text-sm text-muted-foreground">{scenario.description}</p>
                   </div>
-                  <ExternalLink className="h-4 w-4 ml-auto" />
+                  <ArrowRight className="h-4 w-4 ml-auto" />
                 </Button>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="space-x-4">
-            <Button variant="link" className="text-sm" onClick={() => window.open("#", "_blank")}>
-              Help/FAQ
-            </Button>
-            <Button variant="link" className="text-sm" onClick={() => window.open("#", "_blank")}>
-              Terms
-            </Button>
-            <Button variant="link" className="text-sm" onClick={() => window.open("#", "_blank")}>
-              Privacy
-            </Button>
-          </div>
+        {/* Footer - Simplified */}
+        <div className="flex justify-end">
           <Button
             className="bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white hover:opacity-90"
             onClick={() => navigate("/scenarios")}
           >
-            Back to Scenarios
+            Try Another Scenario
           </Button>
         </div>
 
+        {/* Pronunciation Modal */}
         {selectedUtterance && (
           <PronunciationModal
             isOpen={!!selectedUtterance}
             onClose={() => setSelectedUtterance(null)}
-            utterance={{
-              text: selectedUtterance.text,
-              metrics: {
-                accuracy: selectedUtterance.metrics.accuracy,
-                fluency: selectedUtterance.metrics.fluency,
-                completeness: selectedUtterance.metrics.completeness,
-                overall: selectedUtterance.metrics.overall,
-              },
-              words: selectedUtterance.metrics.words,
-              improvementTip: selectedUtterance.metrics.improvementTip,
-            }}
+            utterance={selectedUtterance}
           />
         )}
       </div>
