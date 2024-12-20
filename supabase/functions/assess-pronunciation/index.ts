@@ -30,6 +30,10 @@ serve(async (req) => {
     console.log('Audio uploaded successfully:', audioUrl)
     
     const audioData = await audioFile.arrayBuffer()
+    console.log('Audio data details:', {
+      byteLength: audioData.byteLength,
+      type: Object.prototype.toString.call(audioData)
+    })
 
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
     const speechRegion = Deno.env.get('AZURE_SPEECH_REGION')
@@ -46,11 +50,8 @@ serve(async (req) => {
       audioData
     })
 
-    console.log('Speech recognition result:', JSON.stringify(result, null, 2))
-
     const response = createDefaultResponse(referenceText, audioUrl)
 
-    // Handle the assessment result
     if (result && typeof result === 'object') {
       const jsonResult = JSON.stringify(result)
       console.log('Raw recognition result:', jsonResult)
@@ -61,8 +62,26 @@ serve(async (req) => {
       if (parsedResult.privPronJson) {
         const pronunciationAssessment = JSON.parse(parsedResult.privPronJson)
         console.log('Pronunciation assessment:', pronunciationAssessment)
-        response.assessment.NBest[0].PronunciationAssessment = pronunciationAssessment
-        response.assessment.pronunciationScore = pronunciationAssessment.PronScore || 0
+        
+        if (pronunciationAssessment.PronScore !== undefined) {
+          response.assessment.NBest[0].PronunciationAssessment = {
+            AccuracyScore: pronunciationAssessment.AccuracyScore || 0,
+            FluencyScore: pronunciationAssessment.FluencyScore || 0,
+            CompletenessScore: pronunciationAssessment.CompletenessScore || 0,
+            PronScore: pronunciationAssessment.PronScore || 0
+          }
+          response.assessment.pronunciationScore = pronunciationAssessment.PronScore
+        }
+
+        if (pronunciationAssessment.Words) {
+          response.assessment.NBest[0].Words = pronunciationAssessment.Words.map((word: any) => ({
+            Word: word.Word,
+            PronunciationAssessment: {
+              AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
+              ErrorType: word.PronunciationAssessment?.ErrorType || "Unknown"
+            }
+          }))
+        }
       }
     }
 

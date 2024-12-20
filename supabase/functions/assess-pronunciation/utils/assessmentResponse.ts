@@ -23,8 +23,8 @@ export interface AssessmentResponse {
 }
 
 export function createDefaultResponse(referenceText: string, audioUrl: string): AssessmentResponse {
-  // Split reference text into words for word-by-word analysis
-  const words = referenceText.split(/\s+/).filter(word => word.length > 0);
+  // Split reference text into words
+  const words = referenceText.split(/[\s,.'!?]+/).filter(word => word.length > 0);
   
   return {
     success: true,
