@@ -39,7 +39,7 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
           .from('profiles')
           .select('target_language')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!profileData?.target_language) {
           toast({
@@ -62,7 +62,10 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
           `)
           .eq('languages.code', profileData.target_language);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching scenarios:', error);
+          throw error;
+        }
 
         const formattedScenarios: Scenario[] = scenariosData.map((scenario) => ({
           id: scenario.id,
