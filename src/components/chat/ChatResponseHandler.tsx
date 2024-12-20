@@ -50,33 +50,43 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.access_token) {
+        throw new Error('No auth session found');
+      }
+
       const ttsResponse = await fetch('/functions/v1/text-to-speech', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          'Authorization': `Bearer ${session.data.session.access_token}`
         },
         body: JSON.stringify({
           text: response.text,
           languageCode: profile.target_language,
-          gender: profile.voice_preference || 'female'
+          voiceGender: profile.voice_preference || 'female'
         })
       });
 
       if (!ttsResponse.ok) {
-        throw new Error('Failed to generate speech');
+        const errorText = await ttsResponse.text();
+        console.error('TTS response error:', errorText);
+        throw new Error(`Failed to generate speech: ${ttsResponse.status}`);
       }
 
-      const { audioUrl } = await ttsResponse.json();
+      const ttsData = await ttsResponse.json();
+      if (!ttsData.audioUrl) {
+        throw new Error('No audio URL in response');
+      }
       
       // Set the selected response with the audio URL
-      setSelectedResponse({ ...response, audio_url: audioUrl });
+      setSelectedResponse({ ...response, audio_url: ttsData.audioUrl });
       setShowPronunciationModal(true);
     } catch (error) {
       console.error('TTS error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio for comparison",
+        description: "Failed to generate audio for comparison. Please try again.",
         variant: "destructive",
       });
       // Still show the modal even if TTS fails
