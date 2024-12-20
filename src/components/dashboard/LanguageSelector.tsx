@@ -12,51 +12,29 @@ interface LanguageSelectorProps {
   onAddLanguage: () => void;
 }
 
-interface LanguageStats {
-  languageCode: string;
-  completedScenarios: number;
-}
-
 export function LanguageSelector({ 
   currentLanguage, 
   onLanguageChange,
   onAddLanguage 
 }: LanguageSelectorProps) {
   const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
-  const [languageStats, setLanguageStats] = useState<LanguageStats[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchUserLanguagesAndStats = async () => {
+  const fetchUserLanguages = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch user's active languages and stats in parallel
-      const [profileResponse, scenariosResponse] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('languages_learning, target_language')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('user_scenarios')
-          .select(`
-            id,
-            scenarios (
-              language_id,
-              languages (
-                code
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-      ]);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('languages_learning, target_language')
+        .eq('id', user.id)
+        .single();
 
-      if (profileResponse.error) throw profileResponse.error;
+      if (error) throw error;
       
-      const userLanguages = profileResponse.data.languages_learning || [];
+      const userLanguages = profileData.languages_learning || [];
       setActiveLanguages(userLanguages);
 
       // If this is a newly added language, switch to it
@@ -64,25 +42,8 @@ export function LanguageSelector({
         const newLanguage = userLanguages[userLanguages.length - 1];
         handleLanguageChange(newLanguage);
       }
-
-      if (scenariosResponse.error) throw scenariosResponse.error;
-
-      // Calculate completed scenarios per language
-      const stats = userLanguages.map(langCode => {
-        const completedCount = scenariosResponse.data.filter(scenario => 
-          scenario.scenarios?.languages?.code === langCode
-        ).length;
-
-        return {
-          languageCode: langCode,
-          completedScenarios: completedCount
-        };
-      });
-
-      setLanguageStats(stats);
-
     } catch (error) {
-      console.error('Error fetching user languages and stats:', error);
+      console.error('Error fetching user languages:', error);
       toast({
         title: "Error",
         description: "Failed to load language data",
@@ -120,7 +81,7 @@ export function LanguageSelector({
   };
 
   useEffect(() => {
-    fetchUserLanguagesAndStats();
+    fetchUserLanguages();
 
     // Subscribe to real-time updates for the profiles table
     const setupSubscription = async () => {
@@ -140,10 +101,6 @@ export function LanguageSelector({
           (payload) => {
             const updatedLanguages = payload.new.languages_learning || [];
             setActiveLanguages(updatedLanguages);
-            // Only refetch stats if languages have changed
-            if (JSON.stringify(updatedLanguages) !== JSON.stringify(activeLanguages)) {
-              fetchUserLanguagesAndStats();
-            }
           }
         )
         .subscribe();
@@ -163,7 +120,6 @@ export function LanguageSelector({
         <div className="flex flex-wrap gap-2">
           {activeLanguages.map((lang) => {
             const language = languages.find(l => l.value === lang);
-            const stats = languageStats.find(s => s.languageCode === lang);
             if (!language) return null;
             
             const isSelected = currentLanguage === lang;
@@ -179,11 +135,6 @@ export function LanguageSelector({
               >
                 <span>{language.emoji}</span>
                 <span>{language.label}</span>
-                {stats && (
-                  <span className="ml-2 text-xs bg-accent/50 px-2 py-0.5 rounded-full">
-                    {stats.completedScenarios} completed
-                  </span>
-                )}
               </Button>
             );
           })}
