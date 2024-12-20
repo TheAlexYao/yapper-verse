@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import * as sdk from "https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js"
+import * as sdk from "npm:microsoft-cognitiveservices-speech-sdk"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,32 +72,9 @@ serve(async (req) => {
 
     // Create the audio config from the array buffer
     const pushStream = sdk.AudioInputStream.createPushStream()
-    pushStream.write(audioArrayBuffer)
+    pushStream.write(new Uint8Array(audioArrayBuffer))
     pushStream.close()
     const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream)
-
-    // Create the speech recognizer
-    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig)
-
-    // Start recognition
-    const recognitionResult = await new Promise((resolve, reject) => {
-      recognizer.recognizeOnceAsync(
-        result => {
-          recognizer.close()
-          resolve(result)
-        },
-        error => {
-          recognizer.close()
-          reject(error)
-        }
-      )
-    })
-
-    console.log('Recognition result:', recognitionResult)
-
-    if (recognitionResult.reason !== sdk.ResultReason.RecognizedSpeech) {
-      throw new Error(`Speech recognition failed: ${recognitionResult.reason}`)
-    }
 
     // Create pronunciation assessment config
     const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
@@ -107,14 +84,14 @@ serve(async (req) => {
       true
     )
 
-    // Create pronunciation assessment
-    const pronunciationAssessment = sdk.PronunciationAssessment.fromConfig(pronunciationConfig)
+    // Create the speech recognizer
+    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig)
 
     // Attach the pronunciation assessment to the recognizer
-    pronunciationAssessment.attachTo(recognizer)
+    pronunciationConfig.applyTo(recognizer)
 
-    // Get pronunciation assessment
-    const assessmentResult = await new Promise((resolve, reject) => {
+    // Start recognition and get assessment
+    const result = await new Promise((resolve, reject) => {
       recognizer.recognizeOnceAsync(
         result => {
           recognizer.close()
@@ -127,25 +104,40 @@ serve(async (req) => {
       )
     })
 
-    console.log('Assessment result:', assessmentResult)
+    console.log('Assessment result:', result)
+
+    // Extract pronunciation scores
+    const pronunciationResult = JSON.parse(result.properties.get(sdk.PropertyId.SpeechServiceResponse))
 
     return new Response(
       JSON.stringify({
         success: true,
         audioUrl: publicUrl,
         assessment: {
-          pronunciationScore: assessmentResult.pronunciationAssessment?.pronunciationScore || 0,
-          accuracyScore: assessmentResult.pronunciationAssessment?.accuracyScore || 0,
-          fluencyScore: assessmentResult.pronunciationAssessment?.fluencyScore || 0,
-          completenessScore: assessmentResult.pronunciationAssessment?.completenessScore || 0,
-          words: (assessmentResult.pronunciationAssessment?.words || []).map((word: any) => ({
-            word: word.word,
-            accuracyScore: word.accuracyScore,
-            errorType: word.errorType
-          }))
+          NBest: [{
+            PronunciationAssessment: {
+              AccuracyScore: pronunciationResult.NBest[0].PronunciationAssessment.AccuracyScore,
+              FluencyScore: pronunciationResult.NBest[0].PronunciationAssessment.FluencyScore,
+              CompletenessScore: pronunciationResult.NBest[0].PronunciationAssessment.CompletenessScore,
+              PronScore: pronunciationResult.NBest[0].PronunciationAssessment.PronScore
+            },
+            Words: pronunciationResult.NBest[0].Words.map((word: any) => ({
+              Word: word.Word,
+              PronunciationAssessment: {
+                AccuracyScore: word.PronunciationAssessment.AccuracyScore,
+                ErrorType: word.PronunciationAssessment.ErrorType
+              }
+            })),
+            AudioUrl: publicUrl
+          }]
         }
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     )
   } catch (error) {
     console.error('Error in assess-pronunciation:', error)
