@@ -71,7 +71,6 @@ const Auth = () => {
   return (
     <section className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#38b6ff] to-[#7843e6] bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer">
             Yapper
@@ -81,7 +80,6 @@ const Auth = () => {
           </p>
         </div>
 
-        {/* Auth UI */}
         <div className="bg-card border rounded-lg shadow-lg p-6">
           <SupabaseAuth 
             supabaseClient={supabase}
@@ -104,7 +102,6 @@ const Auth = () => {
           />
         </div>
 
-        {/* Footer */}
         <div className="text-center space-y-2">
           <div className="text-sm text-muted-foreground">
             By continuing, you agree to our{" "}
