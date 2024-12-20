@@ -2,22 +2,31 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
+import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { WelcomeStep } from "@/components/onboarding/steps/WelcomeStep";
 import { LanguageStep } from "@/components/onboarding/steps/LanguageStep";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 import { VoiceStep } from "@/components/onboarding/steps/VoiceStep";
 import { GoalsStep } from "@/components/onboarding/steps/GoalsStep";
 import { ReviewStep } from "@/components/onboarding/steps/ReviewStep";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   nativeLanguage: z.string().min(1, "Please select your native language"),
   targetLanguage: z.string().min(1, "Please select your target language"),
   voicePreference: z.enum(["male", "female", "nonBinary", "noPreference"]),
   goals: z.array(z.string()).min(1, "Please select at least one goal"),
+  customGoals: z.array(z.string()).optional(),
 });
 
 const OnboardingWizard = () => {
   const [step, setStep] = useState(1);
+  const navigate = useNavigate();
+  const session = useSession();
+  const supabase = useSupabaseClient();
+  const { toast } = useToast();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -25,12 +34,50 @@ const OnboardingWizard = () => {
       targetLanguage: "",
       voicePreference: "noPreference",
       goals: [],
+      customGoals: [],
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    // Handle form submission
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to complete onboarding",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          native_language: values.nativeLanguage,
+          target_language: values.targetLanguage,
+          voice_preference: values.voicePreference,
+          learning_goals: values.goals,
+          custom_goals: values.customGoals,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Your profile has been updated successfully",
+      });
+      
+      navigate("/dashboard");
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 5));
