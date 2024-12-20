@@ -39,7 +39,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
 
   const handleResponseSelect = async (response: any) => {
     try {
-      // Generate TTS for the selected response
+      // Get user profile for language and voice settings
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
@@ -50,34 +50,31 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      const session = await supabase.auth.getSession();
-      if (!session.data.session?.access_token) {
-        throw new Error('No auth session found');
-      }
+      console.log('Calling text-to-speech function with:', {
+        text: response.text,
+        languageCode: profile.target_language,
+        voiceGender: profile.voice_preference || 'female'
+      });
 
-      const ttsResponse = await fetch('/functions/v1/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.data.session.access_token}`
-        },
-        body: JSON.stringify({
+      // Call the Edge Function using supabase.functions.invoke
+      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+        body: {
           text: response.text,
           languageCode: profile.target_language,
           voiceGender: profile.voice_preference || 'female'
-        })
+        }
       });
 
-      if (!ttsResponse.ok) {
-        const errorText = await ttsResponse.text();
-        console.error('TTS response error:', errorText);
-        throw new Error(`Failed to generate speech: ${ttsResponse.status}`);
+      if (ttsError) {
+        console.error('TTS function error:', ttsError);
+        throw new Error(`Failed to generate speech: ${ttsError.message}`);
       }
 
-      const ttsData = await ttsResponse.json();
-      if (!ttsData.audioUrl) {
+      if (!ttsData?.audioUrl) {
         throw new Error('No audio URL in response');
       }
+
+      console.log('TTS function response:', ttsData);
       
       // Set the selected response with the audio URL
       setSelectedResponse({ ...response, audio_url: ttsData.audioUrl });
