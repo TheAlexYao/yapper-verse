@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScenarioCard } from "./ScenarioCard";
 import { Scenario } from "@/pages/ScenarioHub";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const CATEGORIES = [
   { id: "All", emoji: "✨" },
@@ -15,59 +17,6 @@ const CATEGORIES = [
   { id: "Play", emoji: "🎮" }
 ];
 
-const MOCK_SCENARIOS: Scenario[] = [
-  {
-    id: "1",
-    title: "Ordering at a Café",
-    description: "Learn how to order your favorite drinks and snacks at a local café.",
-    category: "Food",
-    primaryGoal: "Successfully order a drink and food item",
-    usefulPhrases: ["Can I have...", "How much is...", "Thank you"],
-    culturalNotes: "In many cultures, it's common to greet the staff when entering and leaving.",
-    locationDetails: "Local café in the city center",
-  },
-  {
-    id: "2",
-    title: "Hotel Check-in",
-    description: "Practice checking into a hotel and requesting amenities.",
-    category: "Travel",
-    primaryGoal: "Successfully check into a hotel",
-    usefulPhrases: ["I have a reservation", "What time is checkout?"],
-    culturalNotes: "Some hotels require passport at check-in",
-    locationDetails: "City center hotel",
-  },
-  {
-    id: "3",
-    title: "Business Meeting",
-    description: "Navigate a professional business meeting with confidence.",
-    category: "Work",
-    primaryGoal: "Successfully participate in a business meeting",
-    usefulPhrases: ["Let's discuss...", "I agree with...", "Could you clarify..."],
-    culturalNotes: "Business meetings often start with small talk",
-    locationDetails: "Corporate office building",
-  },
-  {
-    id: "4",
-    title: "Shopping for Clothes",
-    description: "Learn how to shop for clothes and ask about sizes and prices.",
-    category: "Shopping",
-    primaryGoal: "Successfully purchase clothing items",
-    usefulPhrases: ["Do you have this in...", "Can I try this on?", "Is this on sale?"],
-    culturalNotes: "Some stores may have different size systems",
-    locationDetails: "Local shopping mall",
-  },
-  {
-    id: "5",
-    title: "Making Friends",
-    description: "Practice social interactions and making new friends in casual settings.",
-    category: "Friends",
-    primaryGoal: "Successfully initiate and maintain casual conversations",
-    usefulPhrases: ["Nice to meet you", "What do you do?", "Would you like to..."],
-    culturalNotes: "Personal space and greeting customs vary by culture",
-    locationDetails: "Social gathering or event",
-  }
-];
-
 interface LibraryViewProps {
   searchQuery: string;
   onScenarioSelect: (scenario: Scenario) => void;
@@ -75,8 +24,74 @@ interface LibraryViewProps {
 
 export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps) {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredScenarios = MOCK_SCENARIOS.filter((scenario) => {
+  useEffect(() => {
+    const fetchScenarios = async () => {
+      try {
+        // Get current user's target language
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('target_language')
+          .eq('id', user.id)
+          .single();
+
+        if (!profileData?.target_language) {
+          toast({
+            title: "No target language selected",
+            description: "Please select a target language in your profile",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Fetch scenarios for the user's target language
+        const { data: scenariosData, error } = await supabase
+          .from('scenarios')
+          .select(`
+            *,
+            languages!inner (
+              code,
+              name
+            )
+          `)
+          .eq('languages.code', profileData.target_language);
+
+        if (error) throw error;
+
+        const formattedScenarios: Scenario[] = scenariosData.map((scenario) => ({
+          id: scenario.id,
+          title: scenario.title,
+          description: scenario.description || "",
+          category: scenario.category,
+          primaryGoal: scenario.primary_goal || "",
+          usefulPhrases: scenario.useful_phrases || [],
+          culturalNotes: scenario.cultural_notes || "",
+          locationDetails: scenario.location_details || "",
+        }));
+
+        setScenarios(formattedScenarios);
+      } catch (error) {
+        console.error('Error fetching scenarios:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load scenarios",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchScenarios();
+  }, [toast]);
+
+  const filteredScenarios = scenarios.filter((scenario) => {
     const matchesSearch = scenario.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          scenario.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || scenario.category === selectedCategory;
@@ -106,13 +121,23 @@ export function LibraryView({ searchQuery, onScenarioSelect }: LibraryViewProps)
 
       {/* Scenarios Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
-        {filteredScenarios.map((scenario) => (
-          <ScenarioCard
-            key={scenario.id}
-            scenario={scenario}
-            onClick={() => onScenarioSelect(scenario)}
-          />
-        ))}
+        {isLoading ? (
+          <div className="col-span-full text-center text-muted-foreground">
+            Loading scenarios...
+          </div>
+        ) : filteredScenarios.length === 0 ? (
+          <div className="col-span-full text-center text-muted-foreground">
+            No scenarios found for the selected criteria.
+          </div>
+        ) : (
+          filteredScenarios.map((scenario) => (
+            <ScenarioCard
+              key={scenario.id}
+              scenario={scenario}
+              onClick={() => onScenarioSelect(scenario)}
+            />
+          ))
+        )}
       </div>
     </div>
   );
