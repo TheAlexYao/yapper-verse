@@ -77,9 +77,9 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
           <Slider
             value={speed}
             onValueChange={setSpeed}
-            min={0.5}
-            max={2}
-            step={0.1}
+            min={0.25}
+            max={1}
+            step={0.05}
             className="w-full"
           />
         </div>
