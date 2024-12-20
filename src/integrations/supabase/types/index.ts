@@ -1,14 +1,10 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import type { Database as BaseDatabase } from "./base";
+import type { DailyTipsTable } from "./tables/daily-tips";
 
-export type Database = {
+export interface Database extends BaseDatabase {
   public: {
     Tables: {
+      daily_tips: DailyTipsTable
       agents: {
         Row: {
           context_info: Json
@@ -163,41 +159,6 @@ export type Database = {
           },
         ]
       }
-      daily_tips: {
-        Row: {
-          created_at: string | null
-          cultural_context: string | null
-          id: string
-          language_code: string
-          tip_text: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          cultural_context?: string | null
-          id?: string
-          language_code: string
-          tip_text: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          cultural_context?: string | null
-          id?: string
-          language_code?: string
-          tip_text?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_tips_language_code_fkey"
-            columns: ["language_code"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
       languages: {
         Row: {
           code: string
@@ -276,15 +237,15 @@ export type Database = {
         }
         Update: {
           content_native_language?: string | null
-          content_target_language?: string
-          conversation_id?: string
-          created_at?: string | null
-          id?: string
-          is_direct_voice?: boolean
-          pronunciation_attempt_id?: string | null
-          sender_type?: Database["public"]["Enums"]["sender_type"]
-          storage_path?: string | null
-          updated_at?: string | null
+          content_target_language?: string;
+          conversation_id?: string;
+          created_at?: string | null;
+          id?: string;
+          is_direct_voice?: boolean;
+          pronunciation_attempt_id?: string | null;
+          sender_type?: Database["public"]["Enums"]["sender_type"];
+          storage_path?: string | null;
+          updated_at?: string | null;
         }
         Relationships: [
           {
@@ -386,7 +347,7 @@ export type Database = {
           is_successful?: boolean
           recommendation_id?: string | null
           storage_path?: string
-          telegram_id?: number
+          telegram_id: number
           transcription?: string | null
           transformation_id?: string | null
           updated_at?: string | null
@@ -501,7 +462,7 @@ export type Database = {
           location_details?: string | null
           location_details_translations?: Json | null
           primary_goal?: string | null
-          primary_goal_translations?: Json | null
+          primary_goal_translations?: string | null
           title?: string
           title_translations?: Json | null
           updated_at?: string | null
@@ -584,7 +545,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           language_id?: string
-          telegram_id?: number
+          telegram_id: number
           total_conversations?: number
           total_messages?: number
           total_pronunciation_attempts?: number
@@ -672,7 +633,7 @@ export type Database = {
           first_name?: string | null
           language_code?: string | null
           last_name?: string | null
-          telegram_id?: number
+          telegram_id: number
           updated_at?: string | null
           username?: string | null
         }
@@ -686,115 +647,12 @@ export type Database = {
           },
         ]
       }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      sender_type: "user" | "agent"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    } & BaseDatabase["public"]["Tables"]
+    Views: BaseDatabase["public"]["Views"]
+    Functions: BaseDatabase["public"]["Functions"]
+    Enums: BaseDatabase["public"]["Enums"]
+    CompositeTypes: BaseDatabase["public"]["CompositeTypes"]
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
-
-export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
-    | { schema: keyof Database },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
-  }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+export type * from "./base";

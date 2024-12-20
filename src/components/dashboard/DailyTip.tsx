@@ -25,7 +25,6 @@ export function DailyTip({ language }: DailyTipProps) {
           .from('daily_tips')
           .select('tip_text, cultural_context')
           .eq('language_code', language)
-          .limit(1)
           .maybeSingle();
 
         if (error) throw error;
