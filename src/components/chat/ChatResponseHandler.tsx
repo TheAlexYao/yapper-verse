@@ -41,6 +41,40 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
+  const generateTTSForSpeed = async (response: any, profile: any, speed: 'normal' | 'slow') => {
+    const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`;
+    let audioUrl = ttsCache.get(cacheKey);
+
+    if (!audioUrl) {
+      console.log(`Cache miss, generating TTS for ${speed} speed...`);
+      
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text: response.text,
+          languageCode: profile.target_language,
+          voiceGender: profile.voice_preference || 'female',
+          speed
+        }
+      });
+
+      if (error) {
+        console.error(`TTS function error (${speed} speed):`, error);
+        throw new Error(`Failed to generate ${speed} speed speech: ${error.message}`);
+      }
+
+      if (!data?.audioUrl) {
+        throw new Error(`No audio URL in response for ${speed} speed`);
+      }
+
+      audioUrl = data.audioUrl;
+      ttsCache.set(cacheKey, audioUrl);
+    } else {
+      console.log(`Cache hit for ${speed} speed, using cached audio URL`);
+    }
+
+    return audioUrl;
+  };
+
   const handleResponseSelect = async (response: any) => {
     try {
       setIsGeneratingTTS(true);
@@ -56,61 +90,23 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Check cache first
-      const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}`;
-      let audioUrl = ttsCache.get(cacheKey);
-
-      if (!audioUrl) {
-        console.log('Cache miss, generating TTS for normal and slow speeds...');
-        
-        // Generate normal speed version
-        const { data: normalData, error: normalError } = await supabase.functions.invoke('text-to-speech', {
-          body: {
-            text: response.text,
-            languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female',
-            speed: 'normal'
-          }
-        });
-
-        if (normalError) {
-          console.error('TTS function error (normal speed):', normalError);
-          throw new Error(`Failed to generate normal speed speech: ${normalError.message}`);
-        }
-
-        // Generate slow speed version
-        const { data: slowData, error: slowError } = await supabase.functions.invoke('text-to-speech', {
-          body: {
-            text: response.text,
-            languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female',
-            speed: 'slow'
-          }
-        });
-
-        if (slowError) {
-          console.error('TTS function error (slow speed):', slowError);
-          throw new Error(`Failed to generate slow speed speech: ${slowError.message}`);
-        }
-
-        if (!normalData?.audioUrl) {
-          throw new Error('No audio URL in response for normal speed');
-        }
-
-        audioUrl = normalData.audioUrl;
-        // Cache the result
-        ttsCache.set(cacheKey, audioUrl);
-
-        console.log('Generated audio URLs:', {
-          normal: normalData.audioUrl,
-          slow: slowData?.audioUrl
-        });
-      } else {
-        console.log('Cache hit, using cached audio URL');
-      }
+      // Generate normal speed version
+      const normalSpeedUrl = await generateTTSForSpeed(response, profile, 'normal');
       
-      // Set the selected response with the audio URL
-      setSelectedResponse({ ...response, audio_url: audioUrl });
+      // Generate slow speed version
+      const slowSpeedUrl = await generateTTSForSpeed(response, profile, 'slow');
+
+      console.log('Generated audio URLs:', {
+        normal: normalSpeedUrl,
+        slow: slowSpeedUrl
+      });
+      
+      // Set the selected response with the audio URLs
+      setSelectedResponse({ 
+        ...response, 
+        audio_url: normalSpeedUrl,
+        audio_url_slow: slowSpeedUrl 
+      });
       setShowPronunciationModal(true);
     } catch (error) {
       console.error('TTS error:', error);
