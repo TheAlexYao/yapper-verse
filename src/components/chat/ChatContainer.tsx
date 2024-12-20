@@ -4,46 +4,65 @@ import { RecommendedResponses } from "./RecommendedResponses";
 import { ChatMetrics } from "./ChatMetrics";
 import { PronunciationModal } from "./PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@supabase/auth-helpers-react";
 
 interface ChatContainerProps {
   messages: Message[];
   onMessageSend: (message: Message) => void;
   onPlayTTS: () => void;
+  conversationId: string;
 }
 
-export function ChatContainer({ messages, onMessageSend, onPlayTTS }: ChatContainerProps) {
+export function ChatContainer({ messages, onMessageSend, onPlayTTS, conversationId }: ChatContainerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const [metrics, setMetrics] = useState({
-    pronunciationScore: 85,
-    stylePoints: 120,
-    progress: 30,
-    sentencesUsed: 1,
-    sentenceLimit: 10,
-  });
+  const auth = useAuth();
 
   const handleResponseSelect = (response: any) => {
     setSelectedResponse(response);
     setShowPronunciationModal(true);
   };
 
-  const handlePronunciationComplete = (score: number, audioUrl?: string) => {
+  const handlePronunciationComplete = async (score: number, audioUrl?: string) => {
+    if (!auth.user?.id) return;
+
     const newMessage = {
-      id: Date.now().toString(),
-      text: selectedResponse.text,
+      conversation_id: conversationId,
+      content: selectedResponse.text,
       translation: selectedResponse.translation,
-      pronunciationScore: score,
-      pronunciationData: selectedResponse.pronunciationData,
-      audioUrl,
-      isUser: true,
+      pronunciation_score: score,
+      pronunciation_data: selectedResponse.pronunciationData,
+      audio_url: audioUrl,
+      is_user: true,
     };
     
-    onMessageSend(newMessage);
-    setMetrics({
-      ...metrics,
-      pronunciationScore: Math.round((metrics.pronunciationScore + score) / 2),
-      sentencesUsed: metrics.sentencesUsed + 1,
-    });
+    const { error } = await supabase
+      .from('guided_conversation_messages')
+      .insert(newMessage);
+
+    if (error) {
+      console.error('Error saving message:', error);
+      return;
+    }
+
+    // Update conversation metrics
+    const { error: metricsError } = await supabase
+      .from('guided_conversations')
+      .update({
+        metrics: {
+          pronunciationScore: score,
+          sentencesUsed: messages.filter(m => m.is_user).length + 1,
+          sentenceLimit: 10
+        }
+      })
+      .eq('id', conversationId);
+
+    if (metricsError) {
+      console.error('Error updating metrics:', metricsError);
+    }
+
+    onMessageSend(newMessage as Message);
     setSelectedResponse(null);
     setShowPronunciationModal(false);
   };
@@ -57,10 +76,10 @@ export function ChatContainer({ messages, onMessageSend, onPlayTTS }: ChatContai
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm">
         <div className="container max-w-2xl mx-auto px-4">
           <ChatMetrics
-            pronunciationScore={metrics.pronunciationScore}
-            stylePoints={metrics.stylePoints}
-            sentencesUsed={metrics.sentencesUsed}
-            sentenceLimit={metrics.sentenceLimit}
+            pronunciationScore={messages.reduce((acc, msg) => msg.pronunciation_score ? acc + msg.pronunciation_score : acc, 0) / messages.filter(m => m.pronunciation_score).length || 0}
+            stylePoints={120}
+            sentencesUsed={messages.filter(m => m.is_user).length}
+            sentenceLimit={10}
           />
           
           <RecommendedResponses
