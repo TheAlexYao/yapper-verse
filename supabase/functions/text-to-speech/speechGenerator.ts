@@ -4,7 +4,7 @@ export async function generateSpeech(
   text: string, 
   languageCode: string, 
   voiceName: string, 
-  speed: string
+  speed: 'normal' | 'slow' | 'very-slow'
 ): Promise<ArrayBuffer> {
   const speechKey = Deno.env.get('AZURE_SPEECH_KEY');
   const speechRegion = Deno.env.get('AZURE_SPEECH_REGION');
@@ -24,17 +24,19 @@ export async function generateSpeech(
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
   speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoMp3;
 
-  // Adjusted rate values for better reliability
-  const rateMap: Record<string, string> = {
+  // Map speed strings to actual rate values
+  const rateMap = {
     'normal': '1.0',
     'slow': '0.8',
     'very-slow': '0.6'
   };
 
+  const rate = rateMap[speed] || '1.0';
+
   const ssml = `
     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
       <voice name="${voiceName}">
-        <prosody rate="${rateMap[speed]}">
+        <prosody rate="${rate}">
           ${text}
         </prosody>
       </voice>
