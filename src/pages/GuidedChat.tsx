@@ -56,7 +56,18 @@ export default function GuidedChat() {
         table: 'guided_conversation_messages',
         filter: `conversation_id=eq.${conversationId}`,
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const newMessage: Message = {
+          id: payload.new.id,
+          conversation_id: payload.new.conversation_id,
+          text: payload.new.content,
+          translation: payload.new.translation,
+          transliteration: payload.new.transliteration,
+          isUser: payload.new.is_user,
+          pronunciation_score: payload.new.pronunciation_score,
+          pronunciation_data: payload.new.pronunciation_data,
+          audio_url: payload.new.audio_url,
+        };
+        setMessages(prev => [...prev, newMessage]);
       })
       .subscribe();
 
@@ -70,12 +81,12 @@ export default function GuidedChat() {
     
     // Simulate AI response (will be replaced with real API call)
     const aiResponse: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       conversation_id: conversationId!,
-      content: "Excellent! Je vous prépare votre café tout de suite.",
+      text: "Excellent! Je vous prépare votre café tout de suite.",
       translation: "Excellent! I'll prepare your coffee right away.",
       transliteration: "eks-say-LAHN! zhuh voo pray-PAHR vot-ruh kah-FAY too duh SWEET.",
-      is_user: false,
+      isUser: false,
     };
     
     setMessages(prev => [...prev, aiResponse]);

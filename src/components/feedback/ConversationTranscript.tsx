@@ -3,17 +3,7 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Play } from "lucide-react";
-
-interface Message {
-  id: string;
-  text: string;
-  translation?: string;
-  transliteration?: string;
-  pronunciationScore?: number;
-  pronunciationData?: any;
-  audioUrl?: string;
-  isUser: boolean;
-}
+import type { Message } from "@/hooks/useConversation";
 
 interface ConversationTranscriptProps {
   messages: Message[];
@@ -38,12 +28,11 @@ export function ConversationTranscript({ messages, onViewDetails }: Conversation
             size="sm"
             className="gap-2"
             onClick={() => {
-              // Play all messages in sequence
               messages.forEach((message, index) => {
-                if (message.audioUrl) {
+                if (message.audio_url) {
                   setTimeout(() => {
-                    handlePlayAudio(message.audioUrl);
-                  }, index * 3000); // 3 second delay between messages
+                    handlePlayAudio(message.audio_url);
+                  }, index * 3000);
                 }
               });
             }}
@@ -55,16 +44,16 @@ export function ConversationTranscript({ messages, onViewDetails }: Conversation
         <ScrollArea className="h-[400px] pr-4">
           <div className="flex-1 relative space-y-4">
             <ChatMessages
-              messages={messages.map(message => ({
-                ...message,
-                id: message.id,
-                text: message.text,
-                translation: message.translation,
-                transliteration: message.transliteration,
-                pronunciationScore: message.pronunciationScore,
-                pronunciationData: message.pronunciationData,
-                audioUrl: message.audioUrl,
-                isUser: message.isUser
+              messages={messages.map(msg => ({
+                id: msg.id,
+                conversation_id: msg.conversation_id,
+                content: msg.text,
+                translation: msg.translation,
+                transliteration: msg.transliteration,
+                is_user: msg.isUser,
+                pronunciation_score: msg.pronunciation_score,
+                pronunciation_data: msg.pronunciation_data,
+                audio_url: msg.audio_url,
               }))}
               onPlayAudio={() => {}}
             />
