@@ -18,9 +18,12 @@ export async function performSpeechRecognition({
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
   
-  // Configure speech recognition to be more lenient
-  speechConfig.setProperty("SpeechServiceConnection_InitialSilenceTimeoutMs", "5000")
-  speechConfig.setProperty("SpeechServiceConnection_EndSilenceTimeoutMs", "5000")
+  // Configure speech recognition with more permissive settings
+  speechConfig.setProperty("SpeechServiceConnection_InitialSilenceTimeoutMs", "10000")
+  speechConfig.setProperty("SpeechServiceConnection_EndSilenceTimeoutMs", "10000")
+  speechConfig.setProperty("SpeechServiceConnection_NoSignalTimeoutMs", "10000")
+  speechConfig.setProfanity(sdk.ProfanityOption.Raw)
+  speechConfig.enableAudioLogging()
 
   const pushStream = sdk.AudioInputStream.createPushStream()
   pushStream.write(new Uint8Array(audioData))
@@ -43,11 +46,28 @@ export async function performSpeechRecognition({
       referenceText,
       silenceTimeouts: {
         initial: speechConfig.getProperty("SpeechServiceConnection_InitialSilenceTimeoutMs"),
-        end: speechConfig.getProperty("SpeechServiceConnection_EndSilenceTimeoutMs")
+        end: speechConfig.getProperty("SpeechServiceConnection_EndSilenceTimeoutMs"),
+        noSignal: speechConfig.getProperty("SpeechServiceConnection_NoSignalTimeoutMs")
       }
     })
 
     const result = await new Promise((resolve, reject) => {
+      recognizer.recognizing = (s, e) => {
+        console.log(`RECOGNIZING: Text=${e.result.text}`)
+      }
+
+      recognizer.recognized = (s, e) => {
+        console.log(`RECOGNIZED: Text=${e.result.text}`)
+      }
+
+      recognizer.canceled = (s, e) => {
+        console.log(`CANCELED: Reason=${e.reason}`)
+        if (e.reason === sdk.CancellationReason.Error) {
+          console.error(`CANCELED: ErrorCode=${e.errorCode}`)
+          console.error(`CANCELED: ErrorDetails=${e.errorDetails}`)
+        }
+      }
+
       recognizer.recognizeOnceAsync(
         result => {
           console.log("Recognition completed with status:", result.privJson)
