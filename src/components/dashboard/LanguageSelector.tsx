@@ -12,39 +12,79 @@ interface LanguageSelectorProps {
   onAddLanguage: () => void;
 }
 
+interface LanguageStats {
+  languageCode: string;
+  completedScenarios: number;
+}
+
 export function LanguageSelector({ 
   currentLanguage, 
   onLanguageChange,
   onAddLanguage 
 }: LanguageSelectorProps) {
   const [activeLanguages, setActiveLanguages] = useState<string[]>([]);
+  const [languageStats, setLanguageStats] = useState<LanguageStats[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchUserLanguages() {
+    async function fetchUserLanguagesAndStats() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data, error } = await supabase
+        // Fetch user's active languages
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('languages_learning')
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
-        setActiveLanguages(data.languages_learning || []);
+        if (profileError) throw profileError;
+        const userLanguages = profileData.languages_learning || [];
+        setActiveLanguages(userLanguages);
+
+        // Fetch completed scenarios count for each language
+        const { data: scenariosData, error: scenariosError } = await supabase
+          .from('user_scenarios')
+          .select(`
+            id,
+            scenarios (
+              language_id,
+              languages (
+                code
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'completed');
+
+        if (scenariosError) throw scenariosError;
+
+        // Calculate completed scenarios per language
+        const stats = userLanguages.map(langCode => {
+          const completedCount = scenariosData.filter(scenario => 
+            scenario.scenarios?.languages?.code === langCode
+          ).length;
+
+          return {
+            languageCode: langCode,
+            completedScenarios: completedCount
+          };
+        });
+
+        setLanguageStats(stats);
+
       } catch (error) {
-        console.error('Error fetching user languages:', error);
+        console.error('Error fetching user languages and stats:', error);
         toast({
           title: "Error",
-          description: "Failed to load language preferences",
+          description: "Failed to load language data",
           variant: "destructive",
         });
       }
     }
 
-    fetchUserLanguages();
+    fetchUserLanguagesAndStats();
   }, []);
 
   return (
@@ -54,6 +94,7 @@ export function LanguageSelector({
         <div className="flex flex-wrap gap-2">
           {activeLanguages.map((lang) => {
             const language = languages.find(l => l.value === lang);
+            const stats = languageStats.find(s => s.languageCode === lang);
             if (!language) return null;
             
             return (
@@ -65,6 +106,11 @@ export function LanguageSelector({
               >
                 <span>{language.emoji}</span>
                 <span>{language.label}</span>
+                {stats && (
+                  <span className="ml-2 text-xs bg-accent/50 px-2 py-0.5 rounded-full">
+                    {stats.completedScenarios} completed
+                  </span>
+                )}
               </Button>
             );
           })}
