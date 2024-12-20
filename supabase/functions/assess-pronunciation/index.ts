@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import * as sdk from "https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle.js"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,61 +66,67 @@ serve(async (req) => {
 
     console.log('Starting speech recognition with language:', languageCode)
 
-    // First, get speech recognition
-    const recognitionEndpoint = `https://${speechRegion}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`
-    
-    const recognitionResponse = await fetch(recognitionEndpoint, {
-      method: 'POST',
-      headers: {
-        'Ocp-Apim-Subscription-Key': speechKey,
-        'Content-Type': 'audio/wav',
-        'Accept': 'application/json',
-      },
-      body: audioArrayBuffer,
-      query: { language: languageCode }
+    // Create the speech config and audio config
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
+    speechConfig.speechRecognitionLanguage = languageCode
+
+    // Create the audio config from the array buffer
+    const pushStream = sdk.AudioInputStream.createPushStream()
+    pushStream.write(audioArrayBuffer)
+    pushStream.close()
+    const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream)
+
+    // Create the speech recognizer
+    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig)
+
+    // Start recognition
+    const recognitionResult = await new Promise((resolve, reject) => {
+      recognizer.recognizeOnceAsync(
+        result => {
+          recognizer.close()
+          resolve(result)
+        },
+        error => {
+          recognizer.close()
+          reject(error)
+        }
+      )
     })
 
-    if (!recognitionResponse.ok) {
-      const errorText = await recognitionResponse.text()
-      console.error('Speech recognition error:', errorText)
-      throw new Error(`Speech recognition failed: ${recognitionResponse.statusText}`)
-    }
-
-    const recognitionResult = await recognitionResponse.json()
     console.log('Recognition result:', recognitionResult)
 
-    if (recognitionResult.RecognitionStatus !== 'Success') {
-      throw new Error(`Speech recognition failed: ${recognitionResult.RecognitionStatus}`)
+    if (recognitionResult.reason !== sdk.ResultReason.RecognizedSpeech) {
+      throw new Error(`Speech recognition failed: ${recognitionResult.reason}`)
     }
 
-    // Then, call pronunciation assessment
-    const assessmentEndpoint = `https://${speechRegion}.pronunciation.speech.microsoft.com/speech/assessment/v1.0/transcript`
-    
-    const assessmentPayload = {
+    // Create pronunciation assessment config
+    const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
       referenceText,
-      recognizedText: recognitionResult.DisplayText,
-      audioFileUrl: publicUrl,
-      locale: languageCode
-    }
+      sdk.PronunciationAssessmentGradingSystem.HundredMark,
+      sdk.PronunciationAssessmentGranularity.Word,
+      true
+    )
 
-    console.log('Calling pronunciation assessment with:', assessmentPayload)
+    // Create pronunciation assessment
+    const pronunciationAssessment = sdk.PronunciationAssessment.fromConfig(pronunciationConfig)
 
-    const assessmentResponse = await fetch(assessmentEndpoint, {
-      method: 'POST',
-      headers: {
-        'Ocp-Apim-Subscription-Key': speechKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(assessmentPayload),
+    // Attach the pronunciation assessment to the recognizer
+    pronunciationAssessment.attachTo(recognizer)
+
+    // Get pronunciation assessment
+    const assessmentResult = await new Promise((resolve, reject) => {
+      recognizer.recognizeOnceAsync(
+        result => {
+          recognizer.close()
+          resolve(result)
+        },
+        error => {
+          recognizer.close()
+          reject(error)
+        }
+      )
     })
 
-    if (!assessmentResponse.ok) {
-      const errorText = await assessmentResponse.text()
-      console.error('Assessment service error:', errorText)
-      throw new Error(`Assessment service error: ${assessmentResponse.statusText}`)
-    }
-
-    const assessmentResult = await assessmentResponse.json()
     console.log('Assessment result:', assessmentResult)
 
     return new Response(
@@ -127,11 +134,11 @@ serve(async (req) => {
         success: true,
         audioUrl: publicUrl,
         assessment: {
-          pronunciationScore: assessmentResult.pronunciationScore || 0,
-          accuracyScore: assessmentResult.accuracyScore || 0,
-          fluencyScore: assessmentResult.fluencyScore || 0,
-          completenessScore: assessmentResult.completenessScore || 0,
-          words: (assessmentResult.words || []).map((word: any) => ({
+          pronunciationScore: assessmentResult.pronunciationAssessment?.pronunciationScore || 0,
+          accuracyScore: assessmentResult.pronunciationAssessment?.accuracyScore || 0,
+          fluencyScore: assessmentResult.pronunciationAssessment?.fluencyScore || 0,
+          completenessScore: assessmentResult.pronunciationAssessment?.completenessScore || 0,
+          words: (assessmentResult.pronunciationAssessment?.words || []).map((word: any) => ({
             word: word.word,
             accuracyScore: word.accuracyScore,
             errorType: word.errorType
