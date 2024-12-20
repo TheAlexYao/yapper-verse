@@ -47,11 +47,14 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           bio: string | null
+          bio_translations: Json | null
           created_at: string | null
           gender: string | null
           id: string
           language_style: string[] | null
+          language_style_translations: Json | null
           name: string
+          name_translations: Json | null
           scenario_id: string | null
           updated_at: string | null
         }
@@ -59,11 +62,14 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           bio?: string | null
+          bio_translations?: Json | null
           created_at?: string | null
           gender?: string | null
           id?: string
           language_style?: string[] | null
+          language_style_translations?: Json | null
           name: string
+          name_translations?: Json | null
           scenario_id?: string | null
           updated_at?: string | null
         }
@@ -71,11 +77,14 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           bio?: string | null
+          bio_translations?: Json | null
           created_at?: string | null
           gender?: string | null
           id?: string
           language_style?: string[] | null
+          language_style_translations?: Json | null
           name?: string
+          name_translations?: Json | null
           scenario_id?: string | null
           updated_at?: string | null
         }
@@ -408,40 +417,58 @@ export type Database = {
           category: string
           created_at: string | null
           cultural_notes: string | null
+          cultural_notes_translations: Json | null
           description: string | null
+          description_translations: Json | null
           id: string
           language_id: string | null
           location_details: string | null
+          location_details_translations: Json | null
           primary_goal: string | null
+          primary_goal_translations: Json | null
           title: string
+          title_translations: Json | null
           updated_at: string | null
           useful_phrases: string[] | null
+          useful_phrases_translations: Json | null
         }
         Insert: {
           category: string
           created_at?: string | null
           cultural_notes?: string | null
+          cultural_notes_translations?: Json | null
           description?: string | null
+          description_translations?: Json | null
           id?: string
           language_id?: string | null
           location_details?: string | null
+          location_details_translations?: Json | null
           primary_goal?: string | null
+          primary_goal_translations?: Json | null
           title: string
+          title_translations?: Json | null
           updated_at?: string | null
           useful_phrases?: string[] | null
+          useful_phrases_translations?: Json | null
         }
         Update: {
           category?: string
           created_at?: string | null
           cultural_notes?: string | null
+          cultural_notes_translations?: Json | null
           description?: string | null
+          description_translations?: Json | null
           id?: string
           language_id?: string | null
           location_details?: string | null
+          location_details_translations?: Json | null
           primary_goal?: string | null
+          primary_goal_translations?: Json | null
           title?: string
+          title_translations?: Json | null
           updated_at?: string | null
           useful_phrases?: string[] | null
+          useful_phrases_translations?: Json | null
         }
         Relationships: [
           {
