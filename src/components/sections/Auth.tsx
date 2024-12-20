@@ -13,23 +13,31 @@ const Auth = () => {
     if (session) {
       // Check if user has a profile
       const checkProfile = async () => {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        if (error) {
-          console.error('Error checking profile:', error);
-          return;
-        }
+          if (error) {
+            console.error('Error checking profile:', error);
+            return;
+          }
 
-        // If no profile exists, redirect to onboarding
-        // If profile exists, redirect to dashboard
-        if (!profile) {
-          navigate("/onboarding");
-        } else {
-          navigate("/dashboard");
+          console.log('Profile check result:', profile);
+
+          // If no profile exists or onboarding not completed, redirect to onboarding
+          // If profile exists and onboarding completed, redirect to dashboard
+          if (!profile || !profile.onboarding_completed) {
+            console.log('Redirecting to onboarding...');
+            navigate("/onboarding");
+          } else {
+            console.log('Redirecting to dashboard...');
+            navigate("/dashboard");
+          }
+        } catch (error) {
+          console.error('Error in checkProfile:', error);
         }
       };
 
