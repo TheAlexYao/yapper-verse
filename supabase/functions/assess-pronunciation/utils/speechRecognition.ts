@@ -18,21 +18,21 @@ export async function performSpeechRecognition({
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion)
   speechConfig.speechRecognitionLanguage = languageCode
   
-  // Configure pronunciation assessment
+  // Configure pronunciation assessment with more detailed settings
   const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
     referenceText,
     sdk.PronunciationAssessmentGradingSystem.HundredMark,
-    sdk.PronunciationAssessmentGranularity.Word,
+    sdk.PronunciationAssessmentGranularity.Phoneme,
     true
   );
 
-  // Set up audio format for 16kHz sampling rate
+  // Set up audio format specifically for 16kHz mono PCM
   const format = sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1);
   const pushStream = sdk.AudioInputStream.createPushStream(format);
   
   // Convert audio data to proper format and write to stream
   const audioArray = new Uint8Array(audioData);
-  pushStream.write(audioArray);
+  pushStream.write(audioArray.buffer);
   pushStream.close();
   
   const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
@@ -41,7 +41,7 @@ export async function performSpeechRecognition({
   const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
   pronunciationConfig.applyTo(recognizer);
 
-  // Enable detailed recognition
+  // Enable detailed recognition logging
   recognizer.recognizing = (s, e) => {
     console.log(`RECOGNIZING: Text=${e.result.text}`);
   };
@@ -61,7 +61,7 @@ export async function performSpeechRecognition({
   };
 
   try {
-    console.log("Starting speech recognition...");
+    console.log("Starting speech recognition with format:", format);
     
     const result = await new Promise((resolve, reject) => {
       recognizer.recognizeOnceAsync(
