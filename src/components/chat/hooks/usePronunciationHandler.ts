@@ -59,8 +59,10 @@ export function usePronunciationHandler({
 
       const { audioUrl, assessment } = assessmentData;
       
-      // Extract the pronunciation score from the assessment data
-      const pronunciationScore = assessment.NBest?.[0]?.PronunciationAssessment?.PronScore ?? 
+      // Extract pronunciation scores from the NBest array
+      const pronunciationAssessment = assessment.NBest?.[0]?.PronunciationAssessment;
+      const pronunciationScore = pronunciationAssessment?.PronScore ?? 
+                               pronunciationAssessment?.pronunciationScore ?? 
                                assessment.pronunciationScore ?? 0;
 
       console.log('Pronunciation score:', pronunciationScore);
@@ -73,7 +75,17 @@ export function usePronunciationHandler({
         text: selectedResponse.text,
         translation: selectedResponse.translation,
         pronunciation_score: Math.round(pronunciationScore),
-        pronunciation_data: assessment,
+        pronunciation_data: {
+          NBest: [{
+            PronunciationAssessment: {
+              AccuracyScore: pronunciationAssessment?.AccuracyScore ?? 0,
+              FluencyScore: pronunciationAssessment?.FluencyScore ?? 0,
+              CompletenessScore: pronunciationAssessment?.CompletenessScore ?? 0,
+              PronScore: pronunciationScore
+            },
+            Words: assessment.NBest?.[0]?.Words ?? []
+          }]
+        },
         audio_url: audioUrl,
         isUser: true,
       };

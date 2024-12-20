@@ -65,7 +65,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         />
       )}
 
-      {pronunciationData && (
+      {pronunciationData && showScoreModal && (
         <PronunciationScoreModal
           isOpen={showScoreModal}
           onClose={() => setShowScoreModal(false)}
