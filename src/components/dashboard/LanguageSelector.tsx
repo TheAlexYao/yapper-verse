@@ -26,65 +26,92 @@ export function LanguageSelector({
   const [languageStats, setLanguageStats] = useState<LanguageStats[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchUserLanguagesAndStats() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+  const fetchUserLanguagesAndStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // Fetch user's active languages
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('languages_learning')
-          .eq('id', user.id)
-          .single();
+      // Fetch user's active languages
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('languages_learning')
+        .eq('id', user.id)
+        .single();
 
-        if (profileError) throw profileError;
-        const userLanguages = profileData.languages_learning || [];
-        setActiveLanguages(userLanguages);
+      if (profileError) throw profileError;
+      const userLanguages = profileData.languages_learning || [];
+      setActiveLanguages(userLanguages);
 
-        // Fetch completed scenarios count for each language
-        const { data: scenariosData, error: scenariosError } = await supabase
-          .from('user_scenarios')
-          .select(`
-            id,
-            scenarios (
-              language_id,
-              languages (
-                code
-              )
+      // Fetch completed scenarios count for each language
+      const { data: scenariosData, error: scenariosError } = await supabase
+        .from('user_scenarios')
+        .select(`
+          id,
+          scenarios (
+            language_id,
+            languages (
+              code
             )
-          `)
-          .eq('user_id', user.id)
-          .eq('status', 'completed');
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
 
-        if (scenariosError) throw scenariosError;
+      if (scenariosError) throw scenariosError;
 
-        // Calculate completed scenarios per language
-        const stats = userLanguages.map(langCode => {
-          const completedCount = scenariosData.filter(scenario => 
-            scenario.scenarios?.languages?.code === langCode
-          ).length;
+      // Calculate completed scenarios per language
+      const stats = userLanguages.map(langCode => {
+        const completedCount = scenariosData.filter(scenario => 
+          scenario.scenarios?.languages?.code === langCode
+        ).length;
 
-          return {
-            languageCode: langCode,
-            completedScenarios: completedCount
-          };
-        });
+        return {
+          languageCode: langCode,
+          completedScenarios: completedCount
+        };
+      });
 
-        setLanguageStats(stats);
+      setLanguageStats(stats);
 
-      } catch (error) {
-        console.error('Error fetching user languages and stats:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load language data",
-          variant: "destructive",
-        });
-      }
+    } catch (error) {
+      console.error('Error fetching user languages and stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load language data",
+        variant: "destructive",
+      });
     }
+  };
 
+  useEffect(() => {
     fetchUserLanguagesAndStats();
+
+    // Subscribe to real-time updates for the profiles table
+    const { data: { user } } = supabase.auth.getUser();
+    if (!user) return;
+
+    const channel = supabase
+      .channel('profile-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updatedLanguages = payload.new.languages_learning || [];
+          setActiveLanguages(updatedLanguages);
+          // Refetch stats for the updated languages
+          fetchUserLanguagesAndStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
