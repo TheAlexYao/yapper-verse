@@ -195,26 +195,44 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          custom_goals: string[] | null
           full_name: string | null
           id: string
+          learning_goals: string[] | null
+          native_language: string | null
+          onboarding_completed: boolean | null
+          target_language: string | null
           updated_at: string
           username: string | null
+          voice_preference: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          custom_goals?: string[] | null
           full_name?: string | null
           id: string
+          learning_goals?: string[] | null
+          native_language?: string | null
+          onboarding_completed?: boolean | null
+          target_language?: string | null
           updated_at?: string
           username?: string | null
+          voice_preference?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          custom_goals?: string[] | null
           full_name?: string | null
           id?: string
+          learning_goals?: string[] | null
+          native_language?: string | null
+          onboarding_completed?: boolean | null
+          target_language?: string | null
           updated_at?: string
           username?: string | null
+          voice_preference?: string | null
         }
         Relationships: []
       }
