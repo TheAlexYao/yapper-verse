@@ -20,6 +20,8 @@ interface PronunciationModalProps {
     translation: string;
     transliteration?: string;
     audio_url?: string;
+    languageCode?: string;
+    voiceGender?: string;
   };
   onSubmit: (score: number, audioBlob?: Blob) => void;
   isProcessing: boolean;
@@ -77,8 +79,8 @@ export function PronunciationModal({
         const { data, error } = await supabase.functions.invoke('text-to-speech', {
           body: {
             text: response.text,
-            languageCode: 'ja', // This should come from the response
-            voiceGender: 'female', // This should come from user preferences
+            languageCode: response.languageCode,
+            gender: response.voiceGender || 'female',
             speed: 'very-slow'
           }
         });

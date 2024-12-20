@@ -109,31 +109,26 @@ export default function GuidedChat() {
         throw new Error('Target language not set');
       }
 
-      const response = await fetch('/functions/v1/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
           text,
           languageCode: profile.target_language,
-          gender: profile.voice_preference || 'female'
-        })
+          gender: profile.voice_preference || 'female',
+          speed: 'normal'
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate speech');
+      if (error) {
+        throw error;
       }
 
-      const { audioUrl } = await response.json();
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(data.audioUrl);
       await audio.play();
     } catch (error) {
       console.error('TTS error:', error);
       toast({
-        title: "Error",
-        description: "Failed to play audio",
+        title: "Error", 
+        description: error.message || "Failed to play audio",
         variant: "destructive",
       });
     } finally {
