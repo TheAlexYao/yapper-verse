@@ -159,24 +159,48 @@ export type Database = {
           code: string
           created_at: string | null
           emoji: string | null
+          features: string | null
+          female_voice: string | null
           id: string
+          male_voice: string | null
           name: string
+          output_format: string | null
+          sample_rate: number | null
+          shortname_female: string | null
+          shortname_male: string | null
+          style_list: string | null
           updated_at: string | null
         }
         Insert: {
           code: string
           created_at?: string | null
           emoji?: string | null
+          features?: string | null
+          female_voice?: string | null
           id?: string
+          male_voice?: string | null
           name: string
+          output_format?: string | null
+          sample_rate?: number | null
+          shortname_female?: string | null
+          shortname_male?: string | null
+          style_list?: string | null
           updated_at?: string | null
         }
         Update: {
           code?: string
           created_at?: string | null
           emoji?: string | null
+          features?: string | null
+          female_voice?: string | null
           id?: string
+          male_voice?: string | null
           name?: string
+          output_format?: string | null
+          sample_rate?: number | null
+          shortname_female?: string | null
+          shortname_male?: string | null
+          style_list?: string | null
           updated_at?: string | null
         }
         Relationships: []

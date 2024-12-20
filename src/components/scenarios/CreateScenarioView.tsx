@@ -70,7 +70,6 @@ export function CreateScenarioView({ onScenarioCreated }: CreateScenarioViewProp
         usefulPhrases: ["Phrase 1", "Phrase 2"],
         culturalNotes: "Generated cultural notes",
         locationDetails: "Generated location details",
-        isBookmarked: false,
       };
       onScenarioCreated(mockGeneratedScenario);
       setIsGenerating(false);
