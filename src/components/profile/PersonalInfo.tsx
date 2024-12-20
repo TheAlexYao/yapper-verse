@@ -3,7 +3,7 @@ import { Form, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { User, UserRound, Edit } from "lucide-react";
+import { UserRound, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +26,6 @@ export function PersonalInfo({ form }: PersonalInfoProps) {
         .from("profiles")
         .update({
           full_name: form.getValues("fullName"),
-          username: form.getValues("username"),
         })
         .eq("id", user.id);
 
@@ -75,45 +74,24 @@ export function PersonalInfo({ form }: PersonalInfoProps) {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <FormField
-          control={form.control}
-          name="fullName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <div className="relative">
-                <Input
-                  {...field}
-                  disabled={!isEditing}
-                  className="pl-9"
-                  placeholder="Enter your full name"
-                />
-                <UserRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              </div>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <div className="relative">
-                <Input
-                  {...field}
-                  disabled={!isEditing}
-                  className="pl-9"
-                  placeholder="Choose a username"
-                />
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              </div>
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="fullName"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Full Name</FormLabel>
+            <div className="relative">
+              <Input
+                {...field}
+                disabled={!isEditing}
+                className="pl-9"
+                placeholder="Enter your full name"
+              />
+              <UserRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            </div>
+          </FormItem>
+        )}
+      />
     </section>
   );
 }

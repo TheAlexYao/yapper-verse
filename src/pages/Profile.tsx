@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 
 interface UserProfile {
   full_name: string;
-  username: string;
   native_language: string;
   target_language: string;
   voice_preference: string;
@@ -28,7 +27,6 @@ const Profile = () => {
   const form = useForm({
     defaultValues: {
       fullName: "",
-      username: "",
       nativeLanguage: "",
       targetLanguage: "",
       voicePreference: "",
@@ -54,7 +52,6 @@ const Profile = () => {
         setProfile(data);
         form.reset({
           fullName: data.full_name || "",
-          username: data.username || "",
           nativeLanguage: data.native_language || "",
           targetLanguage: data.target_language || "",
           voicePreference: data.voice_preference || "",
