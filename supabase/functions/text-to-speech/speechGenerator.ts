@@ -33,27 +33,52 @@ export async function generateSpeech(
       </voice>
     </speak>`;
 
+  console.log('Generating speech with SSML:', ssml);
+  
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
 
   return new Promise((resolve, reject) => {
+    let hasResolved = false;
+
+    // Set a timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      if (!hasResolved) {
+        synthesizer.close();
+        reject(new Error('Speech synthesis timed out'));
+      }
+    }, 30000); // 30 second timeout
+
     synthesizer.speakSsmlAsync(
       ssml,
       result => {
-        synthesizer.close();
+        clearTimeout(timeout);
         
-        if (result) {
+        try {
+          if (!result) {
+            throw new Error('No synthesis result received');
+          }
+
           const { audioData } = result;
           
-          if (audioData && audioData.byteLength > 0) {
-            resolve(audioData);
-          } else {
-            reject(new Error('No audio data generated'));
+          if (!audioData) {
+            throw new Error('No audio data in synthesis result');
           }
-        } else {
-          reject(new Error('Speech synthesis failed'));
+
+          if (audioData.byteLength === 0) {
+            throw new Error('Audio data is empty');
+          }
+
+          hasResolved = true;
+          resolve(audioData);
+        } catch (error) {
+          console.error('Error processing synthesis result:', error);
+          reject(error);
+        } finally {
+          synthesizer.close();
         }
       },
       error => {
+        clearTimeout(timeout);
         console.error('Speech synthesis error:', error);
         synthesizer.close();
         reject(error);
