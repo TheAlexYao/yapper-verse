@@ -14,6 +14,12 @@ export function useConversationSetup(character: any, scenario: any) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
+  const messagesRef = useRef<Message[]>([]);
+
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Set up subscription
   useEffect(() => {
@@ -51,14 +57,18 @@ export function useConversationSetup(character: any, scenario: any) {
             audio_url: newMessage.audio_url,
             isUser: newMessage.is_user
           };
-          
+
+          // Use functional update to ensure we have the latest state
           setMessages(prevMessages => {
-            // Check if message already exists
-            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
+            // Check if message already exists in current messages
+            const exists = prevMessages.some(msg => msg.id === formattedMessage.id) ||
+                          messagesRef.current.some(msg => msg.id === formattedMessage.id);
+            
             if (exists) {
               console.log('Message already exists, skipping:', formattedMessage.id);
               return prevMessages;
             }
+            
             console.log('Adding new message to state:', formattedMessage);
             return [...prevMessages, formattedMessage];
           });
