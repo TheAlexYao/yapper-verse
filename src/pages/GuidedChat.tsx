@@ -20,6 +20,37 @@ export default function GuidedChat() {
   
   const { character: characterData, createConversation } = useConversation(character?.id);
 
+  // Generate initial response after conversation is created
+  useEffect(() => {
+    const generateInitialResponse = async () => {
+      if (!conversationId || !user?.id) return;
+
+      try {
+        const response = await supabase.functions.invoke('generate-chat-response', {
+          body: {
+            conversationId,
+            userId: user.id,
+            lastMessageContent: null // Indicates this is the initial message
+          },
+        });
+
+        if (response.error) {
+          console.error('Error generating initial response:', response.error);
+          throw response.error;
+        }
+      } catch (error) {
+        console.error('Failed to generate initial response:', error);
+        toast({
+          title: "Error",
+          description: "Failed to start conversation. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    generateInitialResponse();
+  }, [conversationId, user?.id]);
+
   useEffect(() => {
     const initializeConversation = async () => {
       if (!user?.id || !character?.id || !scenario?.id) return;
