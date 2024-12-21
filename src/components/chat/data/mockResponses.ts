@@ -3,6 +3,7 @@ export const MOCK_RESPONSES = [
     id: "1",
     text: "Je voudrais un café, s'il vous plaît.",
     translation: "I would like a coffee, please.",
+    phonetics: "ʒə vudʁɛ œ̃ kafe sil vu plɛ",
     hint: "This is a polite, formal way to order",
     pronunciationData: {
       NBest: [{
@@ -70,6 +71,7 @@ export const MOCK_RESPONSES = [
     id: "2",
     text: "Un café.",
     translation: "A coffee.",
+    phonetics: "œ̃ kafe",
     hint: "This is more casual/informal",
     pronunciationData: {
       NBest: [{
@@ -102,6 +104,7 @@ export const MOCK_RESPONSES = [
     id: "3",
     text: "Pourriez-vous me recommander votre meilleur café?",
     translation: "Could you recommend your best coffee?",
+    phonetics: "puʁje vu mə ʁəkɔmɑ̃de vɔtʁə mɛjœʁ kafe",
     hint: "This shows cultural interest and politeness",
     pronunciationData: {
       NBest: [{
