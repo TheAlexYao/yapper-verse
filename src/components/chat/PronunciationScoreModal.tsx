@@ -102,10 +102,12 @@ export function PronunciationScoreModal({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <AudioComparison
-            userAudioUrl={userAudioUrl}
-            referenceAudioUrl={referenceAudioUrl}
-          />
+          {(userAudioUrl || referenceAudioUrl) && (
+            <AudioComparison
+              userAudioUrl={userAudioUrl}
+              referenceAudioUrl={referenceAudioUrl}
+            />
+          )}
           
           <AIFeedback feedback={generateAIFeedback()} />
           
