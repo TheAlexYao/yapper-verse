@@ -23,14 +23,42 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
 
-  // Fetch recommended responses and character info
-  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
-    queryKey: ['responses', conversationId],
+  // First fetch AI response
+  const { data: aiResponse, isLoading: isLoadingAIResponse } = useQuery({
+    queryKey: ['ai-response', conversationId],
     queryFn: async () => {
-      if (!user?.id || !conversationId) return [];
+      if (!user?.id || !conversationId) return null;
 
       try {
-        // First get the conversation to get the character_id
+        const response = await supabase.functions.invoke('generate-chat-response', {
+          body: {
+            conversationId,
+            userId: user.id,
+          },
+        });
+
+        if (response.error) {
+          console.error('Error fetching AI response:', response.error);
+          throw response.error;
+        }
+
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching AI response:', error);
+        return null;
+      }
+    },
+    enabled: !!conversationId && !!user?.id,
+  });
+
+  // Then fetch character info and prepare responses
+  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
+    queryKey: ['responses', conversationId, aiResponse],
+    queryFn: async () => {
+      if (!aiResponse || !user?.id) return [];
+
+      try {
+        // Get character info
         const { data: conversation } = await supabase
           .from('guided_conversations')
           .select('character_id')
@@ -41,42 +69,26 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           throw new Error('Conversation not found');
         }
 
-        // Then get the character's gender
         const { data: character } = await supabase
           .from('characters')
           .select('gender')
           .eq('id', conversation.character_id)
           .single();
 
-        // Get the AI response
-        const response = await supabase.functions.invoke('generate-chat-response', {
-          body: {
-            conversationId,
-            userId: user.id,
-          },
-        });
-
-        if (response.error) {
-          console.error('Error fetching responses:', response.error);
-          throw response.error;
-        }
-
-        // Transform the response into the expected format and include character gender
-        const aiResponse = response.data;
+        // Transform the AI response into the expected format
         return [{
           id: crypto.randomUUID(),
           text: aiResponse.content,
           translation: aiResponse.translation,
           hint: aiResponse.hint,
-          characterGender: character?.gender || 'female' // Default to female if not specified
+          characterGender: character?.gender || 'female'
         }];
       } catch (error) {
-        console.error('Error fetching responses:', error);
+        console.error('Error preparing responses:', error);
         return [];
       }
     },
-    enabled: !!conversationId && !!user?.id,
-    retry: 1,
+    enabled: !!aiResponse && !!user?.id,
   });
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
@@ -93,7 +105,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     if (isGeneratingTTS) return;
     
     try {
-      // Pass the character's gender to generateTTS
       const audioUrl = await generateTTS(response.text, response.characterGender);
       setSelectedResponse({ ...response, audio_url: audioUrl });
       setShowPronunciationModal(true);
@@ -128,7 +139,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseSelect}
-        isLoading={isLoadingResponses || isGeneratingTTS}
+        isLoading={isLoadingAIResponse || isLoadingResponses || isGeneratingTTS}
       />
 
       {selectedResponse && showPronunciationModal && (
