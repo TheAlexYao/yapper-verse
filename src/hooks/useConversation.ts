@@ -1,13 +1,15 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@supabase/auth-helpers-react";
 import type { GuidedConversation, GuidedMessage } from "@/types/conversation";
 
 export type Message = Omit<GuidedMessage, 'content' | 'is_user'> & {
   text: string;  // maps to content
   isUser: boolean;  // maps to is_user
-  reference_audio_url?: string;
+  tts_audio_url?: string;  // for TTS audio
+  audio_url?: string;  // for recorded audio
+  reference_audio_url?: string;  // for pronunciation comparison
 };
 
 export const useConversation = (characterId: string | undefined) => {

@@ -26,14 +26,14 @@ export function ChatContainer({
     console.log('Messages updated in ChatContainer:', messages);
     const generateAudioForNewMessage = async () => {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url && !isGeneratingTTS) {
+      if (lastMessage && !lastMessage.isUser && !lastMessage.tts_audio_url && !isGeneratingTTS) {
         setIsGeneratingTTS(true);
         try {
           console.log('Generating TTS for new AI message:', lastMessage.text);
           const audioUrl = await generateTTS(lastMessage.text);
           if (audioUrl) {
             // Update the message with the audio URL
-            lastMessage.audio_url = audioUrl;
+            lastMessage.tts_audio_url = audioUrl;
             console.log('TTS generated successfully:', audioUrl);
           }
         } catch (error) {
@@ -83,7 +83,7 @@ export function ChatContainer({
           onClose={() => setSelectedMessageForScore(null)}
           data={selectedMessageForScore.pronunciation_data || {}}
           userAudioUrl={selectedMessageForScore.audio_url}
-          referenceAudioUrl={selectedMessageForScore.reference_audio_url}
+          referenceAudioUrl={selectedMessageForScore.tts_audio_url}
         />
       )}
     </div>

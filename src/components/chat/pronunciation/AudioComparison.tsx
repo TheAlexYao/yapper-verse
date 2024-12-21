@@ -13,7 +13,7 @@ export function AudioComparison({ userAudioUrl, referenceAudioUrl }: AudioCompar
         {referenceAudioUrl && (
           <div className="p-4 rounded-lg bg-accent/50">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Native Speaker</p>
+              <p className="text-sm font-medium">Native Speaker (TTS)</p>
               <audio src={referenceAudioUrl} controls className="w-full" />
             </div>
           </div>
