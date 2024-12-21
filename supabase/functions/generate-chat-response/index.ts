@@ -26,24 +26,25 @@ serve(async (req) => {
         *,
         character:characters(*),
         scenario:scenarios(*),
-        messages:guided_conversation_messages(*)
+        messages:guided_conversation_messages(*),
+        native_language:languages!guided_conversations_native_language_id_fkey(*),
+        target_language:languages!guided_conversations_target_language_id_fkey(*)
       `)
       .eq('id', conversationId)
       .single();
 
     if (convError || !conversation) {
+      console.error('Conversation not found:', convError);
       throw new Error('Conversation not found');
     }
 
-    // Fetch user profile for language context
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // We don't need to fetch the profile separately since we have language info in the conversation
+    const targetLanguage = conversation.target_language?.code;
+    const nativeLanguage = conversation.native_language?.code;
 
-    if (profileError || !profile) {
-      throw new Error('User profile not found');
+    if (!targetLanguage || !nativeLanguage) {
+      console.error('Language information missing in conversation:', conversation);
+      throw new Error('Language information missing in conversation');
     }
 
     // Prepare conversation history
@@ -53,7 +54,7 @@ serve(async (req) => {
     }));
 
     // Prepare system prompt
-    const systemPrompt = `You are ${conversation.character.name}, an airport staff member speaking ${profile.target_language}.
+    const systemPrompt = `You are ${conversation.character.name}, an airport staff member speaking ${targetLanguage}.
 
 Your personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
 Scenario: ${conversation.scenario.title}
@@ -85,7 +86,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4-turbo-preview',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages,
@@ -124,6 +125,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
       .single();
 
     if (insertError) {
+      console.error('Error inserting message:', insertError);
       throw insertError;
     }
 
