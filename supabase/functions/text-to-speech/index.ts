@@ -19,6 +19,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let synthesizer: sdk.SpeechSynthesizer | null = null;
+  
   try {
     const AZURE_SPEECH_KEY = Deno.env.get('AZURE_SPEECH_KEY');
     const AZURE_SPEECH_REGION = Deno.env.get('AZURE_SPEECH_REGION');
@@ -82,8 +84,6 @@ serve(async (req) => {
     );
 
     speechConfig.speechSynthesisVoiceName = voiceName;
-    
-    // Set output format using the correct property
     speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm;
 
     const ssml = `
@@ -96,18 +96,16 @@ serve(async (req) => {
       </speak>
     `;
 
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+    synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     
     try {
       const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
-        synthesizer.speakSsmlAsync(
+        synthesizer!.speakSsmlAsync(
           ssml,
           result => {
-            synthesizer.close();
             resolve(result);
           },
           error => {
-            synthesizer.close();
             reject(error);
           }
         );
@@ -156,7 +154,9 @@ serve(async (req) => {
       );
 
     } finally {
-      synthesizer.close();
+      if (synthesizer) {
+        synthesizer.close();
+      }
     }
 
   } catch (error) {
@@ -171,5 +171,14 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
+  } finally {
+    // Ensure synthesizer is properly disposed
+    if (synthesizer) {
+      try {
+        synthesizer.close();
+      } catch (error) {
+        console.error('Error disposing synthesizer:', error);
+      }
+    }
   }
 });
