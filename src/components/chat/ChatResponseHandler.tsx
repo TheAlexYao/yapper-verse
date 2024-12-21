@@ -13,9 +13,8 @@ interface ChatResponseHandlerProps {
   conversationId: string;
 }
 
-const INITIAL_AI_MESSAGE: Message = {
+const INITIAL_AI_MESSAGE: Omit<Message, 'conversation_id'> = {
   id: crypto.randomUUID(),
-  conversation_id: '', // This will be set dynamically
   text: "Bonjour! Je suis Pierre, votre serveur aujourd'hui. Que puis-je vous servir?",
   translation: "Hello! I'm Pierre, your waiter today. What can I serve you?",
   transliteration: "bohn-ZHOOR! zhuh swee pyehr, voh-truh sehr-vuhr oh-zhoor-dwee. kuh pwee-zhuh voo sehr-veer?",
@@ -41,10 +40,12 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       if (!conversationId) return false;
       
       // Send the initial AI message with the correct conversation_id
-      const initialMessage = {
+      const initialMessage: Message = {
         ...INITIAL_AI_MESSAGE,
         conversation_id: conversationId
       };
+      
+      console.log('Sending initial message:', initialMessage);
       await onMessageSend(initialMessage);
       return true;
     },
@@ -58,6 +59,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     queryFn: async () => {
       if (!user?.id || !conversationId) return [];
 
+      console.log('Fetching responses for conversation:', conversationId);
       const response = await supabase.functions.invoke('generate-responses', {
         body: {
           conversationId,
@@ -70,6 +72,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error(response.error.message);
       }
 
+      console.log('Received responses:', response.data?.responses);
       return response.data?.responses || [];
     },
     enabled: !!conversationId && !!user?.id && !!initialMessageSent,
