@@ -83,7 +83,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         .from('profiles')
         .select('target_language, voice_preference')
         .eq('id', user?.id)
-        .maybeSingle();
+        .single();
 
       if (!profile?.target_language) {
         throw new Error('Target language not set');
@@ -114,11 +114,17 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   };
 
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
+    if (!selectedResponse) {
+      toast({
+        title: "Error",
+        description: "No response selected. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      if (!selectedResponse) {
-        throw new Error('No response selected');
-      }
       await handlePronunciationComplete(score, audioBlob);
     } catch (error) {
       console.error('Error handling pronunciation:', error);

@@ -113,10 +113,10 @@ export function usePronunciationHandler({
         isUser: true,
       };
 
-      // Send the message first
+      // Send the message and wait for it to complete
       await onMessageSend(newMessage);
       
-      // Then complete the pronunciation flow
+      // Only complete after message is sent successfully
       onComplete();
     } catch (error) {
       console.error('Error handling pronunciation:', error);
