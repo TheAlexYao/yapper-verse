@@ -62,12 +62,20 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onComplete: () => {
       setSelectedResponse(null);
       setShowPronunciationModal(false);
+      setIsProcessing(false);
     },
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
   const handleResponseSelect = async (response: any) => {
-    if (isGeneratingTTS) return;
+    if (isGeneratingTTS) {
+      toast({
+        title: "Please wait",
+        description: "Audio is still being generated",
+        variant: "default",
+      });
+      return;
+    }
     
     try {
       // First, get the user's profile to determine voice preference
@@ -84,6 +92,10 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       // Pre-generate normal speed audio only
       const normalAudioUrl = await generateTTS(response.text, profile.voice_preference || 'female', 'normal');
       
+      if (!normalAudioUrl) {
+        throw new Error('Failed to generate audio');
+      }
+
       // Store both the response and the generated audio URL
       setSelectedResponse({ 
         ...response, 
@@ -112,8 +124,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         description: "Failed to process pronunciation. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
