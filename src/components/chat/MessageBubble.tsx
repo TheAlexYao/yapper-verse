@@ -1,23 +1,17 @@
-import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { MessageContent } from "./message/MessageContent";
 import { AudioButton } from "./message/AudioButton";
+import { cn } from "@/lib/utils";
+import type { Message } from "@/hooks/useConversation";
 
 interface MessageBubbleProps {
   isUser?: boolean;
-  message: {
-    text: string;
-    translation?: string;
-    transliteration?: string;
-    pronunciation_score?: number;
-    pronunciation_data?: any;
-    audio_url?: string;
-    reference_audio_url?: string;
-  };
+  message: Message;
   onPlayAudio?: (audioUrl: string) => void;
+  onShowScore?: (message: Message) => void;
 }
 
-export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageBubbleProps) {
+export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScore }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayAudio = async () => {
@@ -35,32 +29,28 @@ export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageB
 
   return (
     <div className={cn(
-      "flex mb-4",
-      isUser ? "justify-end" : "justify-start"
+      "flex gap-2",
+      isUser ? "flex-row-reverse" : "flex-row"
     )}>
       <div className={cn(
-        "max-w-[85%] rounded-2xl p-4 shadow-md transition-all duration-200 hover:shadow-lg break-words",
-        isUser
-          ? "bg-gradient-to-r from-[#9b87f5] to-[#7E69AB] text-white"
-          : "bg-gradient-to-r from-card to-accent/30 hover:from-accent/20 hover:to-accent/40"
+        "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
+        isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
       )}>
-        <div className="flex items-start gap-2">
-          {((!isUser && onPlayAudio) || (isUser && message.audio_url)) && (
-            <AudioButton 
-              onPlay={handlePlayAudio}
-              isUser={isUser}
-              isPlaying={isPlaying}
-              disabled={!message.audio_url}
-            />
-          )}
-          <MessageContent 
-            text={message.text}
-            translation={message.translation}
-            transliteration={message.transliteration}
-            isUser={isUser}
-            pronunciationScore={message.pronunciation_score}
+        <MessageContent
+          text={message.content}
+          transliteration={message.transliteration}
+          translation={message.translation}
+          isUser={isUser}
+          pronunciationScore={message.pronunciation_score}
+          onShowScore={() => onShowScore?.(message)}
+        />
+
+        {!isUser && message.audio_url && (
+          <AudioButton
+            onClick={handlePlayAudio}
+            isPlaying={isPlaying}
           />
-        </div>
+        )}
       </div>
     </div>
   );

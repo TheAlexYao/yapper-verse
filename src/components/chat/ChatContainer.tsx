@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChatMessages } from "./ChatMessages";
 import { ChatMetricsContainer } from "./ChatMetricsContainer";
 import { ChatResponseHandler } from "./ChatResponseHandler";
 import { useTTS } from "./hooks/useTTS";
+import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatContainerProps {
@@ -19,6 +20,7 @@ export function ChatContainer({
   conversationId 
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
+  const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
 
   useEffect(() => {
     const generateAudioForNewMessage = async () => {
@@ -67,6 +69,7 @@ export function ChatContainer({
             reference_audio_url: msg.reference_audio_url,
           }))} 
           onPlayAudio={handlePlayTTS}
+          onShowScore={setSelectedMessageForScore}
         />
       </div>
 
@@ -83,6 +86,16 @@ export function ChatContainer({
           />
         </div>
       </div>
+
+      {selectedMessageForScore && (
+        <PronunciationScoreModal
+          isOpen={!!selectedMessageForScore}
+          onClose={() => setSelectedMessageForScore(null)}
+          data={selectedMessageForScore.pronunciation_data || {}}
+          userAudioUrl={selectedMessageForScore.audio_url}
+          referenceAudioUrl={selectedMessageForScore.reference_audio_url}
+        />
+      )}
     </>
   );
 }

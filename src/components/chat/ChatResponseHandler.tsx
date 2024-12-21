@@ -23,7 +23,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onMessageSend: (message: Message) => {
       onMessageSend(message);
       setIsProcessing(false);
-      setShowPronunciationModal(false); // Close modal after submission
+      setShowPronunciationModal(false);
+      setSelectedResponse(null);
     },
     onComplete: () => {
       setSelectedResponse(null);
@@ -56,6 +57,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           onClose={() => {
             setShowPronunciationModal(false);
             setIsProcessing(false);
+            setSelectedResponse(null);
           }}
           response={selectedResponse}
           onSubmit={handlePronunciationSubmit}
