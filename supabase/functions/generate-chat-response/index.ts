@@ -131,9 +131,16 @@ IMPORTANT: Your response must be in JSON format with these fields:
     let aiResponse;
     try {
       aiResponse = JSON.parse(completion.choices[0].message.content);
+      
+      // Basic validation of required fields
+      if (!aiResponse.content) {
+        console.error('Missing content in parsed response:', aiResponse);
+        throw new Error('Invalid response format: missing content');
+      }
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
-      throw new Error('Invalid response format from OpenAI');
+      console.error('Raw response:', completion.choices[0].message.content);
+      throw new Error('Failed to parse AI response');
     }
 
     // Insert the AI message with error handling
