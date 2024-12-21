@@ -7,7 +7,7 @@ import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { MOCK_RESPONSES } from "./data/mockResponses";
+import { INITIAL_AI_MESSAGE } from "./data/mockResponses";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -22,10 +22,25 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   
-  const { data: responses = MOCK_RESPONSES, isLoading: isLoadingResponses } = useQuery({
+  // First, send the initial AI message when the conversation starts
+  const { data: initialMessageSent } = useQuery({
+    queryKey: ['initial-message', conversationId],
+    queryFn: async () => {
+      if (!conversationId) return false;
+      
+      // Send the initial AI message
+      await onMessageSend(INITIAL_AI_MESSAGE);
+      return true;
+    },
+    enabled: !!conversationId,
+    staleTime: Infinity, // Only run once per conversation
+  });
+
+  // Then fetch recommended responses
+  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
-      if (!user?.id || !conversationId) return MOCK_RESPONSES;
+      if (!user?.id || !conversationId) return [];
 
       const response = await supabase.functions.invoke('generate-responses', {
         body: {
@@ -35,12 +50,13 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       });
 
       if (response.error) {
+        console.error('Error fetching responses:', response.error);
         throw new Error(response.error.message);
       }
 
-      return response.data?.responses || MOCK_RESPONSES;
+      return response.data?.responses || [];
     },
-    enabled: !!conversationId && !!user?.id,
+    enabled: !!conversationId && !!user?.id && !!initialMessageSent,
   });
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
