@@ -5,7 +5,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+import { AudioComparison } from "./pronunciation/AudioComparison";
+import { AIFeedback } from "./pronunciation/AIFeedback";
+import { ScoresDisplay } from "./pronunciation/ScoresDisplay";
+import { WordAnalysis } from "./pronunciation/WordAnalysis";
 
 interface PronunciationData {
   score?: number;
@@ -36,39 +39,22 @@ interface PronunciationScoreModalProps {
   referenceAudioUrl?: string;
 }
 
-export function PronunciationScoreModal({ 
-  isOpen, 
-  onClose, 
+export function PronunciationScoreModal({
+  isOpen,
+  onClose,
   data,
   userAudioUrl,
-  referenceAudioUrl 
+  referenceAudioUrl
 }: PronunciationScoreModalProps) {
-  // Get the first assessment result if available
   const assessment = data.NBest?.[0]?.PronunciationAssessment;
   const words = data.NBest?.[0]?.Words || [];
 
-  // Helper function to get the color class based on score
-  const getScoreColorClass = (score: number) => {
-    if (score >= 90) return "text-green-600";
-    if (score >= 75) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  // Helper function to format error type
-  const formatErrorType = (errorType: string) => {
-    if (errorType === "NoAudioDetected") return "No audio detected";
-    if (errorType === "Mispronunciation") return "Mispronounced";
-    return errorType;
-  };
-
-  // Generate AI feedback based on scores
   const generateAIFeedback = () => {
-    if (!assessment) return null;
+    if (!assessment) return [];
 
     const feedback = [];
     const { AccuracyScore, FluencyScore, CompletenessScore } = assessment;
 
-    // Overall assessment
     if (assessment.PronScore >= 90) {
       feedback.push("Excellent pronunciation! You sound very natural.");
     } else if (assessment.PronScore >= 75) {
@@ -77,7 +63,6 @@ export function PronunciationScoreModal({
       feedback.push("Your pronunciation needs some work, but don't worry - practice makes perfect!");
     }
 
-    // Specific feedback based on scores
     if (AccuracyScore < 75) {
       feedback.push("Focus on pronouncing individual sounds more clearly.");
     }
@@ -88,7 +73,6 @@ export function PronunciationScoreModal({
       feedback.push("Make sure to pronounce all parts of each word completely.");
     }
 
-    // Word-specific feedback
     const problematicWords = words.filter(w => 
       w.PronunciationAssessment.AccuracyScore < 75 || 
       w.PronunciationAssessment.ErrorType !== "None"
@@ -100,7 +84,12 @@ export function PronunciationScoreModal({
     return feedback;
   };
 
-  const aiFeedback = generateAIFeedback();
+  const scores = assessment ? [
+    { name: "Accuracy", value: assessment.AccuracyScore },
+    { name: "Fluency", value: assessment.FluencyScore },
+    { name: "Completeness", value: assessment.CompletenessScore },
+    { name: "Overall", value: assessment.PronScore }
+  ] : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -113,127 +102,17 @@ export function PronunciationScoreModal({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Audio Comparison Section */}
-          {(referenceAudioUrl || userAudioUrl) && (
-            <div className="space-y-4">
-              <h3 className="font-medium">Audio Comparison</h3>
-              <div className="space-y-2">
-                {referenceAudioUrl && (
-                  <div className="p-4 rounded-lg bg-accent/50">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Native Speaker</p>
-                      <audio src={referenceAudioUrl} controls className="w-full" />
-                    </div>
-                  </div>
-                )}
-                {userAudioUrl && (
-                  <div className="p-4 rounded-lg bg-accent/50">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Your Recording</p>
-                      <audio src={userAudioUrl} controls className="w-full" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <AudioComparison
+            userAudioUrl={userAudioUrl}
+            referenceAudioUrl={referenceAudioUrl}
+          />
+          
+          <AIFeedback feedback={generateAIFeedback()} />
+          
+          <ScoresDisplay scores={scores} />
+          
+          <WordAnalysis words={words} />
 
-          {/* AI Feedback Section - Moved up */}
-          {aiFeedback && aiFeedback.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-medium">AI Feedback</h3>
-              <div className="space-y-2">
-                {aiFeedback.map((feedback, index) => (
-                  <p key={index} className="text-sm text-muted-foreground">
-                    {feedback}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Overall Scores Section */}
-          {assessment && (
-            <div className="space-y-4">
-              <h3 className="font-medium">Overall Scores</h3>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Accuracy</span>
-                    <span className={getScoreColorClass(assessment.AccuracyScore)}>
-                      {assessment.AccuracyScore}%
-                    </span>
-                  </div>
-                  <Progress value={assessment.AccuracyScore} className="h-2" />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Fluency</span>
-                    <span className={getScoreColorClass(assessment.FluencyScore)}>
-                      {assessment.FluencyScore}%
-                    </span>
-                  </div>
-                  <Progress value={assessment.FluencyScore} className="h-2" />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Completeness</span>
-                    <span className={getScoreColorClass(assessment.CompletenessScore)}>
-                      {assessment.CompletenessScore}%
-                    </span>
-                  </div>
-                  <Progress value={assessment.CompletenessScore} className="h-2" />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Overall</span>
-                    <span className={getScoreColorClass(assessment.PronScore)}>
-                      {assessment.PronScore}%
-                    </span>
-                  </div>
-                  <Progress value={assessment.PronScore} className="h-2" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Word Analysis Section */}
-          {words.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-medium">Word-by-Word Analysis</h3>
-              <div className="space-y-2">
-                {words.map((word, index) => (
-                  <div 
-                    key={index}
-                    className="flex justify-between items-center p-3 rounded-lg bg-accent/50"
-                  >
-                    <div className="space-y-1">
-                      <span className="font-medium">{word.Word}</span>
-                      {word.PronunciationAssessment.ErrorType !== "None" && (
-                        <p className="text-xs text-muted-foreground">
-                          {formatErrorType(word.PronunciationAssessment.ErrorType)}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-sm">
-                      {word.PronunciationAssessment.ErrorType === "NoAudioDetected" ? (
-                        <span className="text-destructive">No audio</span>
-                      ) : (
-                        <span className={getScoreColorClass(word.PronunciationAssessment.AccuracyScore)}>
-                          {word.PronunciationAssessment.AccuracyScore}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Additional Feedback Section */}
           {data.feedback && (
             <div className="space-y-2">
               <h3 className="font-medium">Additional Feedback</h3>
@@ -241,7 +120,6 @@ export function PronunciationScoreModal({
             </div>
           )}
 
-          {/* Suggestions Section */}
           {data.suggestions && data.suggestions.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-medium">Suggestions</h3>
