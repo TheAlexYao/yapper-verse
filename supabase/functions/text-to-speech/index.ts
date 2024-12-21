@@ -28,15 +28,15 @@ serve(async (req) => {
       );
     }
 
-    // Parse and validate request body
-    const requestData: TTSRequest = await req.json();
-    console.log('TTS Request:', { ...requestData, text: requestData.text.substring(0, 50) + '...' });
+    // Parse request body first
+    const requestData = await req.json();
+    console.log('Received TTS request:', requestData);
 
     // Validate required parameters
     const missingParams = [];
-    if (!requestData.text) missingParams.push('text');
-    if (!requestData.languageCode) missingParams.push('languageCode');
-    if (!requestData.voiceGender) missingParams.push('voiceGender');
+    if (!requestData?.text) missingParams.push('text');
+    if (!requestData?.languageCode) missingParams.push('languageCode');
+    if (!requestData?.voiceGender) missingParams.push('voiceGender');
 
     if (missingParams.length > 0) {
       console.error('Missing required parameters:', missingParams);
@@ -49,6 +49,9 @@ serve(async (req) => {
       );
     }
 
+    // Now that we've validated the data, we can safely cast it
+    const validatedData = requestData as TTSRequest;
+    
     // Create speech configuration
     const speechConfig = sdk.SpeechConfig.fromSubscription(
       AZURE_SPEECH_KEY,
@@ -56,17 +59,17 @@ serve(async (req) => {
     );
 
     // Set voice based on language and gender
-    const voiceName = `${requestData.languageCode}-${requestData.voiceGender}`;
+    const voiceName = `${validatedData.languageCode}-${validatedData.voiceGender}`;
     speechConfig.speechSynthesisVoiceName = voiceName;
 
     console.log('Using voice:', voiceName);
 
     // Create SSML with proper prosody controls
     const ssml = `
-      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${requestData.languageCode}">
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${validatedData.languageCode}">
         <voice name="${voiceName}">
-          <prosody rate="${requestData.speed === 'slow' ? '0.7' : '1.0'}" pitch="+0%">
-            ${requestData.text}
+          <prosody rate="${validatedData.speed === 'slow' ? '0.7' : '1.0'}" pitch="+0%">
+            ${validatedData.text}
           </prosody>
         </voice>
       </speak>
@@ -115,7 +118,7 @@ serve(async (req) => {
     console.error('Error in text-to-speech function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error.message || 'Internal server error',
         details: error.stack
       }),
       { 
