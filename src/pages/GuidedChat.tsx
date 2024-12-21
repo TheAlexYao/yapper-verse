@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatContainer } from "@/components/chat/ChatContainer";
@@ -12,6 +13,9 @@ export default function GuidedChat() {
   const navigate = useNavigate();
   const location = useLocation();
   const { scenario, character } = location.state || {};
+  const user = useUser();
+  const { toast } = useToast();
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
 
   const { conversationId, messages, setMessages } = useConversationSetup(character, scenario);
   const { handleMessageSend } = useMessageHandling(conversationId);
