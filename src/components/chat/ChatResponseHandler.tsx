@@ -88,12 +88,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
-    onMessageSend: (message: Message) => {
-      onMessageSend(message);
-      setIsProcessing(false);
-      setShowPronunciationModal(false);
-      setSelectedResponse(null);
-    },
+    onMessageSend,
     onComplete: () => {
       setSelectedResponse(null);
     },
@@ -109,6 +104,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     setIsProcessing(true);
     await handlePronunciationComplete(score, audioBlob);
+    setIsProcessing(false);
+    setShowPronunciationModal(false);
+    setSelectedResponse(null);
   };
 
   return (
