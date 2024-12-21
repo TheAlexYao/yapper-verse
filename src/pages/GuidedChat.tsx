@@ -108,20 +108,8 @@ export default function GuidedChat() {
     };
   }, [conversationId]);
 
-  const handleMessageSend = (message: Message) => {
+  const handleMessageSend = async (message: Message) => {
     setMessages(prev => [...prev, message]);
-    
-    // Simulate AI response (will be replaced with real API call)
-    const aiResponse: Message = {
-      id: crypto.randomUUID(),
-      conversation_id: conversationId!,
-      text: "Excellent! Je vous prépare votre café tout de suite.",
-      translation: "Excellent! I'll prepare your coffee right away.",
-      transliteration: "eks-say-LAHN! zhuh voo pray-PAHR vot-ruh kah-FAY too duh SWEET.",
-      isUser: false,
-    };
-    
-    setMessages(prev => [...prev, aiResponse]);
   };
 
   const handlePlayTTS = async (text: string) => {
@@ -192,4 +180,4 @@ export default function GuidedChat() {
       />
     </div>
   );
-};
+}
