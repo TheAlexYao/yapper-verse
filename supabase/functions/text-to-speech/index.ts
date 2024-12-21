@@ -31,7 +31,7 @@ serve(async (req) => {
     // Create a hash of the request parameters for caching
     const textHash = await crypto.subtle.digest(
       "SHA-256",
-      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}`)
+      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-slow`)
     );
     const hashHex = Array.from(new Uint8Array(textHash))
       .map(b => b.toString(16).padStart(2, '0'))
@@ -76,15 +76,26 @@ serve(async (req) => {
       throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
     }
 
-    // Generate speech
+    // Generate speech with SSML for slower rate
     const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
     speechConfig.speechSynthesisVoiceName = voiceName;
 
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     
+    // Wrap the text in SSML with prosody rate of 0.5 (half speed)
+    const ssml = `
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
+        <voice name="${voiceName}">
+          <prosody rate="0.5">
+            ${text}
+          </prosody>
+        </voice>
+      </speak>
+    `;
+
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
-      synthesizer.speakTextAsync(
-        text,
+      synthesizer.speakSsmlAsync(
+        ssml,
         result => resolve(result),
         error => reject(error)
       );
