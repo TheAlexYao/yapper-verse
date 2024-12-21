@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, RefreshCw } from "lucide-react";
+import { Mic } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioRecorderProps {
@@ -131,18 +131,9 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
     }
   };
 
-  const resetRecording = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    setAudioUrl(null);
-    setHasRecording(false);
-    onRecordingComplete(null);
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-center gap-4">
+      <div className="flex justify-center">
         <Button
           variant={isRecording ? "destructive" : "default"}
           onClick={handleRecord}
@@ -152,17 +143,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
           <Mic className="mr-2 h-4 w-4" />
           {isRecording ? "Stop" : "Record"}
         </Button>
-        {hasRecording && (
-          <Button 
-            variant="outline" 
-            onClick={resetRecording}
-            disabled={isProcessing}
-            className="min-w-[140px]"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
-        )}
       </div>
 
       {audioUrl && (
