@@ -7,16 +7,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { conversationId, userId, lastMessageContent } = await req.json();
-    console.log('Generating response for:', { conversationId, userId });
+    const { conversationId, userId, lastMessageContent, isInitialMessage } = await req.json();
+    console.log('Generating response for:', { conversationId, userId, isInitialMessage });
     
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -68,6 +66,7 @@ Generate responses that:
 2. Are culturally appropriate
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
 4. Consider the character's personality and language style
+${isInitialMessage ? '5. Start with a friendly greeting appropriate for this scenario' : ''}
 
 IMPORTANT: Your response must be in JSON format with these fields:
 {
@@ -79,7 +78,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
     console.log('Calling OpenAI with system prompt:', systemPrompt);
 
-    // Call OpenAI API directly using fetch
+    // Call OpenAI API
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -87,13 +86,13 @@ IMPORTANT: Your response must be in JSON format with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages,
           { 
             role: 'user', 
-            content: lastMessageContent || 'Start the conversation with a greeting appropriate for this scenario' 
+            content: lastMessageContent || 'Please start the conversation with an appropriate greeting.' 
           }
         ],
         temperature: 0.7,

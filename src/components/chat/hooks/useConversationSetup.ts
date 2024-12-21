@@ -62,14 +62,33 @@ export function useConversationSetup(character: any, scenario: any) {
 
         setConversationId(conversation.id);
 
-        // Generate initial response
-        await supabase.functions.invoke('generate-chat-response', {
+        // Generate initial message with greeting
+        const { data: initialMessage, error: messageError } = await supabase.functions.invoke('generate-chat-response', {
           body: {
             conversationId: conversation.id,
             userId: user.id,
-            lastMessageContent: null // Indicates this is the initial message
+            isInitialMessage: true, // Flag to indicate this is the first message
+            lastMessageContent: `Start the conversation with a greeting in ${profile.target_language}`
           },
         });
+
+        if (messageError) throw messageError;
+
+        // Add initial message to state
+        if (initialMessage) {
+          setMessages([{
+            id: initialMessage.id,
+            conversation_id: conversation.id,
+            text: initialMessage.content,
+            translation: initialMessage.translation,
+            transliteration: initialMessage.transliteration,
+            isUser: false,
+            pronunciation_score: null,
+            pronunciation_data: null,
+            audio_url: null
+          }]);
+        }
+
       } catch (error) {
         console.error('Error initializing conversation:', error);
         toast({
