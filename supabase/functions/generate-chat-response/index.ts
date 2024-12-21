@@ -22,14 +22,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Initialize OpenAI
+    // Initialize OpenAI with proper configuration
     const configuration = new Configuration({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
     const openai = new OpenAIApi(configuration);
 
     // Fetch conversation context
-    const { data: conversation } = await supabase
+    const { data: conversation, error: convError } = await supabase
       .from('guided_conversations')
       .select(`
         *,
@@ -40,18 +40,18 @@ serve(async (req) => {
       .eq('id', conversationId)
       .single();
 
-    if (!conversation) {
+    if (convError || !conversation) {
       throw new Error('Conversation not found');
     }
 
     // Fetch user profile for language context
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (!profile) {
+    if (profileError || !profile) {
       throw new Error('User profile not found');
     }
 
@@ -78,11 +78,13 @@ Generate responses that:
 
 IMPORTANT: Your response must be in JSON format with these fields:
 {
-  "text": "Response in target language",
+  "content": "Response in target language",
   "translation": "Translation in user's native language",
   "transliteration": "Pronunciation guide using simple characters",
   "hint": "Optional cultural or usage context"
 }`;
+
+    console.log('Calling OpenAI with system prompt:', systemPrompt);
 
     // Call OpenAI API
     const completion = await openai.createChatCompletion({
@@ -110,7 +112,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
       .from('guided_conversation_messages')
       .insert({
         conversation_id: conversationId,
-        content: aiResponse.text,
+        content: aiResponse.content,
         translation: aiResponse.translation,
         transliteration: aiResponse.transliteration,
         is_user: false,
