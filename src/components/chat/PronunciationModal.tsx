@@ -9,34 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
-
-Let me analyze the pronunciation check flow and identify the issues:
-
-1. For the normal speed audio issue:
-- The problem is in `PronunciationModal.tsx` where we're not properly handling the cached audio URL
-- When there's a cache hit, we're using the wrong audio URL field
-
-2. For the slow speed audio issue:
-- The URL encoding in the cache key is causing the 406 error
-- We need to properly encode the cache key for database queries
-
-Let's fix both issues:
-
-<lov-code>
-Let's update the PronunciationModal.tsx to fix these issues:
-
-<lov-write file_path="src/components/chat/PronunciationModal.tsx">
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
 import { Play, Turtle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,8 +71,17 @@ export function PronunciationModal({
         throw new Error('Target language not set');
       }
 
+      if (!profile?.voice_preference) {
+        toast({
+          title: "Voice preference not set",
+          description: "Please set your voice preference in your profile settings.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create a safe cache key using base64 encoding
-      const cacheKeyText = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`;
+      const cacheKeyText = `${response.text}-${profile.target_language}-${profile.voice_preference}-${speed}`;
       const cacheKey = btoa(encodeURIComponent(cacheKeyText));
       
       console.log('Looking up cache with key:', cacheKey);
@@ -126,7 +107,7 @@ export function PronunciationModal({
         body: {
           text: response.text,
           languageCode: profile.target_language,
-          voiceGender: profile.voice_preference || 'female',
+          voiceGender: profile.voice_preference,
           speed
         }
       });
@@ -141,7 +122,7 @@ export function PronunciationModal({
           text_hash: cacheKey,
           text_content: response.text,
           language_code: profile.target_language,
-          voice_gender: profile.voice_preference || 'female',
+          voice_gender: profile.voice_preference,
           audio_url: ttsData.audioUrl
         });
 
