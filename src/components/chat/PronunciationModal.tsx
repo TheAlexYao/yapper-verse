@@ -9,6 +9,34 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
+
+Let me analyze the pronunciation check flow and identify the issues:
+
+1. For the normal speed audio issue:
+- The problem is in `PronunciationModal.tsx` where we're not properly handling the cached audio URL
+- When there's a cache hit, we're using the wrong audio URL field
+
+2. For the slow speed audio issue:
+- The URL encoding in the cache key is causing the 406 error
+- We need to properly encode the cache key for database queries
+
+Let's fix both issues:
+
+<lov-code>
+Let's update the PronunciationModal.tsx to fix these issues:
+
+<lov-write file_path="src/components/chat/PronunciationModal.tsx">
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
 import { Play, Turtle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,8 +99,11 @@ export function PronunciationModal({
         throw new Error('Target language not set');
       }
 
-      // Create a properly encoded cache key using the user's voice preference
-      const cacheKey = btoa(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`);
+      // Create a safe cache key using base64 encoding
+      const cacheKeyText = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`;
+      const cacheKey = btoa(encodeURIComponent(cacheKeyText));
+      
+      console.log('Looking up cache with key:', cacheKey);
       
       // Check cache first
       const { data: cachedAudio } = await supabase
@@ -82,12 +113,15 @@ export function PronunciationModal({
         .single();
 
       if (cachedAudio?.audio_url) {
+        console.log('Cache hit, playing cached audio');
         const audio = new Audio(cachedAudio.audio_url);
         await audio.play();
         return;
       }
 
-      // Generate new audio if not cached, using the user's voice preference
+      console.log('Cache miss, generating TTS...');
+
+      // Generate new audio if not cached
       const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
         body: {
           text: response.text,
