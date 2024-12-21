@@ -71,7 +71,7 @@ export function PronunciationModal({
         throw new Error('Target language not set');
       }
 
-      // Create a properly encoded cache key
+      // Create a properly encoded cache key using the user's voice preference
       const cacheKey = btoa(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`);
       
       // Check cache first
@@ -87,7 +87,7 @@ export function PronunciationModal({
         return;
       }
 
-      // Generate new audio if not cached
+      // Generate new audio if not cached, using the user's voice preference
       const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
         body: {
           text: response.text,
