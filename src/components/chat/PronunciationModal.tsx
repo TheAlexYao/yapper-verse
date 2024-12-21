@@ -74,18 +74,28 @@ export function PronunciationModal({
       // Default to 'female' if voice_preference is not set
       const voiceGender = profile.voice_preference || 'female';
 
-      // Create a safe cache key using base64 encoding
+      // Create a safe cache key using URL-safe base64 encoding
       const cacheKeyText = `${response.text}-${profile.target_language}-${voiceGender}-${speed}`;
-      const cacheKey = btoa(encodeURIComponent(cacheKeyText));
+      const cacheKey = btoa(cacheKeyText).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       
-      console.log('Looking up cache with key:', cacheKey);
+      console.log('TTS Request:', {
+        text: response.text,
+        languageCode: profile.target_language,
+        voiceGender,
+        speed,
+        cacheKey
+      });
       
       // Check cache first
-      const { data: cachedAudio } = await supabase
+      const { data: cachedAudio, error: cacheError } = await supabase
         .from('tts_cache')
         .select('audio_url')
         .eq('text_hash', cacheKey)
         .single();
+
+      if (cacheError) {
+        console.log('Cache lookup error:', cacheError);
+      }
 
       if (cachedAudio?.audio_url) {
         console.log('Cache hit, playing cached audio');
@@ -101,16 +111,22 @@ export function PronunciationModal({
         body: {
           text: response.text,
           languageCode: profile.target_language,
-          voiceGender: voiceGender,
+          voiceGender,
           speed
         }
       });
 
-      if (ttsError) throw ttsError;
-      if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
+      if (ttsError) {
+        console.error('TTS error:', ttsError);
+        throw ttsError;
+      }
+
+      if (!ttsData?.audioUrl) {
+        throw new Error('No audio URL in response');
+      }
 
       // Cache the audio
-      await supabase
+      const { error: insertError } = await supabase
         .from('tts_cache')
         .insert({
           text_hash: cacheKey,
@@ -119,6 +135,10 @@ export function PronunciationModal({
           voice_gender: voiceGender,
           audio_url: ttsData.audioUrl
         });
+
+      if (insertError) {
+        console.error('Cache insert error:', insertError);
+      }
 
       const audio = new Audio(ttsData.audioUrl);
       await audio.play();
