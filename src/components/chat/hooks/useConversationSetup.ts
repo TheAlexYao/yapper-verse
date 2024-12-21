@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
 import { setupLanguages } from "./conversation/useLanguageSetup";
-import { setupMessageSubscription } from "./conversation/useMessageSubscription";
 import { 
   fetchExistingConversation, 
   createNewConversation,
@@ -15,6 +14,48 @@ export function useConversationSetup(character: any, scenario: any) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
 
+  // Set up subscription outside the main effect
+  useEffect(() => {
+    if (!conversationId) return;
+
+    console.log('Setting up message subscription for conversation:', conversationId);
+    const subscription = supabase
+      .channel(`conversation:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Received new message:', payload);
+          const newMessage = payload.new;
+          const formattedMessage: Message = {
+            id: newMessage.id,
+            conversation_id: newMessage.conversation_id,
+            text: newMessage.content,
+            translation: newMessage.translation,
+            transliteration: newMessage.transliteration,
+            pronunciation_score: newMessage.pronunciation_score,
+            pronunciation_data: newMessage.pronunciation_data,
+            audio_url: newMessage.audio_url,
+            isUser: newMessage.is_user
+          };
+          
+          setMessages(prevMessages => [...prevMessages, formattedMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up message subscription');
+      subscription.unsubscribe();
+    };
+  }, [conversationId]); // Only depend on conversationId
+
+  // Main setup effect
   useEffect(() => {
     const setupConversation = async () => {
       if (!character?.id || !scenario?.id) {
@@ -71,13 +112,6 @@ export function useConversationSetup(character: any, scenario: any) {
         const initialMessages = await fetchConversationMessages(newConversationId);
         console.log('Setting initial messages:', initialMessages);
         setMessages(initialMessages);
-
-        // Subscribe to new messages
-        const subscription = setupMessageSubscription(newConversationId, setMessages);
-
-        return () => {
-          subscription.unsubscribe();
-        };
 
       } catch (error) {
         console.error('Error setting up conversation:', error);
