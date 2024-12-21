@@ -19,26 +19,41 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch conversation context
-    const { data: conversation, error: convError } = await supabase
-      .from('guided_conversations')
-      .select(`
-        *,
-        character:characters(*),
-        scenario:scenarios(*),
-        messages:guided_conversation_messages(*),
-        native_language:languages!guided_conversations_native_language_id_fkey(*),
-        target_language:languages!guided_conversations_target_language_id_fkey(*)
-      `)
-      .eq('id', conversationId)
-      .single();
+    // Fetch conversation context with retry logic
+    let conversation;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    if (convError || !conversation) {
-      console.error('Conversation not found:', convError);
-      throw new Error('Conversation not found');
+    while (retryCount < maxRetries) {
+      const { data, error } = await supabase
+        .from('guided_conversations')
+        .select(`
+          *,
+          character:characters(*),
+          scenario:scenarios(*),
+          messages:guided_conversation_messages(*),
+          native_language:languages!guided_conversations_native_language_id_fkey(*),
+          target_language:languages!guided_conversations_target_language_id_fkey(*)
+        `)
+        .eq('id', conversationId)
+        .single();
+
+      if (error) {
+        console.error(`Attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        if (retryCount === maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        continue;
+      }
+
+      conversation = data;
+      break;
     }
 
-    // We don't need to fetch the profile separately since we have language info in the conversation
+    if (!conversation) {
+      throw new Error('Conversation not found after retries');
+    }
+
     const targetLanguage = conversation.target_language?.code;
     const nativeLanguage = conversation.native_language?.code;
 
@@ -47,13 +62,13 @@ serve(async (req) => {
       throw new Error('Language information missing in conversation');
     }
 
-    // Prepare conversation history
+    // Prepare conversation history with proper formatting
     const messages = conversation.messages.map((msg: any) => ({
       role: msg.is_user ? 'user' : 'assistant',
       content: msg.content,
     }));
 
-    // Prepare system prompt
+    // Enhanced system prompt
     const systemPrompt = `You are ${conversation.character.name}, an airport staff member speaking ${targetLanguage}.
 
 Your personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
@@ -78,55 +93,90 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
     console.log('Calling OpenAI with system prompt:', systemPrompt);
 
-    // Call OpenAI API
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-          { 
-            role: 'user', 
-            content: lastMessageContent || 'Please start the conversation with an appropriate greeting.' 
-          }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    // Call OpenAI API with retry logic
+    let openAIResponse;
+    retryCount = 0;
 
-    if (!openAIResponse.ok) {
-      const error = await openAIResponse.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+    while (retryCount < maxRetries) {
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...messages,
+              { 
+                role: 'user', 
+                content: lastMessageContent || 'Please start the conversation with an appropriate greeting.' 
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('OpenAI API error:', error);
+          throw new Error(`OpenAI API error: ${error}`);
+        }
+
+        const completion = await response.json();
+        openAIResponse = completion;
+        break;
+      } catch (error) {
+        console.error(`OpenAI attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        if (retryCount === maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
     }
 
-    const completion = await openAIResponse.json();
-    console.log('OpenAI response:', completion);
+    console.log('OpenAI response:', openAIResponse);
 
-    // Parse the response
-    const aiResponse = JSON.parse(completion.choices[0].message.content);
+    // Parse and validate the response
+    const aiResponse = JSON.parse(openAIResponse.choices[0].message.content);
+    
+    if (!aiResponse.content || !aiResponse.translation) {
+      throw new Error('Invalid response format from OpenAI');
+    }
 
-    // Insert the AI message into the database
-    const { data: newMessage, error: insertError } = await supabase
-      .from('guided_conversation_messages')
-      .insert({
-        conversation_id: conversationId,
-        content: aiResponse.content,
-        translation: aiResponse.translation,
-        transliteration: aiResponse.transliteration,
-        is_user: false,
-      })
-      .select()
-      .single();
+    // Insert the AI message with retry logic
+    retryCount = 0;
+    let newMessage;
 
-    if (insertError) {
-      console.error('Error inserting message:', insertError);
-      throw insertError;
+    while (retryCount < maxRetries) {
+      const { data, error } = await supabase
+        .from('guided_conversation_messages')
+        .insert({
+          conversation_id: conversationId,
+          content: aiResponse.content,
+          translation: aiResponse.translation,
+          transliteration: aiResponse.transliteration,
+          is_user: false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`Message insertion attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        if (retryCount === maxRetries) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        continue;
+      }
+
+      newMessage = data;
+      break;
+    }
+
+    if (!newMessage) {
+      throw new Error('Failed to insert message after retries');
     }
 
     return new Response(JSON.stringify(newMessage), {

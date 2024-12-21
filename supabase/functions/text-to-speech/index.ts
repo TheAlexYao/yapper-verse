@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createHash } from "https://deno.land/std@0.177.0/hash/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,6 +53,28 @@ serve(async (req) => {
 
     const validatedData = requestData as TTSRequest;
     
+    // Generate a unique hash for the TTS request
+    const textHash = createHash('md5')
+      .update(`${validatedData.text}-${validatedData.languageCode}-${validatedData.voiceGender}-${validatedData.speed || 'normal'}`)
+      .toString();
+
+    // Check cache first
+    const { data: cachedEntry, error: cacheError } = await supabase
+      .from('tts_cache')
+      .select('audio_url')
+      .eq('text_hash', textHash)
+      .maybeSingle();
+
+    if (cacheError) {
+      console.error('Error checking cache:', cacheError);
+    } else if (cachedEntry?.audio_url) {
+      console.log('Cache hit, returning cached audio URL');
+      return new Response(
+        JSON.stringify({ audioUrl: cachedEntry.audio_url }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Fetch voice from languages table
     const { data: languageData, error: languageError } = await supabase
       .from('languages')
@@ -120,9 +143,12 @@ serve(async (req) => {
       const audioData = result.audioData;
       const blob = new Blob([audioData], { type: 'audio/wav' });
       
-      // Store the audio in Supabase Storage
+      // Generate a unique filename
       const timestamp = new Date().getTime();
-      const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.wav`;
+      const randomString = Math.random().toString(36).substring(7);
+      const filename = `${timestamp}-${randomString}.wav`;
+
+      // Store the audio in Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('tts_cache')
@@ -142,6 +168,23 @@ serve(async (req) => {
         .storage
         .from('tts_cache')
         .getPublicUrl(filename);
+
+      // Cache the result
+      const { error: cacheInsertError } = await supabase
+        .from('tts_cache')
+        .insert({
+          text_hash: textHash,
+          text_content: validatedData.text,
+          language_code: validatedData.languageCode,
+          voice_gender: validatedData.voiceGender,
+          audio_url: publicUrl
+        })
+        .single();
+
+      if (cacheInsertError) {
+        console.error('Cache insert error:', cacheInsertError);
+        // Don't throw here, we still want to return the audio URL
+      }
 
       return new Response(
         JSON.stringify({ audioUrl: publicUrl }),
@@ -176,7 +219,6 @@ serve(async (req) => {
       }
     );
   } finally {
-    // Ensure synthesizer is properly disposed
     if (synthesizer) {
       try {
         synthesizer.close();
