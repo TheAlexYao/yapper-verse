@@ -4,7 +4,7 @@ import { Mic, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioRecorderProps {
-  onRecordingComplete: (blob: Blob) => void;
+  onRecordingComplete: (blob: Blob | null) => void;
   isProcessing: boolean;
 }
 
@@ -137,6 +137,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
     }
     setAudioUrl(null);
     setHasRecording(false);
+    onRecordingComplete(null);
   };
 
   return (
