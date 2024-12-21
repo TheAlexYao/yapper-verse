@@ -2,14 +2,10 @@ import { useState } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import { PronunciationScoreModal } from "./pronunciation/PronunciationScoreModal";
-import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
+import { useTTS } from "./hooks/useTTS";
 import { MOCK_RESPONSES } from "./data/mockResponses";
-import { useToast } from "@/hooks/use-toast";
-
-// Cache for TTS responses
-const ttsCache = new Map<string, string>();
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -22,8 +18,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [pronunciationData, setPronunciationData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
-  const { toast } = useToast();
+  
+  const { generateTTS, isGeneratingTTS } = useTTS();
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
@@ -33,7 +29,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         setPronunciationData({
           ...message.pronunciation_data,
           audioUrl: message.audio_url,
-          nativeAudioUrl: message.reference_audio_url // Update this line to use reference_audio_url
+          nativeAudioUrl: message.reference_audio_url
         });
         setIsProcessing(false);
         setShowScoreModal(true);
@@ -47,69 +43,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   });
 
   const handleResponseSelect = async (response: any) => {
-    try {
-      setIsGeneratingTTS(true);
-      
-      // Get user profile for language and voice settings
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('target_language, voice_preference')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!profile?.target_language) {
-        throw new Error('Target language not set');
-      }
-
-      // Check cache first
-      const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}`;
-      let audioUrl = ttsCache.get(cacheKey);
-
-      if (!audioUrl) {
-        console.log('Cache miss, generating TTS...');
-        
-        // Call the Edge Function using supabase.functions.invoke
-        const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
-          body: {
-            text: response.text,
-            languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female',
-            speed: 'normal'
-          }
-        });
-
-        if (ttsError) {
-          console.error('TTS function error:', ttsError);
-          throw new Error(`Failed to generate speech: ${ttsError.message}`);
-        }
-
-        if (!ttsData?.audioUrl) {
-          throw new Error('No audio URL in response');
-        }
-
-        audioUrl = ttsData.audioUrl;
-        // Cache the result
-        ttsCache.set(cacheKey, audioUrl);
-      } else {
-        console.log('Cache hit, using cached audio URL');
-      }
-      
-      // Set the selected response with the audio URL
-      setSelectedResponse({ ...response, audio_url: audioUrl });
-      setShowPronunciationModal(true);
-    } catch (error) {
-      console.error('TTS error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate audio for comparison. Please try again.",
-        variant: "destructive",
-      });
-      // Still show the modal even if TTS fails
-      setSelectedResponse(response);
-      setShowPronunciationModal(true);
-    } finally {
-      setIsGeneratingTTS(false);
-    }
+    const audioUrl = await generateTTS(response.text);
+    setSelectedResponse({ ...response, audio_url: audioUrl });
+    setShowPronunciationModal(true);
   };
 
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {

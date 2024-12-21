@@ -1,8 +1,8 @@
-import { Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { PronunciationScoreModal } from "./pronunciation/PronunciationScoreModal";
+import { MessageContent } from "./message/MessageContent";
+import { AudioButton } from "./message/AudioButton";
 
 interface MessageBubbleProps {
   isUser?: boolean;
@@ -18,7 +18,7 @@ interface MessageBubbleProps {
   onPlayAudio?: () => void;
 }
 
-export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubbleProps) {
+export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageBubbleProps) {
   const [showScoreModal, setShowScoreModal] = useState(false);
 
   const handlePlayAudio = () => {
@@ -41,49 +41,19 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
         )}>
           <div className="flex items-start gap-2">
             {((!isUser && onPlayAudio) || (isUser && message.audio_url)) && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "mt-1 h-6 w-6",
-                  isUser 
-                    ? "hover:bg-white/10 text-white" 
-                    : "hover:bg-accent-foreground/10"
-                )}
-                onClick={handlePlayAudio}
-              >
-                <Play className="h-4 w-4" />
-              </Button>
+              <AudioButton 
+                onPlay={handlePlayAudio}
+                isUser={isUser}
+              />
             )}
-            <div className="space-y-1.5 overflow-hidden">
-              <p className="text-base font-medium break-words leading-relaxed">
-                {message.text}
-              </p>
-              {message.transliteration && (
-                <p className={cn(
-                  "text-sm italic break-words",
-                  isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
-                )}>
-                  {message.transliteration}
-                </p>
-              )}
-              {message.translation && (
-                <p className={cn(
-                  "text-sm break-words",
-                  isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
-                )}>
-                  {message.translation}
-                </p>
-              )}
-              {isUser && typeof message.pronunciation_score === 'number' && (
-                <button
-                  onClick={() => setShowScoreModal(true)}
-                  className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
-                >
-                  Pronunciation Score: {message.pronunciation_score}%
-                </button>
-              )}
-            </div>
+            <MessageContent 
+              text={message.text}
+              translation={message.translation}
+              transliteration={message.transliteration}
+              isUser={isUser}
+              pronunciationScore={message.pronunciation_score}
+              onShowScore={() => setShowScoreModal(true)}
+            />
           </div>
         </div>
       </div>
