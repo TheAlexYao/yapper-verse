@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -23,24 +22,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      throw new Error('Failed to fetch user profile');
-    }
-
-    if (!profile) {
-      throw new Error('User profile not found');
-    }
-
-    console.log('Retrieved profile:', profile);
-
     // Get conversation with related data
     const { data: conversation, error: conversationError } = await supabase
       .from('guided_conversations')
@@ -51,7 +32,7 @@ serve(async (req) => {
         messages:guided_conversation_messages(*)
       `)
       .eq('id', conversationId)
-      .maybeSingle();
+      .single();
 
     if (conversationError) {
       console.error('Error fetching conversation:', conversationError);
@@ -64,14 +45,9 @@ serve(async (req) => {
 
     console.log('Retrieved conversation data');
 
-    // Get the last message from the AI
-    const lastMessage = conversation.messages
-      .filter((msg: any) => !msg.is_user)
-      .pop();
-
-    if (!lastMessage) {
-      throw new Error('No previous AI message found');
-    }
+    // Get the last message from the AI (if any)
+    const aiMessages = conversation.messages.filter((msg: any) => !msg.is_user);
+    const lastMessage = aiMessages.length > 0 ? aiMessages[aiMessages.pop()] : null;
 
     // Mock responses for now (we'll integrate OpenAI later)
     const mockResponses = [
@@ -106,7 +82,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-responses function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
