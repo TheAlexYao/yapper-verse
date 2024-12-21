@@ -133,7 +133,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center">
+      <div className="flex justify-center gap-4">
         <Button
           variant={isRecording ? "destructive" : "default"}
           onClick={handleRecord}
