@@ -74,7 +74,7 @@ export function PronunciationModal({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 border-2 border-[#38b6ff] hover:bg-[#38b6ff]/10 hover:text-[#38b6ff] transition-colors"
               onClick={() => {
                 if (response.audio_url) {
                   const audio = new Audio(response.audio_url);
@@ -87,7 +87,7 @@ export function PronunciationModal({
             </Button>
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 border-2 border-[#7843e6] hover:bg-[#7843e6]/10 hover:text-[#7843e6] transition-colors"
               onClick={async () => {
                 try {
                   const { data: profile } = await supabase
@@ -98,6 +98,22 @@ export function PronunciationModal({
 
                   if (!profile?.target_language) {
                     throw new Error('Target language not set');
+                  }
+
+                  // Create a cache key that includes the speed parameter
+                  const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-slow`;
+                  
+                  // Check if we have this slow version cached
+                  const { data: cachedAudio } = await supabase
+                    .from('tts_cache')
+                    .select('audio_url')
+                    .eq('text_hash', cacheKey)
+                    .single();
+
+                  if (cachedAudio?.audio_url) {
+                    const audio = new Audio(cachedAudio.audio_url);
+                    audio.play();
+                    return;
                   }
 
                   const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
@@ -111,6 +127,17 @@ export function PronunciationModal({
 
                   if (ttsError) throw ttsError;
                   if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
+
+                  // Cache the slow version
+                  await supabase
+                    .from('tts_cache')
+                    .insert({
+                      text_hash: cacheKey,
+                      text_content: response.text,
+                      language_code: profile.target_language,
+                      voice_gender: profile.voice_preference || 'female',
+                      audio_url: ttsData.audioUrl
+                    });
 
                   const audio = new Audio(ttsData.audioUrl);
                   audio.play();
