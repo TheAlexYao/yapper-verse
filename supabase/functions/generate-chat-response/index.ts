@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.3.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +20,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Initialize OpenAI with proper configuration
-    const configuration = new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
-    const openai = new OpenAIApi(configuration);
 
     // Fetch conversation context
     const { data: conversation, error: convError } = await supabase
@@ -86,26 +79,38 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
     console.log('Calling OpenAI with system prompt:', systemPrompt);
 
-    // Call OpenAI API
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-        { role: 'user', content: lastMessageContent || 'Start the conversation with a greeting appropriate for this scenario' }
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
+    // Call OpenAI API directly using fetch
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+          { 
+            role: 'user', 
+            content: lastMessageContent || 'Start the conversation with a greeting appropriate for this scenario' 
+          }
+        ],
+        temperature: 0.7,
+      }),
     });
 
-    console.log('OpenAI response:', completion.data);
-
-    if (!completion.data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI');
+    if (!openAIResponse.ok) {
+      const error = await openAIResponse.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${error}`);
     }
 
+    const completion = await openAIResponse.json();
+    console.log('OpenAI response:', completion);
+
     // Parse the response
-    const aiResponse = JSON.parse(completion.data.choices[0].message.content);
+    const aiResponse = JSON.parse(completion.choices[0].message.content);
 
     // Insert the AI message into the database
     const { data: newMessage, error: insertError } = await supabase
