@@ -7,6 +7,7 @@ import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -21,14 +22,16 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
+  const { toast } = useToast();
 
   // First, send the initial AI message when the conversation starts
-  useQuery({
+  const { isLoading: isLoadingInitial } = useQuery({
     queryKey: ['initial-message', conversationId],
     queryFn: async () => {
-      if (!conversationId || initialMessageSent || !user?.id) return false;
+      if (!conversationId || initialMessageSent || !user?.id) return null;
       
       try {
+        console.log('Generating initial message for conversation:', conversationId);
         const response = await supabase.functions.invoke('generate-chat-response', {
           body: {
             conversationId,
@@ -37,18 +40,29 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           },
         });
 
-        if (response.error) throw response.error;
+        if (response.error) {
+          console.error('Error generating initial message:', response.error);
+          toast({
+            title: "Error",
+            description: "Failed to start conversation. Please try again.",
+            variant: "destructive",
+          });
+          throw response.error;
+        }
         
-        console.log('Initial AI message:', response.data);
-        await onMessageSend(response.data);
-        setInitialMessageSent(true);
-        return true;
+        if (response.data) {
+          console.log('Initial AI message received:', response.data);
+          await onMessageSend(response.data);
+          setInitialMessageSent(true);
+          return response.data;
+        }
       } catch (error) {
         console.error('Error sending initial message:', error);
-        return false;
+        return null;
       }
     },
     enabled: !!conversationId && !initialMessageSent && !!user?.id,
+    retry: 1,
     staleTime: Infinity, // Only run once per conversation
   });
 
@@ -58,7 +72,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     queryFn: async () => {
       if (!user?.id || !conversationId) return [];
 
-      console.log('Fetching responses for conversation:', conversationId);
       try {
         const response = await supabase.functions.invoke('generate-chat-response', {
           body: {
@@ -94,22 +107,42 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onMessageSend,
     onComplete: () => {
       setSelectedResponse(null);
+      setShowPronunciationModal(false);
     },
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
   const handleResponseSelect = async (response: any) => {
-    const audioUrl = await generateTTS(response.text);
-    setSelectedResponse({ ...response, audio_url: audioUrl });
-    setShowPronunciationModal(true);
+    if (isGeneratingTTS) return;
+    
+    try {
+      const audioUrl = await generateTTS(response.text);
+      setSelectedResponse({ ...response, audio_url: audioUrl });
+      setShowPronunciationModal(true);
+    } catch (error) {
+      console.error('Error generating TTS:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate audio. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     setIsProcessing(true);
-    await handlePronunciationComplete(score, audioBlob);
-    setIsProcessing(false);
-    setShowPronunciationModal(false);
-    setSelectedResponse(null);
+    try {
+      await handlePronunciationComplete(score, audioBlob);
+    } catch (error) {
+      console.error('Error handling pronunciation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process pronunciation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -117,7 +150,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseSelect}
-        isLoading={isLoadingResponses || isGeneratingTTS}
+        isLoading={isLoadingInitial || isLoadingResponses || isGeneratingTTS}
       />
 
       {selectedResponse && showPronunciationModal && (
