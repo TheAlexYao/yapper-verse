@@ -50,6 +50,8 @@ export function ChatContainer({
         (payload) => {
           console.log('Received new message:', payload);
           const newMessage = payload.new;
+          
+          // Format the message to match our Message type
           const formattedMessage: Message = {
             id: newMessage.id,
             conversation_id: newMessage.conversation_id,
@@ -97,6 +99,7 @@ export function ChatContainer({
 
   // Update local messages when props messages change
   useEffect(() => {
+    console.log('Setting initial messages:', messages);
     setLocalMessages(messages);
   }, [messages]);
 
