@@ -13,18 +13,17 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScore }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
 
-  const handlePlayAudio = async (audioUrl: string, setPlayingState: (playing: boolean) => void) => {
-    if (!audioUrl || !onPlayAudio) return;
+  const handlePlayAudio = async () => {
+    if (isPlaying || !message.audio_url || !onPlayAudio) return;
     
-    setPlayingState(true);
+    setIsPlaying(true);
     try {
-      await onPlayAudio(audioUrl);
+      await onPlayAudio(message.audio_url);
     } catch (error) {
       console.error('Error playing audio:', error);
     } finally {
-      setPlayingState(false);
+      setIsPlaying(false);
     }
   };
 
@@ -46,26 +45,14 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
           onShowScore={() => onShowScore?.(message)}
         />
 
-        <div className="flex gap-2">
-          {!isUser && message.tts_audio_url && (
-            <AudioButton
-              onPlay={() => handlePlayAudio(message.tts_audio_url!, setIsPlayingTTS)}
-              isUser={message.isUser}
-              isPlaying={isPlayingTTS}
-              disabled={!message.tts_audio_url}
-              label="TTS"
-            />
-          )}
-          {message.audio_url && (
-            <AudioButton
-              onPlay={() => handlePlayAudio(message.audio_url!, setIsPlaying)}
-              isUser={message.isUser}
-              isPlaying={isPlaying}
-              disabled={!message.audio_url}
-              label="Recording"
-            />
-          )}
-        </div>
+        {message.audio_url && (
+          <AudioButton
+            onPlay={handlePlayAudio}
+            isUser={message.isUser}
+            isPlaying={isPlaying}
+            disabled={!message.audio_url}
+          />
+        )}
       </div>
     </div>
   );

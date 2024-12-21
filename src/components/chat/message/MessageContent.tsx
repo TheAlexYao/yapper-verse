@@ -7,8 +7,6 @@ interface MessageContentProps {
   isUser: boolean;
   pronunciationScore?: number;
   onShowScore?: () => void;
-  ttsAudioUrl?: string;
-  recordedAudioUrl?: string;
 }
 
 export function MessageContent({ 
@@ -17,9 +15,7 @@ export function MessageContent({
   translation, 
   isUser,
   pronunciationScore,
-  onShowScore,
-  ttsAudioUrl,
-  recordedAudioUrl
+  onShowScore
 }: MessageContentProps) {
   return (
     <div className="space-y-1.5 overflow-hidden">

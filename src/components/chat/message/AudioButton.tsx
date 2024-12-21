@@ -1,39 +1,33 @@
 import { Play, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface AudioButtonProps {
   onPlay: () => void;
-  isUser?: boolean;
+  isUser: boolean;
   isPlaying?: boolean;
   disabled?: boolean;
-  label?: string;
 }
 
-export function AudioButton({ 
-  onPlay, 
-  isUser = false, 
-  isPlaying = false, 
-  disabled = false,
-  label
-}: AudioButtonProps) {
+export function AudioButton({ onPlay, isUser, isPlaying, disabled }: AudioButtonProps) {
   return (
     <Button
-      size="sm"
-      variant="secondary"
+      variant="ghost"
+      size="icon"
       className={cn(
-        "gap-1.5",
-        isUser ? "bg-white/20 hover:bg-white/30" : "bg-background/50 hover:bg-background/80"
+        "mt-1 h-6 w-6",
+        isUser 
+          ? "hover:bg-white/10 text-white" 
+          : "hover:bg-accent-foreground/10"
       )}
       onClick={onPlay}
-      disabled={disabled || isPlaying}
+      disabled={isPlaying || disabled}
     >
       {isPlaying ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <Play className="h-4 w-4" />
       )}
-      {label && <span className="text-xs">{label}</span>}
     </Button>
   );
 }
