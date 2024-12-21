@@ -8,6 +8,9 @@ import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { MOCK_RESPONSES } from "./data/mockResponses";
 import { useToast } from "@/hooks/use-toast";
 
+// Cache for TTS responses
+const ttsCache = new Map<string, string>();
+
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
   conversationId: string;
@@ -112,7 +115,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     setIsProcessing(true);
     await handlePronunciationComplete(score, audioBlob);
-    setShowScoreModal(true); // Show score modal immediately after processing
   };
 
   return (
