@@ -24,23 +24,53 @@ export default function GuidedChat() {
     const initializeConversation = async () => {
       if (!user?.id || !character?.id || !scenario?.id) return;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('native_language, target_language')
-        .eq('id', user.id)
-        .single();
+      try {
+        // First get the user's language preferences
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('native_language, target_language')
+          .eq('id', user.id)
+          .single();
 
-      if (!profile?.native_language || !profile?.target_language) return;
+        if (!profile?.native_language || !profile?.target_language) {
+          throw new Error('Language preferences not set');
+        }
 
-      const result = await createConversation.mutateAsync({
-        characterId: character.id,
-        scenarioId: scenario.id,
-        nativeLanguageId: profile.native_language,
-        targetLanguageId: profile.target_language
-      });
+        // Then get the UUIDs for these languages
+        const { data: languages, error: languagesError } = await supabase
+          .from('languages')
+          .select('id, code')
+          .in('code', [profile.native_language, profile.target_language]);
 
-      if (result?.id) {
-        setConversationId(result.id);
+        if (languagesError) throw languagesError;
+        if (!languages || languages.length !== 2) {
+          throw new Error('Could not find language information');
+        }
+
+        const nativeLanguage = languages.find(l => l.code === profile.native_language);
+        const targetLanguage = languages.find(l => l.code === profile.target_language);
+
+        if (!nativeLanguage || !targetLanguage) {
+          throw new Error('Language configuration error');
+        }
+
+        const result = await createConversation.mutateAsync({
+          characterId: character.id,
+          scenarioId: scenario.id,
+          nativeLanguageId: nativeLanguage.id,
+          targetLanguageId: targetLanguage.id
+        });
+
+        if (result?.id) {
+          setConversationId(result.id);
+        }
+      } catch (error) {
+        console.error('Error initializing conversation:', error);
+        toast({
+          title: "Error",
+          description: "Failed to start conversation. Please check your language settings.",
+          variant: "destructive",
+        });
       }
     };
 
@@ -162,4 +192,4 @@ export default function GuidedChat() {
       />
     </div>
   );
-}
+};
