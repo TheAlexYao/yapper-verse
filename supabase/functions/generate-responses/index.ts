@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,7 +16,6 @@ serve(async (req) => {
     const { conversationId, userId } = await req.json();
     console.log('Request params:', { conversationId, userId });
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -37,10 +35,6 @@ serve(async (req) => {
     if (conversationError) {
       console.error('Error fetching conversation:', conversationError);
       throw new Error('Failed to fetch conversation data');
-    }
-
-    if (!conversation) {
-      throw new Error('Conversation not found');
     }
 
     // Get user profile for language context
@@ -63,13 +57,14 @@ serve(async (req) => {
         translation: msg.translation
       }));
 
+    const isFirstMessage = conversation.messages.length === 0;
+
     // Prepare the system prompt
     const systemPrompt = `You are a language learning assistant helping with ${profile.target_language}.
 Current scenario: ${conversation.scenario.title}
 Cultural context: ${conversation.scenario.cultural_notes}
 Character personality: ${conversation.character.language_style?.join(', ') || 'friendly and helpful'}
 User's native language: ${profile.native_language}
-Learning goals: ${profile.learning_goals?.join(', ') || 'general conversation'}
 
 Generate 3 response options that:
 1. Match the user's current language level
@@ -77,7 +72,10 @@ Generate 3 response options that:
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
 4. Consider the character's personality and language style
 
-Each response should be natural and help the learner progress in their language journey.`;
+${isFirstMessage ? "This is the first message, so start with a general greeting and introduction to the scenario." : "Continue the conversation naturally based on the context."}
+
+IMPORTANT: Do not use specific names in greetings unless the user has provided their name.
+Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
     // Call OpenAI API
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -93,7 +91,9 @@ Each response should be natural and help the learner progress in their language 
           ...recentMessages,
           { 
             role: 'user', 
-            content: 'Generate 3 different responses in JSON format with text (in target language), translation (in native language), and hint fields.' 
+            content: isFirstMessage 
+              ? 'Generate a friendly greeting and introduction to the scenario.' 
+              : 'Generate the next response options based on the conversation context.' 
           }
         ],
         response_format: { type: "json_object" },
@@ -101,8 +101,17 @@ Each response should be natural and help the learner progress in their language 
       }),
     });
 
+    if (!openAiResponse.ok) {
+      const errorData = await openAiResponse.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error('Failed to generate responses from OpenAI');
+    }
+
     const aiData = await openAiResponse.json();
+    console.log('OpenAI response:', aiData);
+
     const generatedContent = JSON.parse(aiData.choices[0].message.content);
+    console.log('Parsed generated content:', generatedContent);
 
     // Transform the responses into the expected format
     const responses = generatedContent.responses.map((response: any) => ({
