@@ -15,16 +15,11 @@ serve(async (req) => {
     const { conversationId, userId, lastMessageContent, isInitialMessage } = await req.json();
     console.log('Generating response for:', { conversationId, userId, isInitialMessage });
     
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
-    }
-
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch conversation context with error handling
+    // Fetch conversation context
     const { data: conversation, error: convError } = await supabase
       .from('guided_conversations')
       .select(`
@@ -36,28 +31,18 @@ serve(async (req) => {
       .eq('id', conversationId)
       .single();
 
-    if (convError) {
-      console.error('Error fetching conversation:', convError);
+    if (convError || !conversation) {
       throw new Error('Conversation not found');
     }
 
-    if (!conversation) {
-      throw new Error('Conversation not found');
-    }
-
-    // Fetch user profile with error handling
+    // Fetch user profile for language context
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
-      throw new Error('User profile not found');
-    }
-
-    if (!profile) {
+    if (profileError || !profile) {
       throw new Error('User profile not found');
     }
 
@@ -90,22 +75,17 @@ IMPORTANT: Your response must be in JSON format with these fields:
   "hint": "Optional cultural or usage context"
 }`;
 
-    console.log('Calling OpenAI with system prompt');
+    console.log('Calling OpenAI with system prompt:', systemPrompt);
 
-    const openAIKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
-    // Call OpenAI API with error handling
+    // Call OpenAI API
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages,
@@ -125,25 +105,12 @@ IMPORTANT: Your response must be in JSON format with these fields:
     }
 
     const completion = await openAIResponse.json();
-    console.log('Received OpenAI response');
+    console.log('OpenAI response:', completion);
 
-    // Parse the response with error handling
-    let aiResponse;
-    try {
-      aiResponse = JSON.parse(completion.choices[0].message.content);
-      
-      // Basic validation of required fields
-      if (!aiResponse.content) {
-        console.error('Missing content in parsed response:', aiResponse);
-        throw new Error('Invalid response format: missing content');
-      }
-    } catch (error) {
-      console.error('Error parsing OpenAI response:', error);
-      console.error('Raw response:', completion.choices[0].message.content);
-      throw new Error('Failed to parse AI response');
-    }
+    // Parse the response
+    const aiResponse = JSON.parse(completion.choices[0].message.content);
 
-    // Insert the AI message with error handling
+    // Insert the AI message into the database
     const { data: newMessage, error: insertError } = await supabase
       .from('guided_conversation_messages')
       .insert({
@@ -157,7 +124,6 @@ IMPORTANT: Your response must be in JSON format with these fields:
       .single();
 
     if (insertError) {
-      console.error('Error inserting message:', insertError);
       throw insertError;
     }
 
@@ -167,15 +133,9 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
   } catch (error) {
     console.error('Error in generate-chat-response function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred',
-        details: error.toString()
-      }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
