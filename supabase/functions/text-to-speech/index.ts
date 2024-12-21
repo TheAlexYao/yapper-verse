@@ -83,10 +83,8 @@ serve(async (req) => {
 
     speechConfig.speechSynthesisVoiceName = voiceName;
     
-    // Set output format to audio/wav
-    speechConfig.setSpeechSynthesisOutputFormat(
-      sdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm
-    );
+    // Set output format using the correct property
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm;
 
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${validatedData.languageCode}">
