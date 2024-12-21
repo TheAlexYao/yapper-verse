@@ -16,7 +16,14 @@ export function AudioControls({ response }: AudioControlsProps) {
   const handlePlayNormalSpeed = () => {
     if (response.audio_url) {
       const audio = new Audio(response.audio_url);
-      audio.play();
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Error",
+          description: "Failed to play audio. Please try again.",
+          variant: "destructive",
+        });
+      });
     }
   };
 
@@ -32,8 +39,10 @@ export function AudioControls({ response }: AudioControlsProps) {
         throw new Error('Target language not set');
       }
 
+      // Create a cache key that includes the speed parameter
       const cacheKey = encodeURIComponent(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-slow`);
       
+      // Check if we have this slow version cached
       const { data: cachedAudio } = await supabase
         .from('tts_cache')
         .select('audio_url')
@@ -58,6 +67,7 @@ export function AudioControls({ response }: AudioControlsProps) {
       if (ttsError) throw ttsError;
       if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
 
+      // Cache the slow version
       await supabase
         .from('tts_cache')
         .insert({
