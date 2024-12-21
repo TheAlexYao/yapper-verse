@@ -6,9 +6,10 @@ interface AudioButtonProps {
   onPlay: () => void;
   isUser: boolean;
   isPlaying?: boolean;
+  disabled?: boolean;
 }
 
-export function AudioButton({ onPlay, isUser, isPlaying }: AudioButtonProps) {
+export function AudioButton({ onPlay, isUser, isPlaying, disabled }: AudioButtonProps) {
   return (
     <Button
       variant="ghost"
@@ -20,7 +21,7 @@ export function AudioButton({ onPlay, isUser, isPlaying }: AudioButtonProps) {
           : "hover:bg-accent-foreground/10"
       )}
       onClick={onPlay}
-      disabled={isPlaying}
+      disabled={isPlaying || disabled}
     >
       {isPlaying ? (
         <Loader2 className="h-4 w-4 animate-spin" />

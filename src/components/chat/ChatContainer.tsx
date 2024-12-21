@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ChatMessages } from "./ChatMessages";
 import { ChatMetricsContainer } from "./ChatMetricsContainer";
 import { ChatResponseHandler } from "./ChatResponseHandler";
@@ -19,12 +20,25 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
 
-  const handlePlayTTS = async (text: string) => {
-    const audioUrl = await generateTTS(text);
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      await audio.play();
+  useEffect(() => {
+    const generateAudioForNewMessage = async () => {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url) {
+        const audioUrl = await generateTTS(lastMessage.text);
+        if (audioUrl) {
+          lastMessage.audio_url = audioUrl;
+        }
+      }
+    };
+
+    if (messages.length > 0) {
+      generateAudioForNewMessage();
     }
+  }, [messages, generateTTS]);
+
+  const handlePlayTTS = async (text: string) => {
+    const audio = new Audio(text);
+    await audio.play();
   };
 
   return (

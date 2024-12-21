@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
-import { PronunciationScoreModal } from "./pronunciation/PronunciationScoreModal";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
@@ -15,8 +14,6 @@ interface ChatResponseHandlerProps {
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
-  const [pronunciationData, setPronunciationData] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
@@ -25,15 +22,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     conversationId, 
     onMessageSend: (message: Message) => {
       onMessageSend(message);
-      if (message.pronunciation_data) {
-        setPronunciationData({
-          ...message.pronunciation_data,
-          audioUrl: message.audio_url,
-          nativeAudioUrl: message.reference_audio_url
-        });
-        setIsProcessing(false);
-        setShowScoreModal(true);
-      }
+      setIsProcessing(false);
     },
     onComplete: () => {
       setSelectedResponse(null);
@@ -71,16 +60,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           response={selectedResponse}
           onSubmit={handlePronunciationSubmit}
           isProcessing={isProcessing}
-        />
-      )}
-
-      {pronunciationData && showScoreModal && (
-        <PronunciationScoreModal
-          isOpen={showScoreModal}
-          onClose={() => setShowScoreModal(false)}
-          data={pronunciationData}
-          userAudioUrl={pronunciationData.audioUrl}
-          referenceAudioUrl={pronunciationData.nativeAudioUrl}
         />
       )}
     </>
