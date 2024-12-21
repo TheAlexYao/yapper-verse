@@ -82,7 +82,6 @@ export function PronunciationModal({
                 }
               }}
             >
-              <Play className="mr-2 h-4 w-4" />
               Normal Speed
             </Button>
             <Button
@@ -100,8 +99,8 @@ export function PronunciationModal({
                     throw new Error('Target language not set');
                   }
 
-                  // Create a cache key that includes the speed parameter
-                  const cacheKey = `${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-slow`;
+                  // Create a cache key that includes the speed parameter and properly encode it
+                  const cacheKey = encodeURIComponent(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-slow`);
                   
                   // Check if we have this slow version cached
                   const { data: cachedAudio } = await supabase
@@ -151,7 +150,7 @@ export function PronunciationModal({
                 }
               }}
             >
-              <Turtle className="mr-2 h-4 w-4" />
+              <Turtle className="mr-2 h-6 w-6" />
               Slow Speed
             </Button>
           </div>
