@@ -13,6 +13,7 @@ interface MessageBubbleProps {
     pronunciation_score?: number;
     pronunciation_data?: any;
     audio_url?: string;
+    reference_audio_url?: string;  // Added this field
   };
   onPlayAudio?: () => void;
 }
@@ -92,6 +93,8 @@ export function MessageBubble({ isUser, message, onPlayAudio }: MessageBubblePro
           isOpen={showScoreModal}
           onClose={() => setShowScoreModal(false)}
           data={message.pronunciation_data}
+          userAudioUrl={message.audio_url}
+          referenceAudioUrl={message.reference_audio_url}
         />
       )}
     </>
