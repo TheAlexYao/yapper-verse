@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChatMessages } from "./ChatMessages";
 import { ChatMetricsContainer } from "./ChatMetricsContainer";
 import { ChatResponseHandler } from "./ChatResponseHandler";
@@ -21,6 +21,15 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     const generateAudioForNewMessage = async () => {
@@ -53,13 +62,16 @@ export function ChatContainer({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background pt-16">
       <div className="flex-1 overflow-y-auto pb-[200px] md:pb-[180px]">
-        <ChatMessages 
-          messages={messages} 
-          onPlayAudio={handlePlayTTS}
-          onShowScore={setSelectedMessageForScore}
-        />
+        <div className="container max-w-3xl mx-auto px-4">
+          <ChatMessages 
+            messages={messages} 
+            onPlayAudio={handlePlayTTS}
+            onShowScore={setSelectedMessageForScore}
+          />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm">
