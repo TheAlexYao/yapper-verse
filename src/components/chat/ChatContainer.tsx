@@ -61,6 +61,7 @@ export function ChatContainer({
             pronunciation_score: newMessage.pronunciation_score,
             pronunciation_data: newMessage.pronunciation_data,
             audio_url: newMessage.audio_url,
+            reference_audio_url: newMessage.reference_audio_url,
             isUser: newMessage.is_user
           };
 
@@ -74,6 +75,11 @@ export function ChatContainer({
             console.log('Adding new message to state:', formattedMessage);
             return [...prevMessages, formattedMessage];
           });
+
+          // Generate TTS for new AI messages
+          if (!formattedMessage.isUser && !formattedMessage.audio_url) {
+            generateTTSForMessage(formattedMessage);
+          }
         }
       );
 
@@ -103,38 +109,29 @@ export function ChatContainer({
     setLocalMessages(messages);
   }, [messages]);
 
-  // Handle TTS generation for new AI messages
-  useEffect(() => {
-    const generateAudioForNewMessage = async () => {
-      const lastMessage = localMessages[localMessages.length - 1];
-      if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url && !isGeneratingTTS) {
-        setIsGeneratingTTS(true);
-        try {
-          console.log('Generating TTS for new AI message:', lastMessage.text);
-          const audioUrl = await generateTTS(lastMessage.text);
-          if (audioUrl) {
-            // Update the message with the audio URL
-            setLocalMessages(prev => 
-              prev.map(msg => 
-                msg.id === lastMessage.id 
-                  ? { ...msg, audio_url: audioUrl }
-                  : msg
-              )
-            );
-            console.log('TTS generated successfully:', audioUrl);
-          }
-        } catch (error) {
-          console.error('Error generating TTS:', error);
-        } finally {
-          setIsGeneratingTTS(false);
-        }
+  const generateTTSForMessage = async (message: Message) => {
+    if (!message.text || isGeneratingTTS) return;
+    
+    setIsGeneratingTTS(true);
+    try {
+      console.log('Generating TTS for message:', message.text);
+      const audioUrl = await generateTTS(message.text);
+      if (audioUrl) {
+        setLocalMessages(prev => 
+          prev.map(msg => 
+            msg.id === message.id 
+              ? { ...msg, audio_url: audioUrl }
+              : msg
+          )
+        );
+        console.log('TTS generated successfully:', audioUrl);
       }
-    };
-
-    if (localMessages.length > 0) {
-      generateAudioForNewMessage();
+    } catch (error) {
+      console.error('Error generating TTS:', error);
+    } finally {
+      setIsGeneratingTTS(false);
     }
-  }, [localMessages, generateTTS, isGeneratingTTS]);
+  };
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
