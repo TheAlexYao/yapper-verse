@@ -81,10 +81,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Pre-generate both normal and slow speed audio
-      const [normalAudioUrl] = await Promise.all([
-        generateTTS(response.text, profile.voice_preference || 'female', 'normal'),
-      ]);
+      // Pre-generate normal speed audio only
+      const normalAudioUrl = await generateTTS(response.text, profile.voice_preference || 'female', 'normal');
       
       // Store both the response and the generated audio URL
       setSelectedResponse({ 
