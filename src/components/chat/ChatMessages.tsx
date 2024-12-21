@@ -8,6 +8,7 @@ const transformMessage = (message: GuidedMessage) => ({
   ...message,
   text: message.content,
   isUser: message.is_user,
+  reference_audio_url: message.reference_audio_url, // Add this field
 });
 
 interface ChatMessagesProps {

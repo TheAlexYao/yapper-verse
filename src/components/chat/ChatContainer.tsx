@@ -30,6 +30,7 @@ export function ChatContainer({
             pronunciation_score: msg.pronunciation_score,
             pronunciation_data: msg.pronunciation_data,
             audio_url: msg.audio_url,
+            reference_audio_url: msg.reference_audio_url,
           }))} 
           onPlayAudio={onPlayTTS} 
         />
