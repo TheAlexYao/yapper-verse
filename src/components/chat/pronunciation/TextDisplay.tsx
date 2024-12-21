@@ -8,9 +8,10 @@ interface TextDisplayProps {
   translation: string;
   transliteration?: string;
   audio_url?: string;
+  phonetics?: string;
 }
 
-export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
+export function TextDisplay({ text, translation, transliteration, audio_url, phonetics }: TextDisplayProps) {
   const [isGeneratingSlowAudio, setIsGeneratingSlowAudio] = useState(false);
   const [slowAudioUrl, setSlowAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -73,6 +74,11 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
           {transliteration && (
             <p className="text-sm italic text-muted-foreground">
               {transliteration}
+            </p>
+          )}
+          {phonetics && (
+            <p className="text-sm font-mono text-muted-foreground">
+              /{phonetics}/
             </p>
           )}
           <p className="text-sm text-muted-foreground">{translation}</p>
