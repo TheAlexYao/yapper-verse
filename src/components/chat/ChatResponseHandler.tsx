@@ -7,12 +7,24 @@ import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { INITIAL_AI_MESSAGE } from "./data/mockResponses";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
   conversationId: string;
 }
+
+const INITIAL_AI_MESSAGE: Message = {
+  id: crypto.randomUUID(),
+  conversation_id: '', // This will be set dynamically
+  text: "Bonjour! Je suis Pierre, votre serveur aujourd'hui. Que puis-je vous servir?",
+  translation: "Hello! I'm Pierre, your waiter today. What can I serve you?",
+  transliteration: "bohn-ZHOOR! zhuh swee pyehr, voh-truh sehr-vuhr oh-zhoor-dwee. kuh pwee-zhuh voo sehr-veer?",
+  isUser: false,
+  audio_url: '',
+  pronunciation_score: null,
+  pronunciation_data: null,
+  reference_audio_url: null
+};
 
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
@@ -28,8 +40,12 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     queryFn: async () => {
       if (!conversationId) return false;
       
-      // Send the initial AI message
-      await onMessageSend(INITIAL_AI_MESSAGE);
+      // Send the initial AI message with the correct conversation_id
+      const initialMessage = {
+        ...INITIAL_AI_MESSAGE,
+        conversation_id: conversationId
+      };
+      await onMessageSend(initialMessage);
       return true;
     },
     enabled: !!conversationId,
