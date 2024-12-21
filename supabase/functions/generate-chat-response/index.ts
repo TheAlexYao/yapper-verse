@@ -115,7 +115,6 @@ IMPORTANT: Your response must be in JSON format with these fields:
           }
         ],
         temperature: 0.7,
-        response_format: { type: "json_object" }  // Force JSON response format
       }),
     });
 
@@ -128,23 +127,12 @@ IMPORTANT: Your response must be in JSON format with these fields:
     const completion = await openAIResponse.json();
     console.log('Received OpenAI response');
 
-    if (!completion.choices?.[0]?.message?.content) {
-      console.error('Invalid OpenAI response structure:', completion);
-      throw new Error('Invalid response structure from OpenAI');
-    }
-
-    // Parse the response with error handling and validation
+    // Parse the response with error handling
     let aiResponse;
     try {
       aiResponse = JSON.parse(completion.choices[0].message.content);
-      
-      // Validate required fields
-      if (!aiResponse.content || !aiResponse.translation) {
-        throw new Error('Missing required fields in OpenAI response');
-      }
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
-      console.error('Raw response content:', completion.choices[0].message.content);
       throw new Error('Invalid response format from OpenAI');
     }
 
