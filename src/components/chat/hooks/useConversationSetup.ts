@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
@@ -13,13 +13,21 @@ export function useConversationSetup(character: any, scenario: any) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
+  const channelRef = useRef<any>(null);
 
-  // Set up subscription outside the main effect
+  // Set up subscription
   useEffect(() => {
     if (!conversationId) return;
 
     console.log('Setting up message subscription for conversation:', conversationId);
-    const subscription = supabase
+    
+    // Clean up existing subscription if any
+    if (channelRef.current) {
+      console.log('Cleaning up existing subscription');
+      channelRef.current.unsubscribe();
+    }
+
+    const channel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
         'postgres_changes',
@@ -44,16 +52,38 @@ export function useConversationSetup(character: any, scenario: any) {
             isUser: newMessage.is_user
           };
           
-          setMessages(prevMessages => [...prevMessages, formattedMessage]);
+          setMessages(prevMessages => {
+            // Check if message already exists
+            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
+            if (exists) {
+              console.log('Message already exists, skipping:', formattedMessage.id);
+              return prevMessages;
+            }
+            console.log('Adding new message to state:', formattedMessage);
+            return [...prevMessages, formattedMessage];
+          });
         }
-      )
-      .subscribe();
+      );
+
+    // Store channel reference
+    channelRef.current = channel;
+
+    // Subscribe to channel
+    channel.subscribe((status: string) => {
+      console.log('Subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        console.log('Successfully subscribed to conversation:', conversationId);
+      }
+    });
 
     return () => {
       console.log('Cleaning up message subscription');
-      subscription.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
     };
-  }, [conversationId]); // Only depend on conversationId
+  }, [conversationId]);
 
   // Main setup effect
   useEffect(() => {
