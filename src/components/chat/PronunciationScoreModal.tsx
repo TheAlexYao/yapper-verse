@@ -6,8 +6,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Play } from "lucide-react";
 
 interface PronunciationData {
   score?: number;
@@ -106,7 +104,7 @@ export function PronunciationScoreModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Pronunciation Feedback</DialogTitle>
           <DialogDescription>
@@ -136,6 +134,20 @@ export function PronunciationScoreModal({
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* AI Feedback Section - Moved up */}
+          {aiFeedback && aiFeedback.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-medium">AI Feedback</h3>
+              <div className="space-y-2">
+                {aiFeedback.map((feedback, index) => (
+                  <p key={index} className="text-sm text-muted-foreground">
+                    {feedback}
+                  </p>
+                ))}
               </div>
             </div>
           )}
@@ -188,6 +200,7 @@ export function PronunciationScoreModal({
             </div>
           )}
 
+          {/* Word Analysis Section */}
           {words.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-medium">Word-by-Word Analysis</h3>
@@ -220,20 +233,7 @@ export function PronunciationScoreModal({
             </div>
           )}
 
-          {/* AI Feedback Section */}
-          {aiFeedback && aiFeedback.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-medium">AI Feedback</h3>
-              <div className="space-y-2">
-                {aiFeedback.map((feedback, index) => (
-                  <p key={index} className="text-sm text-muted-foreground">
-                    {feedback}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* Additional Feedback Section */}
           {data.feedback && (
             <div className="space-y-2">
               <h3 className="font-medium">Additional Feedback</h3>
@@ -241,6 +241,7 @@ export function PronunciationScoreModal({
             </div>
           )}
 
+          {/* Suggestions Section */}
           {data.suggestions && data.suggestions.length > 0 && (
             <div className="space-y-2">
               <h3 className="font-medium">Suggestions</h3>
