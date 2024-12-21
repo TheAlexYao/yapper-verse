@@ -21,6 +21,7 @@ interface PronunciationModalProps {
     transliteration?: string;
     audio_url?: string;
     phonetics?: string;
+    languageCode?: string;
   };
   onSubmit: (score: number, audioBlob?: Blob) => void;
   isProcessing: boolean;

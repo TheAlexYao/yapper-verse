@@ -70,8 +70,26 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     if (isGeneratingTTS) return;
     
     try {
-      const audioUrl = await generateTTS(response.text, response.characterGender);
-      setSelectedResponse({ ...response, audio_url: audioUrl });
+      // First, get the user's profile to determine voice preference
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language, voice_preference')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set');
+      }
+
+      // Generate normal speed audio first
+      const normalAudioUrl = await generateTTS(response.text, profile.voice_preference || 'female');
+      
+      // Store both the response and the generated audio URL
+      setSelectedResponse({ 
+        ...response, 
+        audio_url: normalAudioUrl,
+        languageCode: profile.target_language
+      });
       setShowPronunciationModal(true);
     } catch (error) {
       console.error('Error generating TTS:', error);
