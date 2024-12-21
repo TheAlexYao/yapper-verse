@@ -121,39 +121,26 @@ export function PronunciationScoreModal({
               <h3 className="font-medium">Audio Comparison</h3>
               <div className="space-y-2">
                 {referenceAudioUrl && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
-                    <span className="text-sm font-medium">Native Speaker</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const audio = new Audio(referenceAudioUrl);
-                        audio.play();
-                      }}
-                    >
-                      <Play className="h-4 w-4" />
-                    </Button>
+                  <div className="p-4 rounded-lg bg-accent/50">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Native Speaker</p>
+                      <audio src={referenceAudioUrl} controls className="w-full" />
+                    </div>
                   </div>
                 )}
                 {userAudioUrl && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
-                    <span className="text-sm font-medium">Your Recording</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const audio = new Audio(userAudioUrl);
-                        audio.play();
-                      }}
-                    >
-                      <Play className="h-4 w-4" />
-                    </Button>
+                  <div className="p-4 rounded-lg bg-accent/50">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Your Recording</p>
+                      <audio src={userAudioUrl} controls className="w-full" />
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           )}
 
+          {/* Overall Scores Section */}
           {assessment && (
             <div className="space-y-4">
               <h3 className="font-medium">Overall Scores</h3>

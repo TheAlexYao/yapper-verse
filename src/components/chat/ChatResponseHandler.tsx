@@ -13,9 +13,6 @@ interface ChatResponseHandlerProps {
   conversationId: string;
 }
 
-// Cache for TTS responses
-const ttsCache = new Map<string, string>();
-
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
@@ -30,8 +27,13 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onMessageSend: (message: Message) => {
       onMessageSend(message);
       if (message.pronunciation_data) {
-        setPronunciationData(message.pronunciation_data);
+        setPronunciationData({
+          ...message.pronunciation_data,
+          audioUrl: message.audio_url,
+          nativeAudioUrl: selectedResponse?.audio_url
+        });
         setIsProcessing(false);
+        setShowScoreModal(true);
       }
     },
     onComplete: () => {
@@ -139,8 +141,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           isOpen={showScoreModal}
           onClose={() => setShowScoreModal(false)}
           data={pronunciationData}
-          userAudioUrl={pronunciationData.audio_url}
-          referenceAudioUrl={selectedResponse?.audio_url}
+          userAudioUrl={pronunciationData.audioUrl}
+          referenceAudioUrl={pronunciationData.nativeAudioUrl}
         />
       )}
     </>
