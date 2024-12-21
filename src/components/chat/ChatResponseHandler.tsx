@@ -7,6 +7,7 @@ import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
+import { MOCK_RESPONSES } from "./data/mockResponses";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -21,10 +22,10 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   
-  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
+  const { data: responses = MOCK_RESPONSES, isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
-      if (!user?.id || !conversationId) return [];
+      if (!user?.id || !conversationId) return MOCK_RESPONSES;
 
       const response = await supabase.functions.invoke('generate-responses', {
         body: {
@@ -37,7 +38,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error(response.error.message);
       }
 
-      return response.data?.responses || [];
+      return response.data?.responses || MOCK_RESPONSES;
     },
     enabled: !!conversationId && !!user?.id,
   });
