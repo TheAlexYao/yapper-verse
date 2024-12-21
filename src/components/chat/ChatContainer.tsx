@@ -20,14 +20,25 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
+  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
 
   useEffect(() => {
     const generateAudioForNewMessage = async () => {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url) {
-        const audioUrl = await generateTTS(lastMessage.text);
-        if (audioUrl) {
-          lastMessage.audio_url = audioUrl;
+      if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url && !isGeneratingTTS) {
+        setIsGeneratingTTS(true);
+        try {
+          console.log('Generating TTS for new AI message:', lastMessage.text);
+          const audioUrl = await generateTTS(lastMessage.text);
+          if (audioUrl) {
+            // Update the message with the audio URL
+            lastMessage.audio_url = audioUrl;
+            console.log('TTS generated successfully:', audioUrl);
+          }
+        } catch (error) {
+          console.error('Error generating TTS:', error);
+        } finally {
+          setIsGeneratingTTS(false);
         }
       }
     };
@@ -35,7 +46,7 @@ export function ChatContainer({
     if (messages.length > 0) {
       generateAudioForNewMessage();
     }
-  }, [messages, generateTTS]);
+  }, [messages, generateTTS, isGeneratingTTS]);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
