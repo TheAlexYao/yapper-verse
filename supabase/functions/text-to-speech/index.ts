@@ -155,7 +155,11 @@ serve(async (req) => {
 
     } finally {
       if (synthesizer) {
-        synthesizer.close();
+        try {
+          synthesizer.close();
+        } catch (error) {
+          console.error('Error closing synthesizer in inner finally block:', error);
+        }
       }
     }
 
@@ -177,7 +181,7 @@ serve(async (req) => {
       try {
         synthesizer.close();
       } catch (error) {
-        console.error('Error disposing synthesizer:', error);
+        console.error('Error disposing synthesizer in outer finally block:', error);
       }
     }
   }
