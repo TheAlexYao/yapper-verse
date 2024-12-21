@@ -28,9 +28,8 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
         } 
       });
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Use standard WebM format which is widely supported
+      const mediaRecorder = new MediaRecorder(stream);
       
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -42,40 +41,53 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
       };
 
       mediaRecorder.onstop = async () => {
-        // Create high quality audio blob
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         const audioContext = new AudioContext();
         
         try {
-          // Convert WebM to AudioBuffer
+          console.log('Converting audio to buffer...');
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
           
-          // Create offline context for conversion
+          console.log('Original audio specs:', {
+            sampleRate: audioBuffer.sampleRate,
+            channels: audioBuffer.numberOfChannels,
+            duration: audioBuffer.duration
+          });
+
+          // Create offline context for downsampling to 16kHz mono
           const offlineContext = new OfflineAudioContext({
-            numberOfChannels: 1, // Convert to mono
-            length: Math.ceil(audioBuffer.duration * 16000), // Calculate length at 16kHz
-            sampleRate: 16000 // Target sample rate for Speech Services
+            numberOfChannels: 1,
+            length: Math.ceil(audioBuffer.duration * 16000),
+            sampleRate: 16000
           });
           
-          // Create buffer source
           const source = offlineContext.createBufferSource();
           source.buffer = audioBuffer;
           source.connect(offlineContext.destination);
           source.start();
           
-          // Render audio
+          console.log('Rendering audio at 16kHz mono...');
           const renderedBuffer = await offlineContext.startRendering();
           
+          console.log('Converted audio specs:', {
+            sampleRate: renderedBuffer.sampleRate,
+            channels: renderedBuffer.numberOfChannels,
+            duration: renderedBuffer.duration
+          });
+
           // Convert to 16-bit PCM WAV
           const wavBuffer = audioBufferToWav(renderedBuffer);
           const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
           
           // Create URL for audio preview
-          setAudioUrl(URL.createObjectURL(wavBlob));
+          const url = URL.createObjectURL(wavBlob);
+          setAudioUrl(url);
           setHasRecording(true);
           setIsRecording(false);
           onRecordingComplete(wavBlob);
+
+          console.log('Audio conversion completed successfully');
         } catch (error) {
           console.error('Error converting audio:', error);
           toast({
