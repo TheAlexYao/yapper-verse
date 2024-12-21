@@ -15,11 +15,16 @@ serve(async (req) => {
     const { conversationId, userId, lastMessageContent, isInitialMessage } = await req.json();
     console.log('Generating response for:', { conversationId, userId, isInitialMessage });
     
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch conversation context
+    // Fetch conversation context with error handling
     const { data: conversation, error: convError } = await supabase
       .from('guided_conversations')
       .select(`
@@ -31,18 +36,28 @@ serve(async (req) => {
       .eq('id', conversationId)
       .single();
 
-    if (convError || !conversation) {
+    if (convError) {
+      console.error('Error fetching conversation:', convError);
       throw new Error('Conversation not found');
     }
 
-    // Fetch user profile for language context
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    // Fetch user profile with error handling
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (profileError || !profile) {
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      throw new Error('User profile not found');
+    }
+
+    if (!profile) {
       throw new Error('User profile not found');
     }
 
@@ -75,17 +90,22 @@ IMPORTANT: Your response must be in JSON format with these fields:
   "hint": "Optional cultural or usage context"
 }`;
 
-    console.log('Calling OpenAI with system prompt:', systemPrompt);
+    console.log('Calling OpenAI with system prompt');
 
-    // Call OpenAI API
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    // Call OpenAI API with error handling
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages,
@@ -105,12 +125,18 @@ IMPORTANT: Your response must be in JSON format with these fields:
     }
 
     const completion = await openAIResponse.json();
-    console.log('OpenAI response:', completion);
+    console.log('Received OpenAI response');
 
-    // Parse the response
-    const aiResponse = JSON.parse(completion.choices[0].message.content);
+    // Parse the response with error handling
+    let aiResponse;
+    try {
+      aiResponse = JSON.parse(completion.choices[0].message.content);
+    } catch (error) {
+      console.error('Error parsing OpenAI response:', error);
+      throw new Error('Invalid response format from OpenAI');
+    }
 
-    // Insert the AI message into the database
+    // Insert the AI message with error handling
     const { data: newMessage, error: insertError } = await supabase
       .from('guided_conversation_messages')
       .insert({
@@ -124,6 +150,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
       .single();
 
     if (insertError) {
+      console.error('Error inserting message:', insertError);
       throw insertError;
     }
 
@@ -133,9 +160,15 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
   } catch (error) {
     console.error('Error in generate-chat-response function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
