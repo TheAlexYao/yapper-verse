@@ -68,25 +68,6 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
-        <div className="flex gap-2">
-          <Button 
-            variant="secondary" 
-            size="icon" 
-            className="shrink-0"
-            onClick={handlePlayNormalAudio}
-          >
-            <PlayCircle className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="shrink-0"
-            onClick={handleGenerateSlowAudio}
-            disabled={isGeneratingSlowAudio}
-          >
-            <Volume2 className="h-4 w-4" />
-          </Button>
-        </div>
         <div className="flex-1 space-y-1">
           <p className="font-medium">{text}</p>
           {transliteration && (
