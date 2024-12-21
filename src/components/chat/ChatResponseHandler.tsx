@@ -13,18 +13,6 @@ interface ChatResponseHandlerProps {
   conversationId: string;
 }
 
-const INITIAL_AI_MESSAGE: Omit<Message, 'conversation_id'> = {
-  id: crypto.randomUUID(),
-  text: "Bonjour! Je suis Pierre, votre serveur aujourd'hui. Que puis-je vous servir?",
-  translation: "Hello! I'm Pierre, your waiter today. What can I serve you?",
-  transliteration: "bohn-ZHOOR! zhuh swee pyehr, voh-truh sehr-vuhr oh-zhoor-dwee. kuh pwee-zhuh voo sehr-veer?",
-  isUser: false,
-  audio_url: '',
-  pronunciation_score: null,
-  pronunciation_data: null,
-  reference_audio_url: null
-};
-
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
@@ -38,20 +26,29 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   useQuery({
     queryKey: ['initial-message', conversationId],
     queryFn: async () => {
-      if (!conversationId || initialMessageSent) return false;
+      if (!conversationId || initialMessageSent || !user?.id) return false;
       
-      // Send the initial AI message with the correct conversation_id
-      const initialMessage: Message = {
-        ...INITIAL_AI_MESSAGE,
-        conversation_id: conversationId
-      };
-      
-      console.log('Sending initial message:', initialMessage);
-      await onMessageSend(initialMessage);
-      setInitialMessageSent(true);
-      return true;
+      try {
+        const response = await supabase.functions.invoke('generate-chat-response', {
+          body: {
+            conversationId,
+            userId: user.id,
+            lastMessageContent: null // This signals it's the initial message
+          },
+        });
+
+        if (response.error) throw response.error;
+        
+        console.log('Initial AI message:', response.data);
+        await onMessageSend(response.data);
+        setInitialMessageSent(true);
+        return true;
+      } catch (error) {
+        console.error('Error sending initial message:', error);
+        return false;
+      }
     },
-    enabled: !!conversationId && !initialMessageSent,
+    enabled: !!conversationId && !initialMessageSent && !!user?.id,
     staleTime: Infinity, // Only run once per conversation
   });
 
@@ -63,7 +60,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
 
       console.log('Fetching responses for conversation:', conversationId);
       try {
-        const response = await supabase.functions.invoke('generate-responses', {
+        const response = await supabase.functions.invoke('generate-chat-response', {
           body: {
             conversationId,
             userId: user.id,
@@ -75,8 +72,14 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           throw response.error;
         }
 
-        console.log('Received responses:', response.data?.responses);
-        return response.data?.responses || [];
+        // Transform the response into the expected format
+        const aiResponse = response.data;
+        return [{
+          id: crypto.randomUUID(),
+          text: aiResponse.content,
+          translation: aiResponse.translation,
+          hint: aiResponse.hint
+        }];
       } catch (error) {
         console.error('Error fetching responses:', error);
         return [];
