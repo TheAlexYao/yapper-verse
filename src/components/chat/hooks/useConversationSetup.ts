@@ -39,12 +39,11 @@ export function useConversationSetup(character: any, scenario: any) {
           throw new Error('Language preferences not set');
         }
 
-        // Get language IDs with proper headers
+        // Get language IDs
         const { data: languages, error: languagesError } = await supabase
           .from('languages')
           .select('id, code')
-          .in('code', [profile.native_language, profile.target_language])
-          .order('code', { ascending: true });
+          .in('code', [profile.native_language, profile.target_language]);
 
         if (languagesError || !languages || languages.length !== 2) {
           console.error('Error fetching languages:', languagesError);
@@ -59,7 +58,7 @@ export function useConversationSetup(character: any, scenario: any) {
           throw new Error('Language IDs not found');
         }
 
-        // Check for existing conversation with proper headers
+        // Check for existing conversation
         const { data: existingConversation, error: existingError } = await supabase
           .from('guided_conversations')
           .select('id')
@@ -74,13 +73,13 @@ export function useConversationSetup(character: any, scenario: any) {
           throw existingError;
         }
 
-        let conversationId: string;
+        let newConversationId: string;
 
         if (existingConversation) {
           console.log('Found existing conversation:', existingConversation.id);
-          conversationId = existingConversation.id;
+          newConversationId = existingConversation.id;
         } else {
-          // Create new conversation with proper headers
+          // Create new conversation
           const { data: newConversation, error: conversationError } = await supabase
             .from('guided_conversations')
             .insert({
@@ -106,16 +105,32 @@ export function useConversationSetup(character: any, scenario: any) {
           }
 
           console.log('Created new conversation:', newConversation.id);
-          conversationId = newConversation.id;
+          newConversationId = newConversation.id;
+
+          // Generate initial AI message for new conversations
+          const { error: generateError } = await supabase.functions.invoke('generate-chat-response', {
+            body: {
+              conversationId: newConversationId,
+              userId: user.id,
+              isInitialMessage: true
+            },
+          });
+
+          if (generateError) {
+            console.error('Error generating initial message:', generateError);
+            throw generateError;
+          }
+
+          console.log('Initial message generation triggered');
         }
 
-        setConversationId(conversationId);
+        setConversationId(newConversationId);
 
-        // Fetch initial messages with proper headers
+        // Fetch initial messages
         const { data: existingMessages, error: messagesError } = await supabase
           .from('guided_conversation_messages')
           .select('*')
-          .eq('conversation_id', conversationId)
+          .eq('conversation_id', newConversationId)
           .order('created_at', { ascending: true });
 
         if (messagesError) {
@@ -140,14 +155,14 @@ export function useConversationSetup(character: any, scenario: any) {
 
         // Subscribe to new messages
         const channel = supabase
-          .channel(`conversation:${conversationId}`)
+          .channel(`conversation:${newConversationId}`)
           .on(
             'postgres_changes',
             {
               event: 'INSERT',
               schema: 'public',
               table: 'guided_conversation_messages',
-              filter: `conversation_id=eq.${conversationId}`
+              filter: `conversation_id=eq.${newConversationId}`
             },
             (payload) => {
               console.log('Received new message:', payload);
