@@ -32,7 +32,7 @@ export function ChatContainer({
             audio_url: msg.audio_url,
             reference_audio_url: msg.reference_audio_url,
           }))} 
-          onPlayAudio={onPlayTTS} 
+          onPlayAudio={onPlayTTS}
         />
       </div>
 

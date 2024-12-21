@@ -1,13 +1,14 @@
-import { Play } from "lucide-react";
+import { Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface AudioButtonProps {
   onPlay: () => void;
   isUser: boolean;
+  isPlaying?: boolean;
 }
 
-export function AudioButton({ onPlay, isUser }: AudioButtonProps) {
+export function AudioButton({ onPlay, isUser, isPlaying }: AudioButtonProps) {
   return (
     <Button
       variant="ghost"
@@ -19,8 +20,13 @@ export function AudioButton({ onPlay, isUser }: AudioButtonProps) {
           : "hover:bg-accent-foreground/10"
       )}
       onClick={onPlay}
+      disabled={isPlaying}
     >
-      <Play className="h-4 w-4" />
+      {isPlaying ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Play className="h-4 w-4" />
+      )}
     </Button>
   );
 }

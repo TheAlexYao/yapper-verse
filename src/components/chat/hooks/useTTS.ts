@@ -61,7 +61,7 @@ export function useTTS() {
       console.error('TTS error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio for comparison. Please try again.",
+        description: "Failed to generate audio. Please try again.",
         variant: "destructive",
       });
       return null;

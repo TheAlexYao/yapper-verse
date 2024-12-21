@@ -20,13 +20,23 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageBubbleProps) {
   const [showScoreModal, setShowScoreModal] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const handlePlayAudio = () => {
-    if (message.audio_url) {
-      const audio = new Audio(message.audio_url);
-      audio.play();
-    } else if (onPlayAudio) {
-      onPlayAudio();
+  const handlePlayAudio = async () => {
+    if (isPlaying) return;
+    
+    setIsPlaying(true);
+    try {
+      if (message.audio_url) {
+        const audio = new Audio(message.audio_url);
+        await audio.play();
+      } else if (onPlayAudio) {
+        onPlayAudio();
+      }
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    } finally {
+      setIsPlaying(false);
     }
   };
 
@@ -44,6 +54,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageB
               <AudioButton 
                 onPlay={handlePlayAudio}
                 isUser={isUser}
+                isPlaying={isPlaying}
               />
             )}
             <MessageContent 
