@@ -63,7 +63,7 @@ export function ChatContainer({
 
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
-      <div className="flex-1 overflow-y-auto pb-[200px] md:pb-[180px]">
+      <div className="flex-1 overflow-y-auto pb-32">
         <div className="container max-w-3xl mx-auto px-4">
           <ChatMessages 
             messages={messages} 
