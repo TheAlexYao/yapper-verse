@@ -14,7 +14,7 @@ export function ChatMessages({ messages, onPlayAudio, onShowScore }: ChatMessage
         <MessageBubble
           key={message.id}
           message={message}
-          isUser={message.is_user}
+          isUser={message.isUser}
           onPlayAudio={onPlayAudio}
           onShowScore={onShowScore}
         />
