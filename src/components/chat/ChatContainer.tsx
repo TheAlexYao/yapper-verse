@@ -45,7 +45,7 @@ export function ChatContainer({
     }
     
     try {
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(decodeURIComponent(audioUrl));
       await audio.play();
     } catch (error) {
       console.error('Error playing audio:', error);
@@ -56,18 +56,7 @@ export function ChatContainer({
     <>
       <div className="flex-1 relative">
         <ChatMessages 
-          messages={messages.map(msg => ({
-            id: msg.id,
-            conversation_id: msg.conversation_id,
-            content: msg.text,
-            translation: msg.translation,
-            transliteration: msg.transliteration,
-            is_user: msg.isUser,
-            pronunciation_score: msg.pronunciation_score,
-            pronunciation_data: msg.pronunciation_data,
-            audio_url: msg.audio_url,
-            reference_audio_url: msg.reference_audio_url,
-          }))} 
+          messages={messages} 
           onPlayAudio={handlePlayTTS}
           onShowScore={setSelectedMessageForScore}
         />

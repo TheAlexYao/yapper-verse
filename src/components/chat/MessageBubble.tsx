@@ -37,18 +37,20 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
         isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
       )}>
         <MessageContent
-          text={message.content}
+          text={message.text}
           transliteration={message.transliteration}
           translation={message.translation}
-          isUser={isUser}
+          isUser={message.isUser}
           pronunciationScore={message.pronunciation_score}
           onShowScore={() => onShowScore?.(message)}
         />
 
-        {!isUser && message.audio_url && (
+        {!message.isUser && message.audio_url && (
           <AudioButton
-            onClick={handlePlayAudio}
+            onPlay={handlePlayAudio}
+            isUser={message.isUser}
             isPlaying={isPlaying}
+            disabled={!message.audio_url}
           />
         )}
       </div>
