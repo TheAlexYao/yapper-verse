@@ -5,7 +5,7 @@ import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@supabase/auth-helpers-react";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -18,8 +18,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
-
-  const { data: user } = await supabase.auth.getUser();
+  const user = useUser();
   
   const { data: responses, isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
