@@ -18,17 +18,18 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
 
   const startRecording = async () => {
     try {
+      // Request high quality audio for better recording
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
-          channelCount: 1,
-          sampleRate: 16000,
+          channelCount: 2, // Stereo for better quality recording
+          sampleRate: 44100, // 44.1kHz for better quality
           echoCancellation: true,
           noiseSuppression: true,
         } 
       });
       
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=pcm'
+        mimeType: 'audio/webm;codecs=opus'
       });
       
       mediaRecorderRef.current = mediaRecorder;
@@ -41,18 +42,36 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
       };
 
       mediaRecorder.onstop = async () => {
-        // Convert WebM to WAV
+        // Create high quality audio blob
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioContext = new AudioContext({ sampleRate: 16000 });
+        const audioContext = new AudioContext();
         
         try {
+          // Convert WebM to AudioBuffer
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
           
-          // Create WAV file
-          const wavBuffer = audioBufferToWav(audioBuffer);
+          // Create offline context for conversion
+          const offlineContext = new OfflineAudioContext({
+            numberOfChannels: 1, // Convert to mono
+            length: Math.ceil(audioBuffer.duration * 16000), // Calculate length at 16kHz
+            sampleRate: 16000 // Target sample rate for Speech Services
+          });
+          
+          // Create buffer source
+          const source = offlineContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(offlineContext.destination);
+          source.start();
+          
+          // Render audio
+          const renderedBuffer = await offlineContext.startRendering();
+          
+          // Convert to 16-bit PCM WAV
+          const wavBuffer = audioBufferToWav(renderedBuffer);
           const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
           
+          // Create URL for audio preview
           setAudioUrl(URL.createObjectURL(wavBlob));
           setHasRecording(true);
           setIsRecording(false);
@@ -87,7 +106,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
-      // The onstop handler will handle the rest
     }
   };
 
@@ -102,7 +120,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
   // Helper function to convert AudioBuffer to WAV format
   function audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
     const numChannels = 1;
-    const sampleRate = buffer.sampleRate;
+    const sampleRate = 16000;
     const format = 1; // PCM
     const bitDepth = 16;
     
