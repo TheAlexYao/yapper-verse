@@ -23,72 +23,33 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
 
-  // First fetch AI response
-  const { data: aiResponse, isLoading: isLoadingAIResponse } = useQuery({
-    queryKey: ['ai-response', conversationId],
+  // Fetch AI responses
+  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
+    queryKey: ['responses', conversationId],
     queryFn: async () => {
-      if (!user?.id || !conversationId) return null;
+      if (!user?.id || !conversationId) return [];
 
       try {
-        const response = await supabase.functions.invoke('generate-chat-response', {
+        const { data, error } = await supabase.functions.invoke('generate-responses', {
           body: {
             conversationId,
             userId: user.id,
           },
         });
 
-        if (response.error) {
-          console.error('Error fetching AI response:', response.error);
-          throw response.error;
-        }
-
-        return response.data;
+        if (error) throw error;
+        return data.responses || [];
       } catch (error) {
-        console.error('Error fetching AI response:', error);
-        return null;
-      }
-    },
-    enabled: !!conversationId && !!user?.id,
-  });
-
-  // Then fetch character info and prepare responses
-  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
-    queryKey: ['responses', conversationId, aiResponse],
-    queryFn: async () => {
-      if (!aiResponse || !user?.id) return [];
-
-      try {
-        // Get character info
-        const { data: conversation } = await supabase
-          .from('guided_conversations')
-          .select('character_id')
-          .eq('id', conversationId)
-          .single();
-
-        if (!conversation) {
-          throw new Error('Conversation not found');
-        }
-
-        const { data: character } = await supabase
-          .from('characters')
-          .select('gender')
-          .eq('id', conversation.character_id)
-          .single();
-
-        // Transform the AI response into the expected format
-        return [{
-          id: crypto.randomUUID(),
-          text: aiResponse.content,
-          translation: aiResponse.translation,
-          hint: aiResponse.hint,
-          characterGender: character?.gender || 'female'
-        }];
-      } catch (error) {
-        console.error('Error preparing responses:', error);
+        console.error('Error fetching responses:', error);
+        toast({
+          title: "Error",
+          description: "Failed to generate responses. Please try again.",
+          variant: "destructive",
+        });
         return [];
       }
     },
-    enabled: !!aiResponse && !!user?.id,
+    enabled: !!conversationId && !!user?.id,
   });
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
@@ -139,7 +100,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseSelect}
-        isLoading={isLoadingAIResponse || isLoadingResponses || isGeneratingTTS}
+        isLoading={isLoadingResponses || isGeneratingTTS}
       />
 
       {selectedResponse && showPronunciationModal && (
