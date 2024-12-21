@@ -6,6 +6,7 @@ import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -20,27 +21,23 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   
-  const { data: responses, isLoading: isLoadingResponses } = useQuery({
+  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
-      const response = await fetch('/functions/v1/generate-responses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
+      if (!user?.id || !conversationId) return [];
+
+      const response = await supabase.functions.invoke('generate-responses', {
+        body: {
           conversationId,
-          userId: user?.id,
-        }),
+          userId: user.id,
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch responses');
+      if (response.error) {
+        throw new Error(response.error.message);
       }
 
-      const data = await response.json();
-      return data.responses;
+      return response.data?.responses || [];
     },
     enabled: !!conversationId && !!user?.id,
   });
@@ -73,7 +70,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   return (
     <>
       <RecommendedResponses
-        responses={responses || []}
+        responses={responses}
         onSelectResponse={handleResponseSelect}
         isLoading={isLoadingResponses || isGeneratingTTS}
       />
