@@ -7,6 +7,8 @@ export function useMessageHandling(conversationId: string | null) {
     if (!conversationId) return;
 
     try {
+      console.log('Handling message send:', { conversationId, messageContent: message.text });
+      
       // First insert the user's message
       const { error: insertError } = await supabase
         .from('guided_conversation_messages')
@@ -21,7 +23,12 @@ export function useMessageHandling(conversationId: string | null) {
           audio_url: message.audio_url,
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error inserting message:', insertError);
+        throw insertError;
+      }
+
+      console.log('Message inserted successfully, generating AI response');
 
       // Then generate AI response
       await supabase.functions.invoke('generate-chat-response', {
@@ -30,8 +37,11 @@ export function useMessageHandling(conversationId: string | null) {
           lastMessageContent: message.text
         },
       });
+
+      console.log('AI response generation triggered successfully');
     } catch (error) {
       console.error('Error handling message:', error);
+      throw error;
     }
   }, [conversationId]);
 

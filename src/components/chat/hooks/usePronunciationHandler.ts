@@ -21,6 +21,8 @@ export function usePronunciationHandler({
 }: UsePronunciationHandlerProps) {
   const handlePronunciationComplete = async (score: number, audioBlob?: Blob) => {
     try {
+      console.log('Starting pronunciation handling with score:', score);
+      
       if (!audioBlob) {
         throw new Error('No audio recording provided');
       }
@@ -82,7 +84,7 @@ export function usePronunciationHandler({
         }
       })) ?? [];
 
-      console.log('Extracted pronunciation data:', {
+      console.log('Creating new message with pronunciation data:', {
         accuracyScore,
         fluencyScore,
         completenessScore,
@@ -113,8 +115,12 @@ export function usePronunciationHandler({
         isUser: true,
       };
 
+      console.log('Attempting to send message:', newMessage);
+      
       // Send the message and wait for it to complete
       await onMessageSend(newMessage);
+      
+      console.log('Message sent successfully, completing pronunciation flow');
       
       // Only complete after message is sent successfully
       onComplete();

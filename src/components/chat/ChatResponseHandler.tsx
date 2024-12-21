@@ -125,7 +125,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
 
     setIsProcessing(true);
     try {
+      console.log('Starting pronunciation submission with score:', score);
       await handlePronunciationComplete(score, audioBlob);
+      console.log('Pronunciation submission completed successfully');
     } catch (error) {
       console.error('Error handling pronunciation:', error);
       toast({
