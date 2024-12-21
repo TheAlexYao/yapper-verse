@@ -59,6 +59,70 @@ export function PronunciationModal({
     }
   };
 
+  const playAudio = async (speed: 'normal' | 'slow') => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language, voice_preference')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set');
+      }
+
+      // Create a properly encoded cache key
+      const cacheKey = btoa(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-${speed}`);
+      
+      // Check cache first
+      const { data: cachedAudio } = await supabase
+        .from('tts_cache')
+        .select('audio_url')
+        .eq('text_hash', cacheKey)
+        .single();
+
+      if (cachedAudio?.audio_url) {
+        const audio = new Audio(cachedAudio.audio_url);
+        await audio.play();
+        return;
+      }
+
+      // Generate new audio if not cached
+      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text: response.text,
+          languageCode: profile.target_language,
+          voiceGender: profile.voice_preference || 'female',
+          speed
+        }
+      });
+
+      if (ttsError) throw ttsError;
+      if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
+
+      // Cache the audio
+      await supabase
+        .from('tts_cache')
+        .insert({
+          text_hash: cacheKey,
+          text_content: response.text,
+          language_code: profile.target_language,
+          voice_gender: profile.voice_preference || 'female',
+          audio_url: ttsData.audioUrl
+        });
+
+      const audio = new Audio(ttsData.audioUrl);
+      await audio.play();
+    } catch (error) {
+      console.error(`Error playing ${speed} audio:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to play ${speed} speed audio. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] bg-card">
@@ -76,12 +140,7 @@ export function PronunciationModal({
             <Button
               variant="outline"
               className="flex-1 border-2 border-[#38b6ff] hover:bg-[#38b6ff]/10 hover:text-[#38b6ff] transition-colors"
-              onClick={() => {
-                if (response.audio_url) {
-                  const audio = new Audio(response.audio_url);
-                  audio.play();
-                }
-              }}
+              onClick={() => playAudio('normal')}
             >
               <Play className="mr-2 h-4 w-4" />
               Normal Speed
@@ -89,68 +148,7 @@ export function PronunciationModal({
             <Button
               variant="outline"
               className="flex-1 border-2 border-[#7843e6] hover:bg-[#7843e6]/10 hover:text-[#7843e6] transition-colors"
-              onClick={async () => {
-                try {
-                  const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('target_language, voice_preference')
-                    .eq('id', (await supabase.auth.getUser()).data.user?.id)
-                    .single();
-
-                  if (!profile?.target_language) {
-                    throw new Error('Target language not set');
-                  }
-
-                  // Create a cache key that includes the speed parameter and properly encode it
-                  const cacheKey = encodeURIComponent(`${response.text}-${profile.target_language}-${profile.voice_preference || 'female'}-slow`);
-                  
-                  // Check if we have this slow version cached
-                  const { data: cachedAudio } = await supabase
-                    .from('tts_cache')
-                    .select('audio_url')
-                    .eq('text_hash', cacheKey)
-                    .single();
-
-                  if (cachedAudio?.audio_url) {
-                    const audio = new Audio(cachedAudio.audio_url);
-                    audio.play();
-                    return;
-                  }
-
-                  const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
-                    body: {
-                      text: response.text,
-                      languageCode: profile.target_language,
-                      voiceGender: profile.voice_preference || 'female',
-                      speed: 'slow'
-                    }
-                  });
-
-                  if (ttsError) throw ttsError;
-                  if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
-
-                  // Cache the slow version
-                  await supabase
-                    .from('tts_cache')
-                    .insert({
-                      text_hash: cacheKey,
-                      text_content: response.text,
-                      language_code: profile.target_language,
-                      voice_gender: profile.voice_preference || 'female',
-                      audio_url: ttsData.audioUrl
-                    });
-
-                  const audio = new Audio(ttsData.audioUrl);
-                  audio.play();
-                } catch (error) {
-                  console.error('Error playing slow audio:', error);
-                  toast({
-                    title: "Error",
-                    description: "Failed to play slow speed audio. Please try again.",
-                    variant: "destructive",
-                  });
-                }
-              }}
+              onClick={() => playAudio('slow')}
             >
               <Turtle className="mr-2 h-6 w-6" />
               Slow Speed
