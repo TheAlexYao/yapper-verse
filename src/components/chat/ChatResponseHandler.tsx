@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
-import { PronunciationModal } from "./PronunciationModal";
-import { PronunciationScoreModal } from "./PronunciationScoreModal";
+import { PronunciationModal } from "./pronunciation/PronunciationModal";
+import { PronunciationScoreModal } from "./pronunciation/PronunciationScoreModal";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";

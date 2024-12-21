@@ -2,7 +2,7 @@ import { Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { PronunciationScoreModal } from "./PronunciationScoreModal";
+import { PronunciationScoreModal } from "./pronunciation/PronunciationScoreModal";
 
 interface MessageBubbleProps {
   isUser?: boolean;
@@ -13,7 +13,7 @@ interface MessageBubbleProps {
     pronunciation_score?: number;
     pronunciation_data?: any;
     audio_url?: string;
-    reference_audio_url?: string;  // Added this field
+    reference_audio_url?: string;
   };
   onPlayAudio?: () => void;
 }
