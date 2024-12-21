@@ -31,7 +31,7 @@ serve(async (req) => {
     // Create a hash of the request parameters for caching
     const textHash = await crypto.subtle.digest(
       "SHA-256",
-      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-slow`)
+      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-slow-improved`)
     );
     const hashHex = Array.from(new Uint8Array(textHash))
       .map(b => b.toString(16).padStart(2, '0'))
@@ -76,22 +76,28 @@ serve(async (req) => {
       throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
     }
 
-    // Generate speech with SSML for slower rate
+    // Generate speech with enhanced SSML for better quality
     const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
     speechConfig.speechSynthesisVoiceName = voiceName;
-
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     
-    // Wrap the text in SSML with prosody rate of 0.5 (half speed)
+    // Split text into sentences and add breaks
+    const sentences = text.split(/[.!?]+/).filter(Boolean);
+    const ssmlSentences = sentences.map(sentence => 
+      `<s>${sentence.trim()}.</s><break time="500ms"/>`
+    ).join('\n');
+
+    // Enhanced SSML with better prosody controls
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
         <voice name="${voiceName}">
-          <prosody rate="0.5">
-            ${text}
+          <prosody rate="0.7" pitch="+0%">
+            ${ssmlSentences}
           </prosody>
         </voice>
       </speak>
     `;
+
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
 
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
       synthesizer.speakSsmlAsync(
