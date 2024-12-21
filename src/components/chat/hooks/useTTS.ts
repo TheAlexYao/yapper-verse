@@ -9,7 +9,7 @@ export function useTTS() {
   const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
   const { toast } = useToast();
 
-  const generateTTS = async (text: string) => {
+  const generateTTS = async (text: string, characterGender: string = 'female') => {
     if (!text?.trim()) {
       console.error('No text provided for TTS generation');
       toast({
@@ -23,7 +23,7 @@ export function useTTS() {
     try {
       setIsGeneratingTTS(true);
       
-      // Get user profile for language and voice settings
+      // Get user profile for language settings
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) {
         throw new Error('User not authenticated');
@@ -31,7 +31,7 @@ export function useTTS() {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('target_language, voice_preference')
+        .select('target_language')
         .eq('id', user.id)
         .single();
 
@@ -43,11 +43,14 @@ export function useTTS() {
         throw new Error('Target language not set');
       }
 
+      // Map character gender to voice gender
+      const voiceGender = characterGender.toLowerCase() === 'male' ? 'male' : 'female';
+
       // Validate all required parameters before proceeding
       const params = {
         text: text.trim(),
         languageCode: profile.target_language,
-        voiceGender: profile.voice_preference || 'female',
+        voiceGender: voiceGender,
         speed: 'normal'
       };
 

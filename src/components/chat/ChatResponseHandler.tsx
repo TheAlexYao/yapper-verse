@@ -23,13 +23,32 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
 
-  // Fetch recommended responses
+  // Fetch recommended responses and character info
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
       if (!user?.id || !conversationId) return [];
 
       try {
+        // First get the conversation to get the character_id
+        const { data: conversation } = await supabase
+          .from('guided_conversations')
+          .select('character_id')
+          .eq('id', conversationId)
+          .single();
+
+        if (!conversation) {
+          throw new Error('Conversation not found');
+        }
+
+        // Then get the character's gender
+        const { data: character } = await supabase
+          .from('characters')
+          .select('gender')
+          .eq('id', conversation.character_id)
+          .single();
+
+        // Get the AI response
         const response = await supabase.functions.invoke('generate-chat-response', {
           body: {
             conversationId,
@@ -42,13 +61,14 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           throw response.error;
         }
 
-        // Transform the response into the expected format
+        // Transform the response into the expected format and include character gender
         const aiResponse = response.data;
         return [{
           id: crypto.randomUUID(),
           text: aiResponse.content,
           translation: aiResponse.translation,
-          hint: aiResponse.hint
+          hint: aiResponse.hint,
+          characterGender: character?.gender || 'female' // Default to female if not specified
         }];
       } catch (error) {
         console.error('Error fetching responses:', error);
@@ -73,7 +93,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     if (isGeneratingTTS) return;
     
     try {
-      const audioUrl = await generateTTS(response.text);
+      // Pass the character's gender to generateTTS
+      const audioUrl = await generateTTS(response.text, response.characterGender);
       setSelectedResponse({ ...response, audio_url: audioUrl });
       setShowPronunciationModal(true);
     } catch (error) {
