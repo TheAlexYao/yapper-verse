@@ -10,7 +10,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
-import { ArrowRight, ArrowDown } from "lucide-react";
+import { Play, Turtle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -81,7 +82,7 @@ export function PronunciationModal({
                 }
               }}
             >
-              <ArrowRight className="mr-2 h-4 w-4" />
+              <Play className="mr-2 h-4 w-4" />
               Normal Speed
             </Button>
             <Button
@@ -123,7 +124,7 @@ export function PronunciationModal({
                 }
               }}
             >
-              <ArrowDown className="mr-2 h-4 w-4" />
+              <Turtle className="mr-2 h-4 w-4" />
               Slow Speed
             </Button>
           </div>
