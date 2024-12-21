@@ -18,47 +18,28 @@ interface TTSRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Validate environment variables
+    if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
+      throw new Error('Missing Azure Speech configuration');
+    }
+
+    // Parse and validate request body
     const { text, languageCode, voiceGender, speed = 'normal' } = await req.json() as TTSRequest;
 
     if (!text || !languageCode || !voiceGender) {
-      throw new Error('Missing required parameters');
-    }
-
-    // Create a hash of the request parameters for caching
-    const textHash = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-${speed}`)
-    );
-    const hashHex = Array.from(new Uint8Array(textHash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    // Check cache first
-    const { data: cacheData, error: cacheError } = await supabase
-      .from('tts_cache')
-      .select('audio_url')
-      .eq('text_hash', hashHex)
-      .single();
-
-    if (cacheError && cacheError.code !== 'PGRST116') {
-      console.error('Cache lookup error:', cacheError);
-      throw cacheError;
-    }
-
-    if (cacheData?.audio_url) {
-      console.log('Cache hit, returning cached audio URL');
       return new Response(
-        JSON.stringify({ audioUrl: cacheData.audio_url }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Cache miss, generating new audio');
+    console.log('TTS Request:', { text, languageCode, voiceGender, speed });
 
     // Get voice settings from the languages table
     const { data: voiceData, error: voiceError } = await supabase
@@ -69,7 +50,7 @@ serve(async (req) => {
 
     if (voiceError) {
       console.error('Error fetching voice settings:', voiceError);
-      throw voiceError;
+      throw new Error(`Failed to fetch voice settings: ${voiceError.message}`);
     }
 
     const voiceName = voiceData[voiceGender === 'male' ? 'male_voice' : 'female_voice'];
@@ -77,34 +58,43 @@ serve(async (req) => {
       throw new Error(`No ${voiceGender} voice found for language ${languageCode}`);
     }
 
-    // Generate speech with enhanced SSML for better quality
+    // Create speech configuration
     const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_SPEECH_KEY, AZURE_SPEECH_REGION);
     speechConfig.speechSynthesisVoiceName = voiceName;
-    
+
     // Split text into sentences and add breaks
     const sentences = text.split(/[.!?]+/).filter(Boolean);
     const ssmlSentences = sentences.map(sentence => 
       `<s>${sentence.trim()}.</s><break time="500ms"/>`
     ).join('\n');
 
-    // Enhanced SSML with better prosody controls
+    // Create SSML with proper prosody controls
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
         <voice name="${voiceName}">
-          <prosody rate="${speed === 'slow' ? '0.5' : '1.0'}" pitch="+0%">
+          <prosody rate="${speed === 'slow' ? '0.7' : '1.0'}" pitch="+0%">
             ${ssmlSentences}
           </prosody>
         </voice>
       </speak>
     `;
 
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+    console.log('Generated SSML:', ssml);
 
+    // Generate speech
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+    
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
       synthesizer.speakSsmlAsync(
         ssml,
-        result => resolve(result),
-        error => reject(error)
+        result => {
+          synthesizer.close();
+          resolve(result);
+        },
+        error => {
+          synthesizer.close();
+          reject(error);
+        }
       );
     });
 
@@ -113,15 +103,13 @@ serve(async (req) => {
     }
 
     const audioData = result.audioData;
-    synthesizer.close();
-
     if (!audioData || audioData.length === 0) {
       throw new Error('No audio data generated');
     }
 
     // Upload to Supabase Storage
     const timestamp = new Date().getTime();
-    const fileName = `${hashHex}-${timestamp}.wav`;
+    const fileName = `${timestamp}.wav`;
     const filePath = `${languageCode}/${fileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase
@@ -144,22 +132,6 @@ serve(async (req) => {
       .from('tts_cache')
       .getPublicUrl(filePath);
 
-    // Cache the result
-    const { error: insertError } = await supabase
-      .from('tts_cache')
-      .insert({
-        text_hash: hashHex,
-        text_content: text,
-        language_code: languageCode,
-        voice_gender: voiceGender,
-        audio_url: publicUrl.publicUrl
-      });
-
-    if (insertError) {
-      console.error('Cache insert error:', insertError);
-      throw insertError;
-    }
-
     return new Response(
       JSON.stringify({ audioUrl: publicUrl.publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -168,9 +140,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in text-to-speech function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       { 
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
