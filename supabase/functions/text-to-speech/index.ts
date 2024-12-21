@@ -29,15 +29,16 @@ serve(async (req) => {
     }
 
     // Parse and validate request body
-    const requestData = await req.json() as TTSRequest;
-    console.log('TTS Request:', requestData);
+    const requestData: TTSRequest = await req.json();
+    console.log('TTS Request:', { ...requestData, text: requestData.text.substring(0, 50) + '...' });
 
-    if (!requestData.text || !requestData.languageCode || !requestData.voiceGender) {
-      const missingParams = [];
-      if (!requestData.text) missingParams.push('text');
-      if (!requestData.languageCode) missingParams.push('languageCode');
-      if (!requestData.voiceGender) missingParams.push('voiceGender');
+    // Validate required parameters
+    const missingParams = [];
+    if (!requestData.text) missingParams.push('text');
+    if (!requestData.languageCode) missingParams.push('languageCode');
+    if (!requestData.voiceGender) missingParams.push('voiceGender');
 
+    if (missingParams.length > 0) {
       console.error('Missing required parameters:', missingParams);
       return new Response(
         JSON.stringify({ 
@@ -55,11 +56,10 @@ serve(async (req) => {
     );
 
     // Set voice based on language and gender
-    const voiceName = requestData.voiceGender === 'male' ? 
-      `${requestData.languageCode}-male` : 
-      `${requestData.languageCode}-female`;
-    
+    const voiceName = `${requestData.languageCode}-${requestData.voiceGender}`;
     speechConfig.speechSynthesisVoiceName = voiceName;
+
+    console.log('Using voice:', voiceName);
 
     // Create SSML with proper prosody controls
     const ssml = `
@@ -71,8 +71,6 @@ serve(async (req) => {
         </voice>
       </speak>
     `;
-
-    console.log('Generated SSML:', ssml);
 
     // Generate speech
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);

@@ -14,30 +14,42 @@ export function useTTS() {
       setIsGeneratingTTS(true);
       
       // Get user profile for language and voice settings
-      const { data: profile } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', user.id)
         .single();
+
+      if (profileError) {
+        throw new Error('Failed to fetch user profile');
+      }
 
       if (!profile?.target_language) {
         throw new Error('Target language not set');
       }
 
+      // Validate all required parameters before proceeding
+      const params = {
+        text,
+        languageCode: profile.target_language,
+        voiceGender: profile.voice_preference || 'female',
+        speed: 'normal'
+      };
+
       // Check cache first
-      const cacheKey = `${text}-${profile.target_language}-${profile.voice_preference || 'female'}`;
+      const cacheKey = `${text}-${params.languageCode}-${params.voiceGender}`;
       let audioUrl = ttsCache.get(cacheKey);
 
       if (!audioUrl) {
         console.log('Cache miss, generating TTS...');
         
         const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
-          body: {
-            text: text,
-            languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female',
-            speed: 'normal'
-          }
+          body: params
         });
 
         if (ttsError) {
@@ -61,7 +73,7 @@ export function useTTS() {
       console.error('TTS error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio. Please try again.",
+        description: error.message || "Failed to generate audio. Please try again.",
         variant: "destructive",
       });
       return null;
