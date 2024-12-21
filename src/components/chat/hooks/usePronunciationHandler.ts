@@ -113,7 +113,7 @@ export function usePronunciationHandler({
         isUser: true,
       };
 
-      // First send the message
+      // Send the message first
       await onMessageSend(newMessage);
       
       // Then complete the pronunciation flow

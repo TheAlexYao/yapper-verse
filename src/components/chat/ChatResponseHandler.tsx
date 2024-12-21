@@ -116,6 +116,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     setIsProcessing(true);
     try {
+      if (!selectedResponse) {
+        throw new Error('No response selected');
+      }
       await handlePronunciationComplete(score, audioBlob);
     } catch (error) {
       console.error('Error handling pronunciation:', error);
@@ -124,6 +127,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         description: "Failed to process pronunciation. Please try again.",
         variant: "destructive",
       });
+      setIsProcessing(false);
     }
   };
 
