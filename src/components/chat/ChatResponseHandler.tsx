@@ -33,7 +33,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         setPronunciationData({
           ...message.pronunciation_data,
           audioUrl: message.audio_url,
-          nativeAudioUrl: selectedResponse?.audio_url
+          nativeAudioUrl: message.reference_audio_url // Update this line to use reference_audio_url
         });
         setIsProcessing(false);
         setShowScoreModal(true);

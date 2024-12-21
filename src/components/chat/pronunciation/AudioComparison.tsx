@@ -9,7 +9,7 @@ export function AudioComparison({ userAudioUrl, referenceAudioUrl }: AudioCompar
   return (
     <div className="space-y-4">
       <h3 className="font-medium">Audio Comparison</h3>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {referenceAudioUrl && (
           <div className="p-4 rounded-lg bg-accent/50">
             <div className="space-y-2">
