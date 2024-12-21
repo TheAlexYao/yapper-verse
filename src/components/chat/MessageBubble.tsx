@@ -14,18 +14,18 @@ interface MessageBubbleProps {
     audio_url?: string;
     reference_audio_url?: string;
   };
-  onPlayAudio?: (text: string) => void;
+  onPlayAudio?: (audioUrl: string) => void;
 }
 
 export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayAudio = async () => {
-    if (isPlaying || !message.audio_url) return;
+    if (isPlaying || !message.audio_url || !onPlayAudio) return;
     
     setIsPlaying(true);
     try {
-      await onPlayAudio?.(message.audio_url);
+      await onPlayAudio(message.audio_url);
     } catch (error) {
       console.error('Error playing audio:', error);
     } finally {

@@ -23,10 +23,10 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     onMessageSend: (message: Message) => {
       onMessageSend(message);
       setIsProcessing(false);
+      setShowPronunciationModal(false); // Close modal after submission
     },
     onComplete: () => {
       setSelectedResponse(null);
-      setShowPronunciationModal(false);
     },
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
@@ -50,7 +50,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         isLoading={isGeneratingTTS}
       />
 
-      {selectedResponse && (
+      {selectedResponse && showPronunciationModal && (
         <PronunciationModal
           isOpen={showPronunciationModal}
           onClose={() => {

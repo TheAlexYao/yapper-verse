@@ -36,9 +36,18 @@ export function ChatContainer({
     }
   }, [messages, generateTTS]);
 
-  const handlePlayTTS = async (text: string) => {
-    const audio = new Audio(text);
-    await audio.play();
+  const handlePlayTTS = async (audioUrl: string) => {
+    if (!audioUrl) {
+      console.error('No audio URL provided');
+      return;
+    }
+    
+    try {
+      const audio = new Audio(audioUrl);
+      await audio.play();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
   };
 
   return (
