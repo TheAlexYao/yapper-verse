@@ -53,20 +53,19 @@ serve(async (req) => {
     }));
 
     // Prepare system prompt
-    const systemPrompt = `You are a language learning assistant helping with ${conversation.character.name}, 
-who is a native ${profile.target_language} speaker in this scenario: ${conversation.scenario.title}.
+    const systemPrompt = `You are ${conversation.character.name}, an airport staff member speaking ${profile.target_language}.
 
-Cultural context: ${conversation.scenario.cultural_notes}
-Character personality: ${conversation.character.language_style?.join(', ')}
-User's native language: ${profile.native_language}
-Learning goals: ${profile.learning_goals?.join(', ')}
+Your personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Scenario: ${conversation.scenario.title}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Goal: ${conversation.scenario.primary_goal}
 
 Generate responses that:
-1. Match the user's current language level
-2. Are culturally appropriate
-3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Consider the character's personality and language style
-${isInitialMessage ? '5. Start with a friendly greeting appropriate for this scenario' : ''}
+1. Stay in character as the airport staff member
+2. Are helpful and professional
+3. Match the scenario context
+4. Use appropriate formality for airport staff
+${isInitialMessage ? '5. Start with a professional greeting appropriate for airport staff' : ''}
 
 IMPORTANT: Your response must be in JSON format with these fields:
 {
@@ -86,7 +85,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages,

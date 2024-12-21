@@ -59,20 +59,23 @@ serve(async (req) => {
     const isFirstMessage = conversation.messages.length === 0;
 
     // Prepare the system prompt
-    const systemPrompt = `You are a helpful airport assistant providing guidance in ${profile.target_language}.
+    const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
+in a conversation with ${conversation.character.name}, an airport staff member.
+
 Current scenario: ${conversation.scenario.title}
 Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
-Character personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
 
 Generate 3 response options that:
 1. Match a beginner-intermediate level
 2. Are culturally appropriate
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Consider the character's personality and language style
+4. Are from the perspective of a traveler speaking to an airport staff member
+5. Use appropriate formality for speaking with airport staff
 
-${isFirstMessage ? "This is the first message. Provide a general welcome to the airport scenario." : "Continue the conversation naturally based on the context."}
+${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the context."}
 
-IMPORTANT: Do not use specific names or personal details unless provided in the conversation history.
+IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
     // Call OpenAI API
@@ -90,7 +93,7 @@ Format: Generate responses in JSON format with 'responses' array containing obje
           { 
             role: 'user', 
             content: isFirstMessage 
-              ? 'Generate three welcoming responses for an airport assistant.' 
+              ? 'Generate three polite ways to approach and greet the airport staff member.' 
               : 'Generate three natural response options based on the conversation context.' 
           }
         ],
