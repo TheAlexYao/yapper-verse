@@ -14,6 +14,7 @@ interface TTSRequest {
   text: string;
   languageCode: string;
   voiceGender: 'male' | 'female';
+  speed?: 'normal' | 'slow';
 }
 
 serve(async (req) => {
@@ -22,7 +23,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, languageCode, voiceGender } = await req.json() as TTSRequest;
+    const { text, languageCode, voiceGender, speed = 'normal' } = await req.json() as TTSRequest;
 
     if (!text || !languageCode || !voiceGender) {
       throw new Error('Missing required parameters');
@@ -31,7 +32,7 @@ serve(async (req) => {
     // Create a hash of the request parameters for caching
     const textHash = await crypto.subtle.digest(
       "SHA-256",
-      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-slow-improved`)
+      new TextEncoder().encode(`${text}-${languageCode}-${voiceGender}-${speed}`)
     );
     const hashHex = Array.from(new Uint8Array(textHash))
       .map(b => b.toString(16).padStart(2, '0'))
@@ -90,7 +91,7 @@ serve(async (req) => {
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
         <voice name="${voiceName}">
-          <prosody rate="0.7" pitch="+0%">
+          <prosody rate="${speed === 'slow' ? '0.5' : '1.0'}" pitch="+0%">
             ${ssmlSentences}
           </prosody>
         </voice>

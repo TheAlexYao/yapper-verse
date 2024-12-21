@@ -68,7 +68,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           body: {
             text: response.text,
             languageCode: profile.target_language,
-            voiceGender: profile.voice_preference || 'female'
+            voiceGender: profile.voice_preference || 'female',
+            speed: 'normal'
           }
         });
 

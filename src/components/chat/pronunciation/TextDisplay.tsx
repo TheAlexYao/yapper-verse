@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Volume2, PlayCircle } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TextDisplayProps {
   text: string;
@@ -11,29 +11,82 @@ interface TextDisplayProps {
 }
 
 export function TextDisplay({ text, translation, transliteration, audio_url }: TextDisplayProps) {
-  const [volume, setVolume] = useState([1]);
-  const [speed, setSpeed] = useState([1]);
+  const [isGeneratingSlowAudio, setIsGeneratingSlowAudio] = useState(false);
+  const [slowAudioUrl, setSlowAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const handlePlayAudio = () => {
+  const handlePlayNormalAudio = () => {
     if (audio_url && audioRef.current) {
-      audioRef.current.volume = volume[0];
-      audioRef.current.playbackRate = speed[0];
+      audioRef.current.src = audio_url;
       audioRef.current.play();
+    }
+  };
+
+  const handleGenerateSlowAudio = async () => {
+    try {
+      setIsGeneratingSlowAudio(true);
+      
+      // Get user profile for language settings
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language, voice_preference')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set');
+      }
+
+      // Generate slow audio
+      const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text,
+          languageCode: profile.target_language,
+          voiceGender: profile.voice_preference || 'female',
+          speed: 'slow'
+        }
+      });
+
+      if (ttsError) {
+        throw ttsError;
+      }
+
+      setSlowAudioUrl(ttsData.audioUrl);
+      
+      // Play the slow audio immediately after generating
+      if (audioRef.current) {
+        audioRef.current.src = ttsData.audioUrl;
+        audioRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error generating slow audio:', error);
+    } finally {
+      setIsGeneratingSlowAudio(false);
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
-        <Button 
-          variant="secondary" 
-          size="icon" 
-          className="shrink-0"
-          onClick={handlePlayAudio}
-        >
-          <PlayCircle className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            className="shrink-0"
+            onClick={handlePlayNormalAudio}
+          >
+            <PlayCircle className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="shrink-0"
+            onClick={handleGenerateSlowAudio}
+            disabled={isGeneratingSlowAudio}
+          >
+            <Volume2 className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="flex-1 space-y-1">
           <p className="font-medium">{text}</p>
           {transliteration && (
@@ -45,49 +98,7 @@ export function TextDisplay({ text, translation, transliteration, audio_url }: T
         </div>
       </div>
 
-      <div className="space-y-4 p-4 rounded-lg bg-accent/30">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <Volume2 className="h-4 w-4" />
-              Volume
-            </label>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(volume[0] * 100)}%
-            </span>
-          </div>
-          <Slider
-            value={volume}
-            onValueChange={setVolume}
-            max={1}
-            step={0.1}
-            className="w-full"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">
-              Speed
-            </label>
-            <span className="text-sm text-muted-foreground">
-              {speed[0]}x
-            </span>
-          </div>
-          <Slider
-            value={speed}
-            onValueChange={setSpeed}
-            min={0.25}
-            max={1}
-            step={0.05}
-            className="w-full"
-          />
-        </div>
-      </div>
-
-      {audio_url && (
-        <audio ref={audioRef} src={audio_url} />
-      )}
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
