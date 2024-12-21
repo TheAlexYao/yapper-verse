@@ -71,17 +71,11 @@ export function PronunciationModal({
         throw new Error('Target language not set');
       }
 
-      if (!profile?.voice_preference) {
-        toast({
-          title: "Voice preference not set",
-          description: "Please set your voice preference in your profile settings.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Default to 'female' if voice_preference is not set
+      const voiceGender = profile.voice_preference || 'female';
 
       // Create a safe cache key using base64 encoding
-      const cacheKeyText = `${response.text}-${profile.target_language}-${profile.voice_preference}-${speed}`;
+      const cacheKeyText = `${response.text}-${profile.target_language}-${voiceGender}-${speed}`;
       const cacheKey = btoa(encodeURIComponent(cacheKeyText));
       
       console.log('Looking up cache with key:', cacheKey);
@@ -107,7 +101,7 @@ export function PronunciationModal({
         body: {
           text: response.text,
           languageCode: profile.target_language,
-          voiceGender: profile.voice_preference,
+          voiceGender: voiceGender,
           speed
         }
       });
@@ -122,7 +116,7 @@ export function PronunciationModal({
           text_hash: cacheKey,
           text_content: response.text,
           language_code: profile.target_language,
-          voice_gender: profile.voice_preference,
+          voice_gender: voiceGender,
           audio_url: ttsData.audioUrl
         });
 
