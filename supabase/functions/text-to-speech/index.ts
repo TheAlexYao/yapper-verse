@@ -13,61 +13,79 @@ interface TTSRequest {
   speed?: 'normal' | 'slow';
 }
 
+// Map of language codes to neural voice names
+const voiceMap = {
+  'fr-FR': {
+    female: 'fr-FR-DeniseNeural',
+    male: 'fr-FR-HenriNeural'
+  },
+  'es-ES': {
+    female: 'es-ES-ElviraNeural',
+    male: 'es-ES-AlvaroNeural'
+  },
+  // Add more languages as needed
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Validate environment variables
     const AZURE_SPEECH_KEY = Deno.env.get('AZURE_SPEECH_KEY');
     const AZURE_SPEECH_REGION = Deno.env.get('AZURE_SPEECH_REGION');
 
     if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
       console.error('Missing Azure Speech configuration');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Server configuration error');
     }
 
-    // Parse and validate request body
     const requestData = await req.json();
     console.log('Received TTS request:', requestData);
 
-    // Validate required parameters
-    const missingParams = [];
-    if (!requestData?.text) missingParams.push('text');
-    if (!requestData?.languageCode) missingParams.push('languageCode');
-    if (!requestData?.voiceGender) missingParams.push('voiceGender');
+    if (!requestData?.text || !requestData?.languageCode || !requestData?.voiceGender) {
+      const missingParams = [];
+      if (!requestData?.text) missingParams.push('text');
+      if (!requestData?.languageCode) missingParams.push('languageCode');
+      if (!requestData?.voiceGender) missingParams.push('voiceGender');
 
-    if (missingParams.length > 0) {
       console.error('Missing required parameters:', missingParams);
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required parameters', 
-          missingParams 
-        }),
+        JSON.stringify({ error: 'Missing required parameters', missingParams }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const validatedData = requestData as TTSRequest;
     
-    // Create speech configuration
+    // Get the appropriate neural voice
+    const voiceOptions = voiceMap[validatedData.languageCode];
+    if (!voiceOptions) {
+      console.error('Unsupported language code:', validatedData.languageCode);
+      return new Response(
+        JSON.stringify({ error: `Unsupported language code: ${validatedData.languageCode}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const voiceName = voiceOptions[validatedData.voiceGender];
+    if (!voiceName) {
+      console.error('Invalid voice gender:', validatedData.voiceGender);
+      return new Response(
+        JSON.stringify({ error: 'Invalid voice gender' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Using voice:', voiceName);
+
     const speechConfig = sdk.SpeechConfig.fromSubscription(
       AZURE_SPEECH_KEY,
       AZURE_SPEECH_REGION
     );
 
-    // Set voice based on language and gender
-    const voiceName = `${validatedData.languageCode}-${validatedData.voiceGender}`;
     speechConfig.speechSynthesisVoiceName = voiceName;
 
-    console.log('Using voice:', voiceName);
-
-    // Create SSML with proper prosody controls
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${validatedData.languageCode}">
         <voice name="${voiceName}">
@@ -78,7 +96,6 @@ serve(async (req) => {
       </speak>
     `;
 
-    // Generate speech
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     
     try {
