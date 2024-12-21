@@ -109,11 +109,14 @@ export function usePronunciationHandler({
           }]
         },
         audio_url: audioUrl,
-        reference_audio_url: selectedResponse.audio_url, // Include the reference audio
+        reference_audio_url: selectedResponse.audio_url,
         isUser: true,
       };
 
-      onMessageSend(newMessage);
+      // First send the message
+      await onMessageSend(newMessage);
+      
+      // Then complete the pronunciation flow
       onComplete();
     } catch (error) {
       console.error('Error handling pronunciation:', error);
