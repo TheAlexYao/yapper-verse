@@ -4,7 +4,8 @@ import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
-import { MOCK_RESPONSES } from "./data/mockResponses";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -17,6 +18,33 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [isProcessing, setIsProcessing] = useState(false);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
+
+  const { data: user } = await supabase.auth.getUser();
+  
+  const { data: responses, isLoading: isLoadingResponses } = useQuery({
+    queryKey: ['responses', conversationId],
+    queryFn: async () => {
+      const response = await fetch('/functions/v1/generate-responses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          userId: user?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch responses');
+      }
+
+      const data = await response.json();
+      return data.responses;
+    },
+    enabled: !!conversationId && !!user?.id,
+  });
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
@@ -46,9 +74,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   return (
     <>
       <RecommendedResponses
-        responses={MOCK_RESPONSES}
+        responses={responses || []}
         onSelectResponse={handleResponseSelect}
-        isLoading={isGeneratingTTS}
+        isLoading={isLoadingResponses || isGeneratingTTS}
       />
 
       {selectedResponse && showPronunciationModal && (
