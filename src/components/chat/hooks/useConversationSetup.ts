@@ -58,7 +58,7 @@ export function useConversationSetup(character: any, scenario: any) {
           throw new Error('Language IDs not found');
         }
 
-        // Check for existing conversation
+        // Check for existing active conversation, ordered by creation date
         const { data: existingConversation, error: existingError } = await supabase
           .from('guided_conversations')
           .select('id')
@@ -66,6 +66,7 @@ export function useConversationSetup(character: any, scenario: any) {
           .eq('character_id', character.id)
           .eq('scenario_id', scenario.id)
           .eq('status', 'active')
+          .order('created_at', { ascending: false })
           .maybeSingle();
 
         if (existingError) {
