@@ -53,8 +53,8 @@ export function ChatContainer({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-background">
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col h-screen bg-background">
+      <div className="flex-1 overflow-y-auto pb-[200px] md:pb-[180px]">
         <ChatMessages 
           messages={messages} 
           onPlayAudio={handlePlayTTS}
@@ -62,8 +62,8 @@ export function ChatContainer({
         />
       </div>
 
-      <div className="border-t bg-background/80 backdrop-blur-sm">
-        <div className="container max-w-3xl mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm">
+        <div className="container max-w-3xl mx-auto px-4">
           <ChatMetricsContainer 
             messages={messages} 
             conversationId={conversationId} 
