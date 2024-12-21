@@ -33,7 +33,7 @@ export function useTTS() {
         .from('profiles')
         .select('target_language')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         throw new Error('Failed to fetch user profile');
@@ -61,24 +61,55 @@ export function useTTS() {
       if (!audioUrl) {
         console.log('Cache miss, generating TTS...');
         
-        const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
-          body: params
-        });
+        // Check database cache
+        const { data: cachedAudio } = await supabase
+          .from('tts_cache')
+          .select('audio_url')
+          .eq('text_hash', cacheKey)
+          .maybeSingle();
 
-        if (ttsError) {
-          console.error('TTS function error:', ttsError);
-          throw new Error(`Failed to generate speech: ${ttsError.message}`);
+        if (cachedAudio?.audio_url) {
+          console.log('Database cache hit, using cached audio URL');
+          audioUrl = cachedAudio.audio_url;
+          // Update memory cache
+          ttsCache.set(cacheKey, audioUrl);
+        } else {
+          console.log('Database cache miss, calling TTS function');
+          const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+            body: params
+          });
+
+          if (ttsError) {
+            console.error('TTS function error:', ttsError);
+            throw new Error(`Failed to generate speech: ${ttsError.message}`);
+          }
+
+          if (!ttsData?.audioUrl) {
+            throw new Error('No audio URL in response');
+          }
+
+          audioUrl = ttsData.audioUrl;
+          // Cache the result in both memory and database
+          ttsCache.set(cacheKey, audioUrl);
+
+          // Store in database cache
+          const { error: cacheError } = await supabase
+            .from('tts_cache')
+            .insert({
+              text_hash: cacheKey,
+              text_content: params.text,
+              language_code: params.languageCode,
+              voice_gender: params.voiceGender,
+              audio_url: audioUrl
+            });
+
+          if (cacheError) {
+            console.error('Error caching audio URL:', cacheError);
+            // Don't throw error here, we still want to return the audio URL
+          }
         }
-
-        if (!ttsData?.audioUrl) {
-          throw new Error('No audio URL in response');
-        }
-
-        audioUrl = ttsData.audioUrl;
-        // Cache the result
-        ttsCache.set(cacheKey, audioUrl);
       } else {
-        console.log('Cache hit, using cached audio URL');
+        console.log('Memory cache hit, using cached audio URL');
       }
 
       return audioUrl;
