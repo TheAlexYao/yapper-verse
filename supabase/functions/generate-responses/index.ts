@@ -12,7 +12,6 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request to generate responses');
     const { conversationId, userId } = await req.json();
     console.log('Request params:', { conversationId, userId });
 
@@ -60,21 +59,20 @@ serve(async (req) => {
     const isFirstMessage = conversation.messages.length === 0;
 
     // Prepare the system prompt
-    const systemPrompt = `You are a language learning assistant helping with ${profile.target_language}.
+    const systemPrompt = `You are a helpful airport assistant providing guidance in ${profile.target_language}.
 Current scenario: ${conversation.scenario.title}
-Cultural context: ${conversation.scenario.cultural_notes}
-Character personality: ${conversation.character.language_style?.join(', ') || 'friendly and helpful'}
-User's native language: ${profile.native_language}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Character personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
 
 Generate 3 response options that:
-1. Match the user's current language level
+1. Match a beginner-intermediate level
 2. Are culturally appropriate
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
 4. Consider the character's personality and language style
 
-${isFirstMessage ? "This is the first message, so start with a general greeting and introduction to the scenario." : "Continue the conversation naturally based on the context."}
+${isFirstMessage ? "This is the first message. Provide a general welcome to the airport scenario." : "Continue the conversation naturally based on the context."}
 
-IMPORTANT: Do not use specific names in greetings unless the user has provided their name.
+IMPORTANT: Do not use specific names or personal details unless provided in the conversation history.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
     // Call OpenAI API
@@ -92,8 +90,8 @@ Format: Generate responses in JSON format with 'responses' array containing obje
           { 
             role: 'user', 
             content: isFirstMessage 
-              ? 'Generate a friendly greeting and introduction to the scenario.' 
-              : 'Generate the next response options based on the conversation context.' 
+              ? 'Generate three welcoming responses for an airport assistant.' 
+              : 'Generate three natural response options based on the conversation context.' 
           }
         ],
         response_format: { type: "json_object" },
@@ -121,8 +119,6 @@ Format: Generate responses in JSON format with 'responses' array containing obje
       hint: response.hint,
       characterGender: conversation.character.gender || 'female'
     }));
-
-    console.log('Generated responses:', responses);
 
     return new Response(JSON.stringify({ responses }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

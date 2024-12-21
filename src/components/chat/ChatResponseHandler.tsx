@@ -37,7 +37,11 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching responses:', error);
+          throw error;
+        }
+
         return data.responses || [];
       } catch (error) {
         console.error('Error fetching responses:', error);
