@@ -70,7 +70,7 @@ export function PronunciationModal({
 
         <div className="space-y-6 py-4">
           <TextDisplay {...response} />
-          <AudioControls response={response} />
+          <AudioControls text={response.text} />
           <AudioRecorder
             onRecordingComplete={(blob) => setAudioBlob(blob)}
             isProcessing={isProcessing}
