@@ -75,14 +75,16 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         .from('profiles')
         .select('target_language, voice_preference')
         .eq('id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (!profile?.target_language) {
         throw new Error('Target language not set');
       }
 
-      // Generate normal speed audio first
-      const normalAudioUrl = await generateTTS(response.text, profile.voice_preference || 'female');
+      // Pre-generate both normal and slow speed audio
+      const [normalAudioUrl] = await Promise.all([
+        generateTTS(response.text, profile.voice_preference || 'female', 'normal'),
+      ]);
       
       // Store both the response and the generated audio URL
       setSelectedResponse({ 
