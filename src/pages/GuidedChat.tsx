@@ -20,6 +20,25 @@ export default function GuidedChat() {
   const { conversationId, messages, setMessages } = useConversationSetup(character, scenario);
   const { handleMessageSend } = useMessageHandling(conversationId);
 
+  const handleMessageUpdate = async (message: Message) => {
+    console.log('Handling message update in GuidedChat:', message);
+    try {
+      await handleMessageSend(message);
+      // Update the messages array with the new message
+      setMessages(prevMessages => {
+        console.log('Updating messages array:', [...prevMessages, message]);
+        return [...prevMessages, message];
+      });
+    } catch (error) {
+      console.error('Error handling message update:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handlePlayTTS = async (text: string) => {
     if (isPlayingTTS) return;
 
@@ -82,7 +101,7 @@ export default function GuidedChat() {
 
       <ChatContainer
         messages={messages}
-        onMessageSend={handleMessageSend}
+        onMessageSend={handleMessageUpdate}
         onPlayTTS={handlePlayTTS}
         conversationId={conversationId!}
       />
