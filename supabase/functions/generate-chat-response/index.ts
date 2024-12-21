@@ -86,11 +86,11 @@ IMPORTANT: Your response must be in JSON format with these fields:
 
     // Call OpenAI API
     const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages,
-        { role: 'user', content: lastMessageContent || 'Start the conversation' }
+        { role: 'user', content: lastMessageContent || 'Start the conversation with a greeting appropriate for this scenario' }
       ],
       temperature: 0.7,
       max_tokens: 500,
