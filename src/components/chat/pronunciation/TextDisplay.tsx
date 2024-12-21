@@ -70,15 +70,17 @@ export function TextDisplay({ text, translation, transliteration, audio_url, pho
     <div className="space-y-4">
       <div className="flex items-center gap-2 p-4 rounded-lg bg-accent/50">
         <div className="flex-1 space-y-1">
-          <p className="font-medium">{text}</p>
+          <div className="space-y-1">
+            <p className="font-medium">{text}</p>
+            {phonetics && (
+              <p className="text-sm font-mono text-muted-foreground">
+                /{phonetics}/
+              </p>
+            )}
+          </div>
           {transliteration && (
             <p className="text-sm italic text-muted-foreground">
               {transliteration}
-            </p>
-          )}
-          {phonetics && (
-            <p className="text-sm font-mono text-muted-foreground">
-              /{phonetics}/
             </p>
           )}
           <p className="text-sm text-muted-foreground">{translation}</p>
