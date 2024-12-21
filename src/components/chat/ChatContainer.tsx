@@ -23,6 +23,7 @@ export function ChatContainer({
   const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
 
   useEffect(() => {
+    console.log('Messages updated in ChatContainer:', messages);
     const generateAudioForNewMessage = async () => {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && !lastMessage.isUser && !lastMessage.audio_url && !isGeneratingTTS) {
