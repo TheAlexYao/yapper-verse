@@ -45,7 +45,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
           onShowScore={() => onShowScore?.(message)}
         />
 
-        {!message.isUser && message.audio_url && (
+        {message.audio_url && (
           <AudioButton
             onPlay={handlePlayAudio}
             isUser={message.isUser}
