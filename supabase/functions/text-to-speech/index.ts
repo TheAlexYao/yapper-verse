@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,19 +14,6 @@ interface TTSRequest {
   speed?: 'normal' | 'slow';
 }
 
-// Map of language codes to neural voice names
-const voiceMap = {
-  'fr-FR': {
-    female: 'fr-FR-DeniseNeural',
-    male: 'fr-FR-HenriNeural'
-  },
-  'es-ES': {
-    female: 'es-ES-ElviraNeural',
-    male: 'es-ES-AlvaroNeural'
-  },
-  // Add more languages as needed
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -34,11 +22,15 @@ serve(async (req) => {
   try {
     const AZURE_SPEECH_KEY = Deno.env.get('AZURE_SPEECH_KEY');
     const AZURE_SPEECH_REGION = Deno.env.get('AZURE_SPEECH_REGION');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
-      console.error('Missing Azure Speech configuration');
+    if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing required environment variables');
       throw new Error('Server configuration error');
     }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const requestData = await req.json();
     console.log('Received TTS request:', requestData);
@@ -58,21 +50,26 @@ serve(async (req) => {
 
     const validatedData = requestData as TTSRequest;
     
-    // Get the appropriate neural voice
-    const voiceOptions = voiceMap[validatedData.languageCode];
-    if (!voiceOptions) {
-      console.error('Unsupported language code:', validatedData.languageCode);
+    // Fetch voice from languages table
+    const { data: languageData, error: languageError } = await supabase
+      .from('languages')
+      .select(`${validatedData.voiceGender}_voice`)
+      .eq('code', validatedData.languageCode)
+      .single();
+
+    if (languageError || !languageData) {
+      console.error('Error fetching language voice:', languageError);
       return new Response(
-        JSON.stringify({ error: `Unsupported language code: ${validatedData.languageCode}` }),
+        JSON.stringify({ error: `Language not supported: ${validatedData.languageCode}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const voiceName = voiceOptions[validatedData.voiceGender];
+    const voiceName = languageData[`${validatedData.voiceGender}_voice`];
     if (!voiceName) {
-      console.error('Invalid voice gender:', validatedData.voiceGender);
+      console.error('Voice not found for:', validatedData.languageCode, validatedData.voiceGender);
       return new Response(
-        JSON.stringify({ error: 'Invalid voice gender' }),
+        JSON.stringify({ error: `Voice not available for ${validatedData.languageCode} in ${validatedData.voiceGender} gender` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
