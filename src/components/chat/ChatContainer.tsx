@@ -111,9 +111,14 @@ export function ChatContainer({
           const audioUrl = await generateTTS(lastMessage.text);
           if (audioUrl) {
             // Update the message with the audio URL
-            lastMessage.audio_url = audioUrl;
+            setLocalMessages(prev => 
+              prev.map(msg => 
+                msg.id === lastMessage.id 
+                  ? { ...msg, audio_url: audioUrl }
+                  : msg
+              )
+            );
             console.log('TTS generated successfully:', audioUrl);
-            setLocalMessages(prev => [...prev]); // Force update
           }
         } catch (error) {
           console.error('Error generating TTS:', error);
