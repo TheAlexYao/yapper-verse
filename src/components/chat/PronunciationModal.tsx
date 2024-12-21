@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { AudioRecorder } from "./pronunciation/AudioRecorder";
 import { TextDisplay } from "./pronunciation/TextDisplay";
+import { ArrowRight, ArrowDown } from "lucide-react";
 
 interface PronunciationModalProps {
   isOpen: boolean;
@@ -68,6 +69,64 @@ export function PronunciationModal({
 
         <div className="space-y-6 py-4">
           <TextDisplay {...response} />
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                if (response.audio_url) {
+                  const audio = new Audio(response.audio_url);
+                  audio.play();
+                }
+              }}
+            >
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Normal Speed
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={async () => {
+                try {
+                  const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('target_language, voice_preference')
+                    .eq('id', (await supabase.auth.getUser()).data.user?.id)
+                    .single();
+
+                  if (!profile?.target_language) {
+                    throw new Error('Target language not set');
+                  }
+
+                  const { data: ttsData, error: ttsError } = await supabase.functions.invoke('text-to-speech', {
+                    body: {
+                      text: response.text,
+                      languageCode: profile.target_language,
+                      voiceGender: profile.voice_preference || 'female',
+                      speed: 'slow'
+                    }
+                  });
+
+                  if (ttsError) throw ttsError;
+                  if (!ttsData?.audioUrl) throw new Error('No audio URL in response');
+
+                  const audio = new Audio(ttsData.audioUrl);
+                  audio.play();
+                } catch (error) {
+                  console.error('Error playing slow audio:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to play slow speed audio. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              <ArrowDown className="mr-2 h-4 w-4" />
+              Slow Speed
+            </Button>
+          </div>
           
           <AudioRecorder
             onRecordingComplete={(blob) => setAudioBlob(blob)}
