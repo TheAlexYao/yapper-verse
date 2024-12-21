@@ -82,6 +82,11 @@ serve(async (req) => {
     );
 
     speechConfig.speechSynthesisVoiceName = voiceName;
+    
+    // Set output format to audio/wav
+    speechConfig.setSpeechSynthesisOutputFormat(
+      sdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm
+    );
 
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${validatedData.languageCode}">
@@ -111,18 +116,43 @@ serve(async (req) => {
       });
 
       if (result.errorDetails) {
+        console.error('Speech synthesis error:', result.errorDetails);
         throw new Error(`Speech synthesis failed: ${result.errorDetails}`);
       }
 
+      // Create a blob URL from the audio data
       const audioData = result.audioData;
+      const blob = new Blob([audioData], { type: 'audio/wav' });
       
+      // Store the audio in Supabase Storage
+      const timestamp = new Date().getTime();
+      const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.wav`;
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('tts_cache')
+        .upload(filename, blob, {
+          contentType: 'audio/wav',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to store audio file');
+      }
+
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('tts_cache')
+        .getPublicUrl(filename);
+
       return new Response(
-        audioData,
+        JSON.stringify({ audioUrl: publicUrl }),
         { 
           headers: {
             ...corsHeaders,
-            'Content-Type': 'audio/wav',
-            'Content-Length': audioData.byteLength.toString()
+            'Content-Type': 'application/json'
           }
         }
       );
