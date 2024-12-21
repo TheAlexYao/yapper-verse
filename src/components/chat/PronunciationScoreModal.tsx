@@ -6,6 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Play } from "lucide-react";
 
 interface PronunciationData {
   score?: number;
@@ -32,9 +34,17 @@ interface PronunciationScoreModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: PronunciationData;
+  userAudioUrl?: string;
+  referenceAudioUrl?: string;
 }
 
-export function PronunciationScoreModal({ isOpen, onClose, data }: PronunciationScoreModalProps) {
+export function PronunciationScoreModal({ 
+  isOpen, 
+  onClose, 
+  data,
+  userAudioUrl,
+  referenceAudioUrl 
+}: PronunciationScoreModalProps) {
   // Get the first assessment result if available
   const assessment = data.NBest?.[0]?.PronunciationAssessment;
   const words = data.NBest?.[0]?.Words || [];
@@ -53,6 +63,47 @@ export function PronunciationScoreModal({ isOpen, onClose, data }: Pronunciation
     return errorType;
   };
 
+  // Generate AI feedback based on scores
+  const generateAIFeedback = () => {
+    if (!assessment) return null;
+
+    const feedback = [];
+    const { AccuracyScore, FluencyScore, CompletenessScore } = assessment;
+
+    // Overall assessment
+    if (assessment.PronScore >= 90) {
+      feedback.push("Excellent pronunciation! You sound very natural.");
+    } else if (assessment.PronScore >= 75) {
+      feedback.push("Good pronunciation overall, with some areas for improvement.");
+    } else {
+      feedback.push("Your pronunciation needs some work, but don't worry - practice makes perfect!");
+    }
+
+    // Specific feedback based on scores
+    if (AccuracyScore < 75) {
+      feedback.push("Focus on pronouncing individual sounds more clearly.");
+    }
+    if (FluencyScore < 75) {
+      feedback.push("Try to speak more smoothly and naturally, without too many pauses.");
+    }
+    if (CompletenessScore < 75) {
+      feedback.push("Make sure to pronounce all parts of each word completely.");
+    }
+
+    // Word-specific feedback
+    const problematicWords = words.filter(w => 
+      w.PronunciationAssessment.AccuracyScore < 75 || 
+      w.PronunciationAssessment.ErrorType !== "None"
+    );
+    if (problematicWords.length > 0) {
+      feedback.push(`Pay special attention to these words: ${problematicWords.map(w => w.Word).join(", ")}`);
+    }
+
+    return feedback;
+  };
+
+  const aiFeedback = generateAIFeedback();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -64,6 +115,45 @@ export function PronunciationScoreModal({ isOpen, onClose, data }: Pronunciation
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {/* Audio Comparison Section */}
+          {(referenceAudioUrl || userAudioUrl) && (
+            <div className="space-y-4">
+              <h3 className="font-medium">Audio Comparison</h3>
+              <div className="space-y-2">
+                {referenceAudioUrl && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
+                    <span className="text-sm font-medium">Native Speaker</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const audio = new Audio(referenceAudioUrl);
+                        audio.play();
+                      }}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                {userAudioUrl && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
+                    <span className="text-sm font-medium">Your Recording</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const audio = new Audio(userAudioUrl);
+                        audio.play();
+                      }}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {assessment && (
             <div className="space-y-4">
               <h3 className="font-medium">Overall Scores</h3>
@@ -143,9 +233,23 @@ export function PronunciationScoreModal({ isOpen, onClose, data }: Pronunciation
             </div>
           )}
 
+          {/* AI Feedback Section */}
+          {aiFeedback && aiFeedback.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-medium">AI Feedback</h3>
+              <div className="space-y-2">
+                {aiFeedback.map((feedback, index) => (
+                  <p key={index} className="text-sm text-muted-foreground">
+                    {feedback}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {data.feedback && (
             <div className="space-y-2">
-              <h3 className="font-medium">Feedback</h3>
+              <h3 className="font-medium">Additional Feedback</h3>
               <p className="text-sm text-muted-foreground">{data.feedback}</p>
             </div>
           )}

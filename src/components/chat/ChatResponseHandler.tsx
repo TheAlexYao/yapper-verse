@@ -110,6 +110,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     setIsProcessing(true);
     await handlePronunciationComplete(score, audioBlob);
+    setShowScoreModal(true); // Show score modal immediately after processing
   };
 
   return (
@@ -138,6 +139,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           isOpen={showScoreModal}
           onClose={() => setShowScoreModal(false)}
           data={pronunciationData}
+          userAudioUrl={pronunciationData.audio_url}
+          referenceAudioUrl={selectedResponse?.audio_url}
         />
       )}
     </>
