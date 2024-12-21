@@ -15,7 +15,7 @@ interface MessageBubbleProps {
     audio_url?: string;
     reference_audio_url?: string;
   };
-  onPlayAudio?: () => void;
+  onPlayAudio?: (text: string) => void;
 }
 
 export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageBubbleProps) {
@@ -31,7 +31,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio }: MessageB
         const audio = new Audio(message.audio_url);
         await audio.play();
       } else if (onPlayAudio) {
-        onPlayAudio();
+        await onPlayAudio(message.text);
       }
     } catch (error) {
       console.error('Error playing audio:', error);

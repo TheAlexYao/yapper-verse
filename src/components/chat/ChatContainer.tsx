@@ -1,6 +1,7 @@
 import { ChatMessages } from "./ChatMessages";
 import { ChatMetricsContainer } from "./ChatMetricsContainer";
 import { ChatResponseHandler } from "./ChatResponseHandler";
+import { useTTS } from "./hooks/useTTS";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatContainerProps {
@@ -16,6 +17,16 @@ export function ChatContainer({
   onPlayTTS, 
   conversationId 
 }: ChatContainerProps) {
+  const { generateTTS } = useTTS();
+
+  const handlePlayTTS = async (text: string) => {
+    const audioUrl = await generateTTS(text);
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      await audio.play();
+    }
+  };
+
   return (
     <>
       <div className="flex-1 relative">
@@ -32,7 +43,7 @@ export function ChatContainer({
             audio_url: msg.audio_url,
             reference_audio_url: msg.reference_audio_url,
           }))} 
-          onPlayAudio={onPlayTTS}
+          onPlayAudio={handlePlayTTS}
         />
       </div>
 
