@@ -10,6 +10,16 @@ export function useTTS() {
   const { toast } = useToast();
 
   const generateTTS = async (text: string) => {
+    if (!text?.trim()) {
+      console.error('No text provided for TTS generation');
+      toast({
+        title: "Error",
+        description: "No text provided for speech generation",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
       setIsGeneratingTTS(true);
       
@@ -35,14 +45,14 @@ export function useTTS() {
 
       // Validate all required parameters before proceeding
       const params = {
-        text,
+        text: text.trim(),
         languageCode: profile.target_language,
         voiceGender: profile.voice_preference || 'female',
         speed: 'normal'
       };
 
       // Check cache first
-      const cacheKey = `${text}-${params.languageCode}-${params.voiceGender}`;
+      const cacheKey = `${params.text}-${params.languageCode}-${params.voiceGender}`;
       let audioUrl = ttsCache.get(cacheKey);
 
       if (!audioUrl) {

@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 
-const AZURE_SPEECH_KEY = Deno.env.get('AZURE_SPEECH_KEY') || '';
-const AZURE_SPEECH_REGION = Deno.env.get('AZURE_SPEECH_REGION') || '';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface TTSRequest {
   text: string;
@@ -13,13 +14,16 @@ interface TTSRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Validate environment variables
+    const AZURE_SPEECH_KEY = Deno.env.get('AZURE_SPEECH_KEY');
+    const AZURE_SPEECH_REGION = Deno.env.get('AZURE_SPEECH_REGION');
+
     if (!AZURE_SPEECH_KEY || !AZURE_SPEECH_REGION) {
       console.error('Missing Azure Speech configuration');
       return new Response(
@@ -28,7 +32,7 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body first
+    // Parse and validate request body
     const requestData = await req.json();
     console.log('Received TTS request:', requestData);
 
@@ -49,7 +53,6 @@ serve(async (req) => {
       );
     }
 
-    // Now that we've validated the data, we can safely cast it
     const validatedData = requestData as TTSRequest;
     
     // Create speech configuration
