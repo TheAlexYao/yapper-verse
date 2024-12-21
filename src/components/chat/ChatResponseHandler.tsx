@@ -29,15 +29,16 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
-  
+
   // First, send the initial AI message when the conversation starts
-  const { data: initialMessageSent } = useQuery({
+  useQuery({
     queryKey: ['initial-message', conversationId],
     queryFn: async () => {
-      if (!conversationId) return false;
+      if (!conversationId || initialMessageSent) return false;
       
       // Send the initial AI message with the correct conversation_id
       const initialMessage: Message = {
@@ -47,9 +48,10 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       
       console.log('Sending initial message:', initialMessage);
       await onMessageSend(initialMessage);
+      setInitialMessageSent(true);
       return true;
     },
-    enabled: !!conversationId,
+    enabled: !!conversationId && !initialMessageSent,
     staleTime: Infinity, // Only run once per conversation
   });
 
@@ -60,22 +62,28 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       if (!user?.id || !conversationId) return [];
 
       console.log('Fetching responses for conversation:', conversationId);
-      const response = await supabase.functions.invoke('generate-responses', {
-        body: {
-          conversationId,
-          userId: user.id,
-        },
-      });
+      try {
+        const response = await supabase.functions.invoke('generate-responses', {
+          body: {
+            conversationId,
+            userId: user.id,
+          },
+        });
 
-      if (response.error) {
-        console.error('Error fetching responses:', response.error);
-        throw new Error(response.error.message);
+        if (response.error) {
+          console.error('Error fetching responses:', response.error);
+          throw response.error;
+        }
+
+        console.log('Received responses:', response.data?.responses);
+        return response.data?.responses || [];
+      } catch (error) {
+        console.error('Error fetching responses:', error);
+        return [];
       }
-
-      console.log('Received responses:', response.data?.responses);
-      return response.data?.responses || [];
     },
-    enabled: !!conversationId && !!user?.id && !!initialMessageSent,
+    enabled: !!conversationId && !!user?.id && initialMessageSent,
+    retry: 1,
   });
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
