@@ -47,7 +47,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
         />
 
         <div className="flex gap-2">
-          {message.tts_audio_url && (
+          {!isUser && message.tts_audio_url && (
             <AudioButton
               onPlay={() => handlePlayAudio(message.tts_audio_url!, setIsPlayingTTS)}
               isUser={message.isUser}
