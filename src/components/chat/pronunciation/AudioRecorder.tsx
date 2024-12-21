@@ -18,18 +18,24 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
 
   const startRecording = async () => {
     try {
-      // Request high quality audio for better recording
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
-          channelCount: 2, // Stereo for better quality recording
-          sampleRate: 44100, // 44.1kHz for better quality
+          channelCount: 2,
+          sampleRate: 44100,
           echoCancellation: true,
           noiseSuppression: true,
         } 
       });
       
-      // Use standard WebM format which is widely supported
-      const mediaRecorder = new MediaRecorder(stream);
+      // Check supported MIME types
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+        
+      console.log('Using MIME type:', mimeType);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: mimeType
+      });
       
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
