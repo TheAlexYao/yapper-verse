@@ -31,9 +31,7 @@ serve(async (req) => {
           *,
           character:characters(*),
           scenario:scenarios(*),
-          messages:guided_conversation_messages(*),
-          native_language:languages!guided_conversations_native_language_id_fkey(*),
-          target_language:languages!guided_conversations_target_language_id_fkey(*)
+          messages:guided_conversation_messages(*)
         `)
         .eq('id', conversationId)
         .single();
@@ -54,14 +52,6 @@ serve(async (req) => {
       throw new Error('Conversation not found after retries');
     }
 
-    const targetLanguage = conversation.target_language?.code;
-    const nativeLanguage = conversation.native_language?.code;
-
-    if (!targetLanguage || !nativeLanguage) {
-      console.error('Language information missing in conversation:', conversation);
-      throw new Error('Language information missing in conversation');
-    }
-
     // Prepare conversation history with proper formatting
     const messages = conversation.messages.map((msg: any) => ({
       role: msg.is_user ? 'user' : 'assistant',
@@ -69,8 +59,7 @@ serve(async (req) => {
     }));
 
     // Enhanced system prompt
-    const systemPrompt = `You are ${conversation.character.name}, an airport staff member speaking ${targetLanguage}.
-
+    const systemPrompt = `You are ${conversation.character.name}, an airport staff member.
 Your personality: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
 Scenario: ${conversation.scenario.title}
 Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
@@ -86,9 +75,8 @@ ${isInitialMessage ? '5. Start with a professional greeting appropriate for airp
 IMPORTANT: Your response must be in JSON format with these fields:
 {
   "content": "Response in target language",
-  "translation": "Translation in user's native language",
-  "transliteration": "Pronunciation guide using simple characters",
-  "hint": "Optional cultural or usage context"
+  "translation": "Translation in English",
+  "transliteration": "Pronunciation guide using simple characters"
 }`;
 
     console.log('Calling OpenAI with system prompt:', systemPrompt);
@@ -106,7 +94,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4',
             messages: [
               { role: 'system', content: systemPrompt },
               ...messages,
@@ -127,7 +115,8 @@ IMPORTANT: Your response must be in JSON format with these fields:
         }
 
         const completion = await response.json();
-        openAIResponse = completion;
+        openAIResponse = JSON.parse(completion.choices[0].message.content);
+        console.log('Parsed OpenAI response:', openAIResponse);
         break;
       } catch (error) {
         console.error(`OpenAI attempt ${retryCount + 1} failed:`, error);
@@ -137,12 +126,7 @@ IMPORTANT: Your response must be in JSON format with these fields:
       }
     }
 
-    console.log('OpenAI response:', openAIResponse);
-
-    // Parse and validate the response
-    const aiResponse = JSON.parse(openAIResponse.choices[0].message.content);
-    
-    if (!aiResponse.content || !aiResponse.translation) {
+    if (!openAIResponse?.content || !openAIResponse?.translation) {
       throw new Error('Invalid response format from OpenAI');
     }
 
@@ -155,9 +139,9 @@ IMPORTANT: Your response must be in JSON format with these fields:
         .from('guided_conversation_messages')
         .insert({
           conversation_id: conversationId,
-          content: aiResponse.content,
-          translation: aiResponse.translation,
-          transliteration: aiResponse.transliteration,
+          content: openAIResponse.content,
+          translation: openAIResponse.translation,
+          transliteration: openAIResponse.transliteration,
           is_user: false,
         })
         .select()
@@ -172,11 +156,8 @@ IMPORTANT: Your response must be in JSON format with these fields:
       }
 
       newMessage = data;
+      console.log('Successfully inserted AI message:', newMessage);
       break;
-    }
-
-    if (!newMessage) {
-      throw new Error('Failed to insert message after retries');
     }
 
     return new Response(JSON.stringify(newMessage), {
