@@ -18,55 +18,12 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [initialMessageSent, setInitialMessageSent] = useState(false);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
 
-  // First, send the initial AI message when the conversation starts
-  const { isLoading: isLoadingInitial } = useQuery({
-    queryKey: ['initial-message', conversationId],
-    queryFn: async () => {
-      if (!conversationId || initialMessageSent || !user?.id) return null;
-      
-      try {
-        console.log('Generating initial message for conversation:', conversationId);
-        const response = await supabase.functions.invoke('generate-chat-response', {
-          body: {
-            conversationId,
-            userId: user.id,
-            lastMessageContent: null // This signals it's the initial message
-          },
-        });
-
-        if (response.error) {
-          console.error('Error generating initial message:', response.error);
-          toast({
-            title: "Error",
-            description: "Failed to start conversation. Please try again.",
-            variant: "destructive",
-          });
-          throw response.error;
-        }
-        
-        if (response.data) {
-          console.log('Initial AI message received:', response.data);
-          await onMessageSend(response.data);
-          setInitialMessageSent(true);
-          return response.data;
-        }
-      } catch (error) {
-        console.error('Error sending initial message:', error);
-        return null;
-      }
-    },
-    enabled: !!conversationId && !initialMessageSent && !!user?.id,
-    retry: 1,
-    staleTime: Infinity, // Only run once per conversation
-  });
-
-  // Then fetch recommended responses
+  // Fetch recommended responses
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
@@ -98,7 +55,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         return [];
       }
     },
-    enabled: !!conversationId && !!user?.id && initialMessageSent,
+    enabled: !!conversationId && !!user?.id,
     retry: 1,
   });
 
@@ -150,7 +107,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseSelect}
-        isLoading={isLoadingInitial || isLoadingResponses || isGeneratingTTS}
+        isLoading={isLoadingResponses || isGeneratingTTS}
       />
 
       {selectedResponse && showPronunciationModal && (
