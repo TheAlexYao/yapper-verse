@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
+import { useToast } from "@/hooks/use-toast";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!conversationId) {
@@ -55,6 +57,13 @@ export function useMessageSubscription(conversationId: string | null) {
         console.log('Subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to conversation:', conversationId);
+        }
+        if (status === 'CLOSED') {
+          toast({
+            title: "Connection closed",
+            description: "Reconnecting to chat...",
+            variant: "default",
+          });
         }
       });
 

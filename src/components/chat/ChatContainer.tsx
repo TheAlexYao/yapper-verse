@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
@@ -28,7 +28,7 @@ export function ChatContainer({
   const { messages, setMessages } = useMessageSubscription(conversationId);
 
   // Fetch messages using React Query
-  const { data: fetchedMessages } = useQuery({
+  useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
@@ -52,7 +52,7 @@ export function ChatContainer({
         throw error;
       }
 
-      console.log('Fetched messages from database:', messages);
+      console.log('Setting initial messages:', messages);
 
       const formattedMessages = messages.map((msg): Message => {
         const message = {
@@ -117,13 +117,13 @@ export function ChatContainer({
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <ChatMessagesSection 
-        messages={fetchedMessages || []}
+        messages={messages}
         onPlayAudio={handlePlayTTS}
         onShowScore={setSelectedMessageForScore}
       />
 
       <ChatBottomSection 
-        messages={fetchedMessages || []}
+        messages={messages}
         conversationId={conversationId}
         onMessageSend={onMessageSend}
       />
