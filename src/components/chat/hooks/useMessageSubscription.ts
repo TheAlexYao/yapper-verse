@@ -9,7 +9,8 @@ export function useMessageSubscription(conversationId: string | null) {
   const { toast } = useToast();
   const { generateTTS } = useTTS();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const cleanedUpRef = useRef(false);
+  const hasInitializedRef = useRef(false);
+  const isSubscribedRef = useRef(false);
 
   const generateAudioForMessage = async (content: string, messageId: string) => {
     try {
@@ -29,16 +30,10 @@ export function useMessageSubscription(conversationId: string | null) {
 
       if (cacheEntry?.audio_url) {
         console.log('Found cached audio for message:', messageId);
-        // Update message with cached audio URL
-        await supabase
-          .from('guided_conversation_messages')
-          .update({ audio_url: cacheEntry.audio_url })
-          .eq('id', messageId);
         return cacheEntry.audio_url;
       }
 
-      // Generate new audio if not in cache
-      console.log('Generating new audio for message:', messageId);
+      console.log('Cache miss, generating TTS...');
       const audioUrl = await generateTTS(content);
       if (audioUrl) {
         await supabase
@@ -53,11 +48,70 @@ export function useMessageSubscription(conversationId: string | null) {
     }
   };
 
+  // Effect for fetching initial messages
+  useEffect(() => {
+    if (!conversationId || hasInitializedRef.current) return;
+
+    const fetchInitialMessages = async () => {
+      try {
+        const { data: messages, error } = await supabase
+          .from('guided_conversation_messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching messages:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch messages. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (messages) {
+          // Process messages and generate TTS where needed
+          const processedMessages = await Promise.all(messages.map(async (msg) => {
+            let audioUrl = msg.audio_url;
+            if (!msg.is_user && !audioUrl) {
+              audioUrl = await generateAudioForMessage(msg.content, msg.id);
+            }
+
+            return {
+              id: msg.id,
+              conversation_id: msg.conversation_id,
+              text: msg.content,
+              translation: msg.translation,
+              transliteration: msg.transliteration,
+              pronunciation_score: msg.pronunciation_score,
+              pronunciation_data: msg.pronunciation_data,
+              audio_url: audioUrl,
+              reference_audio_url: msg.reference_audio_url,
+              isUser: msg.is_user
+            };
+          }));
+
+          console.log('Setting initial messages:', processedMessages);
+          setMessages(processedMessages);
+          hasInitializedRef.current = true;
+        }
+      } catch (error) {
+        console.error('Error in fetchInitialMessages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load messages. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchInitialMessages();
+  }, [conversationId, toast, generateTTS]);
+
   // Effect for setting up the subscription
   useEffect(() => {
-    if (!conversationId || cleanedUpRef.current) {
-      return;
-    }
+    if (!conversationId || isSubscribedRef.current) return;
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
@@ -100,7 +154,6 @@ export function useMessageSubscription(conversationId: string | null) {
               console.log('Message already exists, skipping:', formattedMessage.id);
               return prevMessages;
             }
-            console.log('Adding new message to state:', formattedMessage);
             return [...prevMessages, formattedMessage];
           });
         }
@@ -108,10 +161,12 @@ export function useMessageSubscription(conversationId: string | null) {
       .subscribe((status) => {
         console.log('Subscription status:', status);
         if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
           console.log('Successfully subscribed to conversation:', conversationId);
         }
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.log('Subscription closed or errored:', status);
+          isSubscribedRef.current = false;
           toast({
             title: "Connection issue",
             description: "Reconnecting to chat...",
@@ -124,65 +179,13 @@ export function useMessageSubscription(conversationId: string | null) {
 
     // Cleanup function
     return () => {
-      if (cleanedUpRef.current) return;
-      
       console.log('Cleaning up subscription for conversation:', conversationId);
       if (channelRef.current) {
-        cleanedUpRef.current = true;
         channelRef.current.unsubscribe();
+        channelRef.current = null;
+        isSubscribedRef.current = false;
       }
     };
-  }, [conversationId, toast, generateTTS]);
-
-  // Effect for fetching initial messages
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const fetchInitialMessages = async () => {
-      const { data: messages, error } = await supabase
-        .from('guided_conversation_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch messages. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (messages) {
-        // Process messages and generate TTS where needed
-        const processedMessages = await Promise.all(messages.map(async (msg) => {
-          let audioUrl = msg.audio_url;
-          if (!msg.is_user && !audioUrl) {
-            audioUrl = await generateAudioForMessage(msg.content, msg.id);
-          }
-
-          return {
-            id: msg.id,
-            conversation_id: msg.conversation_id,
-            text: msg.content,
-            translation: msg.translation,
-            transliteration: msg.transliteration,
-            pronunciation_score: msg.pronunciation_score,
-            pronunciation_data: msg.pronunciation_data,
-            audio_url: audioUrl,
-            reference_audio_url: msg.reference_audio_url,
-            isUser: msg.is_user
-          };
-        }));
-
-        console.log('Setting initial messages:', processedMessages);
-        setMessages(processedMessages);
-      }
-    };
-
-    fetchInitialMessages();
   }, [conversationId, toast, generateTTS]);
 
   return { messages, setMessages };
