@@ -5,15 +5,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AudioComparison } from "../AudioComparison";
-import { AIFeedback } from "../AIFeedback";
-import { ScoresDisplay } from "../ScoresDisplay";
-import { WordAnalysis } from "../WordAnalysis";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Volume2 } from "lucide-react";
 
 interface PronunciationData {
-  score?: number;
-  feedback?: string;
-  suggestions?: string[];
   NBest?: Array<{
     PronunciationAssessment?: {
       AccuracyScore: number;
@@ -49,87 +45,103 @@ export function PronunciationScoreModal({
   const assessment = data.NBest?.[0]?.PronunciationAssessment;
   const words = data.NBest?.[0]?.Words || [];
 
-  const generateAIFeedback = () => {
-    if (!assessment) return [];
-
-    const feedback = [];
-    const { AccuracyScore, FluencyScore, CompletenessScore } = assessment;
-
-    if (assessment.PronScore >= 90) {
-      feedback.push("Excellent pronunciation! You sound very natural.");
-    } else if (assessment.PronScore >= 75) {
-      feedback.push("Good pronunciation overall, with some areas for improvement.");
-    } else {
-      feedback.push("Your pronunciation needs some work, but don't worry - practice makes perfect!");
-    }
-
-    if (AccuracyScore < 75) {
-      feedback.push("Focus on pronouncing individual sounds more clearly.");
-    }
-    if (FluencyScore < 75) {
-      feedback.push("Try to speak more smoothly and naturally, without too many pauses.");
-    }
-    if (CompletenessScore < 75) {
-      feedback.push("Make sure to pronounce all parts of each word completely.");
-    }
-
-    const problematicWords = words.filter(w => 
-      w.PronunciationAssessment.AccuracyScore < 75 || 
-      w.PronunciationAssessment.ErrorType !== "None"
-    );
-    if (problematicWords.length > 0) {
-      feedback.push(`Pay special attention to these words: ${problematicWords.map(w => w.Word).join(", ")}`);
-    }
-
-    return feedback;
+  const handlePlayAudio = async (audioUrl?: string) => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    await audio.play();
   };
-
-  const scores = assessment ? [
-    { name: "Accuracy", value: assessment.AccuracyScore },
-    { name: "Fluency", value: assessment.FluencyScore },
-    { name: "Completeness", value: assessment.CompletenessScore },
-    { name: "Overall", value: assessment.PronScore }
-  ] : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
-          <DialogTitle>Pronunciation Feedback</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Pronunciation Analysis</DialogTitle>
           <DialogDescription>
-            Detailed analysis of your pronunciation
+            Detailed breakdown of your pronunciation
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <AudioComparison
-            userAudioUrl={userAudioUrl}
-            referenceAudioUrl={referenceAudioUrl}
-          />
-          
-          <AIFeedback feedback={generateAIFeedback()} />
-          <ScoresDisplay scores={scores} />
-          <WordAnalysis words={words} />
-
-          {data.feedback && (
+        <div className="space-y-6 py-4">
+          {/* Overall Scores */}
+          <div className="space-y-4">
             <div className="space-y-2">
-              <h3 className="font-medium">Additional Feedback</h3>
-              <p className="text-sm text-muted-foreground">{data.feedback}</p>
+              <div className="flex items-center justify-between text-sm">
+                <span>Accuracy</span>
+                <span>{assessment?.AccuracyScore.toFixed(1)}%</span>
+              </div>
+              <Progress value={assessment?.AccuracyScore} />
             </div>
-          )}
-
-          {data.suggestions && data.suggestions.length > 0 && (
             <div className="space-y-2">
-              <h3 className="font-medium">Suggestions</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {data.suggestions.map((suggestion, index) => (
-                  <li key={index} className="text-sm text-muted-foreground">
-                    {suggestion}
-                  </li>
-                ))}
-              </ul>
+              <div className="flex items-center justify-between text-sm">
+                <span>Fluency</span>
+                <span>{assessment?.FluencyScore.toFixed(1)}%</span>
+              </div>
+              <Progress value={assessment?.FluencyScore} />
             </div>
-          )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Completeness</span>
+                <span>{assessment?.CompletenessScore.toFixed(1)}%</span>
+              </div>
+              <Progress value={assessment?.CompletenessScore} />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm font-medium">
+                <span>Overall Score</span>
+                <span>{assessment?.PronScore.toFixed(1)}%</span>
+              </div>
+              <Progress value={assessment?.PronScore} className="bg-accent/50" />
+            </div>
+          </div>
+
+          {/* Word Analysis */}
+          <div className="space-y-3">
+            <h3 className="font-medium">Word-by-Word Analysis</h3>
+            <div className="space-y-2">
+              {words.map((word, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg bg-accent/50"
+                >
+                  <span className="font-medium">{word.Word}</span>
+                  <span className={`text-sm font-medium ${
+                    word.PronunciationAssessment.AccuracyScore >= 90 ? 'text-green-500' :
+                    word.PronunciationAssessment.AccuracyScore >= 75 ? 'text-yellow-500' :
+                    'text-red-500'
+                  }`}>
+                    {word.PronunciationAssessment.AccuracyScore.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Audio Comparison */}
+          <div className="space-y-3">
+            <h3 className="font-medium">Compare Audio</h3>
+            <div className="flex gap-3">
+              {userAudioUrl && (
+                <Button
+                  variant="outline"
+                  className="flex-1 border-2 border-[#38b6ff] hover:bg-[#38b6ff]/10 hover:text-[#38b6ff] transition-colors"
+                  onClick={() => handlePlayAudio(userAudioUrl)}
+                >
+                  <Volume2 className="mr-2 h-4 w-4" />
+                  Your Recording
+                </Button>
+              )}
+              {referenceAudioUrl && (
+                <Button
+                  variant="outline"
+                  className="flex-1 border-2 border-[#7843e6] hover:bg-[#7843e6]/10 hover:text-[#7843e6] transition-colors"
+                  onClick={() => handlePlayAudio(referenceAudioUrl)}
+                >
+                  <Volume2 className="mr-2 h-4 w-4" />
+                  Reference Audio
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
