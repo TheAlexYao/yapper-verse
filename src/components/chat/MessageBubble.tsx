@@ -15,17 +15,26 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayAudio = async () => {
-    if (isPlaying || !message.audio_url || !onPlayAudio) return;
+    if (isPlaying) return;
+    
+    const audioUrl = isUser ? message.reference_audio_url : message.audio_url;
+    
+    if (!audioUrl || !onPlayAudio) {
+      console.error('No audio URL available or no play handler');
+      return;
+    }
     
     setIsPlaying(true);
     try {
-      await onPlayAudio(message.audio_url);
+      await onPlayAudio(audioUrl);
     } catch (error) {
       console.error('Error playing audio:', error);
     } finally {
       setIsPlaying(false);
     }
   };
+
+  const shouldShowAudio = isUser ? !!message.reference_audio_url : !!message.audio_url;
 
   return (
     <div className={cn(
@@ -45,12 +54,12 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
           onShowScore={() => onShowScore?.(message)}
         />
 
-        {message.audio_url && (
+        {shouldShowAudio && (
           <AudioButton
             onPlay={handlePlayAudio}
             isUser={message.isUser}
             isPlaying={isPlaying}
-            disabled={!message.audio_url}
+            disabled={!shouldShowAudio}
           />
         )}
       </div>

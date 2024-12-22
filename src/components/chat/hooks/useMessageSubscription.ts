@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
+import { useTTSHandler } from "./useTTSHandler";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
+  const { generateTTSForMessage } = useTTSHandler(conversationId);
 
   // Effect for setting up the subscription
   useEffect(() => {
@@ -42,6 +44,11 @@ export function useMessageSubscription(conversationId: string | null) {
             isUser: newMessage.is_user
           };
 
+          // Generate TTS for AI messages without audio
+          if (!newMessage.is_user && !newMessage.audio_url) {
+            generateTTSForMessage(formattedMessage);
+          }
+
           setMessages(prevMessages => {
             // Check if message already exists
             const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
@@ -68,12 +75,11 @@ export function useMessageSubscription(conversationId: string | null) {
         }
       });
 
-    // Cleanup function
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
       channel.unsubscribe();
     };
-  }, [conversationId, toast]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
   // Effect for fetching initial messages
   useEffect(() => {
@@ -97,25 +103,35 @@ export function useMessageSubscription(conversationId: string | null) {
       }
 
       if (messages) {
-        const formattedMessages = messages.map((msg): Message => ({
-          id: msg.id,
-          conversation_id: msg.conversation_id,
-          text: msg.content,
-          translation: msg.translation,
-          transliteration: msg.transliteration,
-          pronunciation_score: msg.pronunciation_score,
-          pronunciation_data: msg.pronunciation_data,
-          audio_url: msg.audio_url,
-          reference_audio_url: msg.reference_audio_url,
-          isUser: msg.is_user
-        }));
+        const formattedMessages = messages.map((msg): Message => {
+          const message = {
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            text: msg.content,
+            translation: msg.translation,
+            transliteration: msg.transliteration,
+            pronunciation_score: msg.pronunciation_score,
+            pronunciation_data: msg.pronunciation_data,
+            audio_url: msg.audio_url,
+            reference_audio_url: msg.reference_audio_url,
+            isUser: msg.is_user
+          };
+
+          // Generate TTS for AI messages without audio
+          if (!msg.is_user && !msg.audio_url) {
+            generateTTSForMessage(message);
+          }
+
+          return message;
+        });
+        
         console.log('Setting initial messages:', formattedMessages);
         setMessages(formattedMessages);
       }
     };
 
     fetchInitialMessages();
-  }, [conversationId, toast]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
   return { messages, setMessages };
 }
