@@ -9,6 +9,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Maximum time to wait for OpenAI response in milliseconds
+ */
+const OPENAI_TIMEOUT = 30000;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -66,66 +71,89 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Call OpenAI API to generate response
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: "system",
-            content: `You are ${conversation.character.name}, a character in a language learning scenario about ${conversation.scenario.title}. 
-                     You should respond in ${conversation.target_language.code} with natural, conversational language.
-                     Keep responses concise and focused on the scenario.
-                     Cultural context: ${conversation.scenario.cultural_notes}
-                     Primary goal: ${conversation.scenario.primary_goal}
-                     Your personality: ${conversation.character.language_style?.join(', ')}
-                     Location: ${conversation.scenario.location_details}`
-          },
-          {
-            role: "user",
-            content: lastMessageContent
-          }
-        ],
-      }),
-    });
+    // Call OpenAI API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT);
 
-    // Parse OpenAI response
-    const openAIData = await openAIResponse.json();
-    const aiResponse = openAIData.choices?.[0]?.message?.content;
-
-    // Validate AI response
-    if (!aiResponse) {
-      console.error('No response generated from OpenAI:', openAIData);
-      throw new Error('Failed to generate AI response');
-    }
-
-    console.log('Generated AI response:', aiResponse);
-
-    // Insert AI message into the database
-    const { error: insertError } = await supabase
-      .from('guided_conversation_messages')
-      .insert({
-        conversation_id: conversationId,
-        content: aiResponse,
-        is_user: false,
+    try {
+      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: "system",
+              content: `You are ${conversation.character.name}, a character in a language learning scenario about ${conversation.scenario.title}. 
+                       You should respond in ${conversation.target_language.code} with natural, conversational language.
+                       Keep responses concise and focused on the scenario.
+                       Cultural context: ${conversation.scenario.cultural_notes}
+                       Primary goal: ${conversation.scenario.primary_goal}
+                       Your personality: ${conversation.character.language_style?.join(', ')}
+                       Location: ${conversation.scenario.location_details}`
+            },
+            {
+              role: "user",
+              content: lastMessageContent
+            }
+          ],
+        }),
+        signal: controller.signal,
       });
 
-    // Handle message insertion errors
-    if (insertError) {
-      console.error('Error inserting AI message:', insertError);
-      throw insertError;
-    }
+      clearTimeout(timeoutId);
 
-    // Return success response
-    return new Response(
-      JSON.stringify({ success: true, message: aiResponse }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      // Check if response is ok before proceeding
+      if (!openAIResponse.ok) {
+        const errorText = await openAIResponse.text();
+        console.error('OpenAI API error:', errorText);
+        throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+      }
+
+      // Parse OpenAI response
+      const openAIData = await openAIResponse.json();
+      const aiResponse = openAIData.choices?.[0]?.message?.content;
+
+      // Validate AI response
+      if (!aiResponse) {
+        console.error('No response generated from OpenAI:', openAIData);
+        throw new Error('Failed to generate AI response');
+      }
+
+      console.log('Generated AI response:', aiResponse);
+
+      // Insert AI message into the database
+      const { error: insertError } = await supabase
+        .from('guided_conversation_messages')
+        .insert({
+          conversation_id: conversationId,
+          content: aiResponse,
+          is_user: false,
+        });
+
+      // Handle message insertion errors
+      if (insertError) {
+        console.error('Error inserting AI message:', insertError);
+        throw insertError;
+      }
+
+      // Return success response
+      return new Response(
+        JSON.stringify({ success: true, message: aiResponse }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('OpenAI API request timed out');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
   } catch (error) {
     // Log and handle any errors that occur during processing
