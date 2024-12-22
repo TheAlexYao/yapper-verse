@@ -85,6 +85,15 @@ export function ChatContainer({
       return;
     }
 
+    if (!message.text || message.isUser || message.audio_url) {
+      console.log('Skipping TTS generation:', { 
+        hasText: !!message.text, 
+        isUser: message.isUser, 
+        hasAudio: !!message.audio_url 
+      });
+      return;
+    }
+
     console.log('Generating TTS for message:', message.text);
     setProcessingTTS(prev => new Set(prev).add(message.id));
 

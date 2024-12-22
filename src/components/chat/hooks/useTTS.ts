@@ -32,9 +32,7 @@ export function useTTS() {
       }
 
       console.log('Cache miss, generating TTS...');
-      console.log('Database cache miss, calling TTS function');
 
-      // Generate new audio
       const response = await fetch('/functions/v1/text-to-speech', {
         method: 'POST',
         headers: {
@@ -49,28 +47,14 @@ export function useTTS() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate speech');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to generate speech');
       }
 
       const { audioUrl } = await response.json();
-
-      // Cache the result using upsert
-      const { error: cacheError } = await supabase
-        .from('tts_cache')
-        .upsert({
-          text_hash: textHash,
-          text_content: text,
-          language_code: 'fr', // This should be dynamic based on the target language
-          voice_gender: voicePreference,
-          audio_url: audioUrl
-        }, {
-          onConflict: 'text_hash',
-          ignoreDuplicates: false
-        });
-
-      if (cacheError) {
-        console.log('Error caching audio URL:', cacheError);
-        // Don't throw here, we still want to return the audio URL even if caching fails
+      
+      if (!audioUrl) {
+        throw new Error('No audio URL returned from TTS service');
       }
 
       // Update memory cache

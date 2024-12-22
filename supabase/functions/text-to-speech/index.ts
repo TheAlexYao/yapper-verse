@@ -24,6 +24,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Processing TTS request:', { text, gender, speed });
+
     // Create hash using native crypto API
     const textToHash = `${text}-${gender}-${speed}`;
     const encoder = new TextEncoder();
@@ -37,12 +39,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check cache
-    const { data: cacheEntry } = await supabase
+    // Check cache first
+    const { data: cacheEntry, error: cacheError } = await supabase
       .from('tts_cache')
       .select('audio_url')
       .eq('text_hash', textHash)
       .maybeSingle();
+
+    if (cacheError) {
+      console.error('Cache lookup error:', cacheError);
+      throw cacheError;
+    }
 
     if (cacheEntry?.audio_url) {
       console.log('Cache hit, returning cached audio URL');
@@ -52,7 +59,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Cache miss, generating TTS...');
+    console.log('Cache miss, generating new audio');
 
     // Configure speech synthesis
     const speechConfig = sdk.SpeechConfig.fromSubscription(
@@ -145,6 +152,8 @@ serve(async (req) => {
         voice_gender: gender,
         audio_url: publicUrl
       });
+
+    console.log('Successfully generated and cached TTS');
 
     return new Response(
       JSON.stringify({ audioUrl: publicUrl }),
