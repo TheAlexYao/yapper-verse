@@ -23,6 +23,7 @@ export function ChatContainer({
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
+  const [processedMessages, setProcessedMessages] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   // Fetch messages using React Query
@@ -80,8 +81,9 @@ export function ChatContainer({
 
   // Generate TTS for new AI messages
   const generateTTSForMessage = useCallback(async (message: Message) => {
-    if (processingTTS.has(message.id)) {
-      console.log('Already processing TTS for message:', message.id);
+    // Skip if already processed or processing
+    if (processedMessages.has(message.id) || processingTTS.has(message.id)) {
+      console.log('Skipping TTS generation - already processed or processing:', message.id);
       return;
     }
 
@@ -114,6 +116,9 @@ export function ChatContainer({
             msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
           )
         );
+
+        // Mark as processed
+        setProcessedMessages(prev => new Set(prev).add(message.id));
       }
     } catch (error) {
       console.error('Error generating TTS:', error);
@@ -124,7 +129,7 @@ export function ChatContainer({
         return newSet;
       });
     }
-  }, [generateTTS, conversationId, queryClient, processingTTS]);
+  }, [generateTTS, conversationId, queryClient, processingTTS, processedMessages]);
 
   useEffect(() => {
     const generateTTSForNewMessages = async () => {

@@ -2,6 +2,35 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+/**
+ * Text-to-Speech Edge Function
+ * 
+ * This function handles the generation of speech audio from text using Azure's Cognitive Services.
+ * It implements caching to avoid regenerating the same audio multiple times.
+ * 
+ * Required Environment Variables:
+ * - AZURE_SPEECH_KEY: Azure Cognitive Services API key
+ * - AZURE_SPEECH_REGION: Azure region (e.g., 'eastus')
+ * - SUPABASE_URL: Project URL
+ * - SUPABASE_SERVICE_ROLE_KEY: Service role key for database access
+ * 
+ * Request Parameters:
+ * @param {string} text - The text to convert to speech
+ * @param {string} gender - Voice gender ('male' or 'female', defaults to 'female')
+ * @param {string} speed - Speech rate ('normal' or 'slow', defaults to 'normal')
+ * @param {string} languageCode - BCP 47 language code (e.g., 'en-US', 'fr-FR')
+ * 
+ * Response:
+ * @returns {Object} JSON object containing:
+ *   - audioUrl: URL to the generated audio file
+ *   - error?: Error message if generation failed
+ * 
+ * Caching:
+ * - Audio files are cached in the 'tts_cache' storage bucket
+ * - Cache keys are generated using text + gender + speed + language
+ * - Cache entries are stored in the 'tts_cache' table
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
