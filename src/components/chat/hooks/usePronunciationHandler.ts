@@ -52,6 +52,11 @@ export function usePronunciationHandler({
       formData.append('languageCode', selectedResponse.languageCode);
 
       // Step 4: Send for assessment
+      console.log('Sending assessment request with formData:', {
+        text: selectedResponse.text,
+        languageCode: selectedResponse.languageCode
+      });
+
       const { data: assessmentData, error: assessmentError } = await supabase.functions
         .invoke('assess-pronunciation', {
           body: formData
@@ -62,8 +67,17 @@ export function usePronunciationHandler({
         throw assessmentError;
       }
 
-      // Step 5: Extract assessment results
-      const { audioUrl, assessment } = assessmentData;
+      console.log('Received assessment data:', assessmentData);
+
+      // Step 5: Extract assessment results with null checks
+      const { audioUrl, assessment } = assessmentData || {};
+      
+      if (!assessment) {
+        throw new Error('No assessment data received');
+      }
+
+      // Get pronunciation score with fallback
+      const pronunciationScore = assessment.NBest?.[0]?.PronunciationAssessment?.PronScore || 0;
       
       // Step 6: Create message with assessment data
       const newMessage: Message = {
@@ -71,12 +85,14 @@ export function usePronunciationHandler({
         conversation_id: conversationId,
         text: selectedResponse.text,
         translation: selectedResponse.translation,
-        pronunciation_score: Math.round(assessment.pronunciationScore),
+        pronunciation_score: Math.round(pronunciationScore),
         pronunciation_data: assessment,
         audio_url: audioUrl,
         reference_audio_url: selectedResponse.audio_url,
         isUser: true,
       };
+
+      console.log('Created new message with assessment:', newMessage);
 
       // Step 7: Send message and update UI
       await onMessageSend(newMessage);
