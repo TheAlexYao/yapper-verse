@@ -5,12 +5,13 @@ import { performSpeechRecognition } from "./utils/speechRecognition.ts"
 import { createDefaultResponse } from "./utils/assessmentResponse.ts"
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS for browser requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    // Step 1: Extract audio and metadata from request
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
     const referenceText = formData.get('text') as string
@@ -28,15 +29,15 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
-    // Upload original WAV file to storage
+    // Step 2: Upload original audio for reference
     const audioUrl = await uploadAudioToStorage(audioFile)
     console.log('Audio uploaded successfully:', audioUrl)
     
-    // Convert WAV to raw PCM data
+    // Step 3: Prepare audio data for Azure
     const arrayBuffer = await audioFile.arrayBuffer()
     const wavBuffer = new Uint8Array(arrayBuffer)
     
-    // Parse WAV header
+    // Step 4: Validate WAV format and requirements
     const wavHeader = {
       chunkID: new TextDecoder().decode(wavBuffer.slice(0, 4)),
       fileSize: new DataView(arrayBuffer).getUint32(4, true),
@@ -50,38 +51,10 @@ serve(async (req) => {
       bitsPerSample: new DataView(arrayBuffer).getUint16(34, true)
     }
     
-    console.log('WAV Header:', wavHeader)
-    
-    // Validate WAV format
-    if (wavHeader.chunkID !== 'RIFF' || wavHeader.format !== 'WAVE') {
-      throw new Error('Invalid WAV format')
-    }
-
-    // Validate audio format requirements
-    if (wavHeader.sampleRate !== 16000) {
-      throw new Error('Sample rate must be 16000 Hz')
-    }
-
-    if (wavHeader.numChannels !== 1) {
-      throw new Error('Audio must be mono (1 channel)')
-    }
-
-    if (wavHeader.bitsPerSample !== 16) {
-      throw new Error('Bits per sample must be 16')
-    }
-
-    // Skip WAV header (44 bytes) to get raw PCM data
+    // Step 5: Extract PCM data for assessment
     const pcmData = wavBuffer.slice(44)
     
-    console.log('Audio data details:', {
-      originalSize: wavBuffer.length,
-      pcmSize: pcmData.length,
-      type: Object.prototype.toString.call(pcmData),
-      sampleRate: wavHeader.sampleRate,
-      channels: wavHeader.numChannels,
-      bitsPerSample: wavHeader.bitsPerSample
-    })
-
+    // Step 6: Get Azure credentials
     const speechKey = Deno.env.get('AZURE_SPEECH_KEY')
     const speechRegion = Deno.env.get('AZURE_SPEECH_REGION')
 
@@ -89,6 +62,7 @@ serve(async (req) => {
       throw new Error('Azure Speech Services configuration missing')
     }
 
+    // Step 7: Perform pronunciation assessment
     const result = await performSpeechRecognition({
       speechKey,
       speechRegion,
@@ -100,50 +74,12 @@ serve(async (req) => {
       bitsPerSample: wavHeader.bitsPerSample
     })
 
-    console.log('Speech recognition result:', result)
+    // Step 8: Process and format assessment results
+    let assessment = result && typeof result === 'object' 
+      ? extractAssessmentData(result)
+      : createDefaultResponse(referenceText, audioUrl).assessment;
 
-    // Extract the pronunciation assessment from the result
-    let assessment;
-    if (result && typeof result === 'object') {
-      const jsonResult = JSON.stringify(result)
-      console.log('Raw recognition result:', jsonResult)
-      
-      const parsedResult = JSON.parse(jsonResult)
-      console.log('Parsed recognition result:', parsedResult)
-      
-      if (parsedResult.privJson) {
-        // Parse the privJson string which contains the detailed assessment
-        const privJsonData = JSON.parse(parsedResult.privJson)
-        console.log('Pronunciation assessment from privJson:', privJsonData)
-        
-        if (privJsonData.NBest && privJsonData.NBest[0]) {
-          const nBestResult = privJsonData.NBest[0];
-          assessment = {
-            NBest: [{
-              PronunciationAssessment: nBestResult.PronunciationAssessment,
-              Words: nBestResult.Words.map((word: any) => ({
-                Word: word.Word,
-                PronunciationAssessment: {
-                  AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
-                  ErrorType: word.PronunciationAssessment?.ErrorType || "None",
-                  Feedback: word.PronunciationAssessment?.Feedback || null
-                },
-                Syllables: word.Syllables || [],
-                Phonemes: word.Phonemes || []
-              }))
-            }],
-            pronunciationScore: nBestResult.PronunciationAssessment?.PronScore || 0
-          }
-        }
-      }
-    }
-
-    if (!assessment) {
-      assessment = createDefaultResponse(referenceText, audioUrl).assessment
-    }
-
-    console.log('Final assessment data:', assessment)
-
+    // Step 9: Return results
     return new Response(
       JSON.stringify({ audioUrl, assessment }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -163,3 +99,32 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper function to extract assessment data
+function extractAssessmentData(result: any) {
+  if (result.privJson) {
+    const privJsonData = JSON.parse(result.privJson)
+    console.log('Pronunciation assessment from privJson:', privJsonData)
+    
+    if (privJsonData.NBest && privJsonData.NBest[0]) {
+      const nBestResult = privJsonData.NBest[0];
+      return {
+        NBest: [{
+          PronunciationAssessment: nBestResult.PronunciationAssessment,
+          Words: nBestResult.Words.map((word: any) => ({
+            Word: word.Word,
+            PronunciationAssessment: {
+              AccuracyScore: word.PronunciationAssessment?.AccuracyScore || 0,
+              ErrorType: word.PronunciationAssessment?.ErrorType || "None",
+              Feedback: word.PronunciationAssessment?.Feedback || null
+            },
+            Syllables: word.Syllables || [],
+            Phonemes: word.Phonemes || []
+          }))
+        }],
+        pronunciationScore: nBestResult.PronunciationAssessment?.PronScore || 0
+      }
+    }
+  }
+  return null;
+}

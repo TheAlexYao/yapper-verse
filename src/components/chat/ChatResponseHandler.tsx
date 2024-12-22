@@ -78,7 +78,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     }
     
     try {
-      // First, get the user's profile to determine voice preference
+      // Step 1: Get user's voice preference from profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
@@ -89,7 +89,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Generate reference audio (normal speed only)
+      // Step 2: Generate reference audio for pronunciation comparison
       console.log('Generating reference audio for:', response.text);
       const normalAudioUrl = await generateTTS(
         response.text, 
@@ -101,7 +101,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Failed to generate reference audio');
       }
 
-      // Store response with the generated audio URL
+      // Step 3: Store response with generated audio URL and language info
       setSelectedResponse({ 
         ...response, 
         audio_url: normalAudioUrl,

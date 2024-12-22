@@ -18,15 +18,17 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
 
   const startRecording = async () => {
     try {
+      // Step 1: Configure audio stream with specific requirements for Azure
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
-          channelCount: 1,
-          sampleRate: 16000,
+          channelCount: 1, // Mono audio required
+          sampleRate: 16000, // 16kHz required by Azure
           echoCancellation: true,
           noiseSuppression: true,
         } 
       });
       
+      // Step 2: Initialize MediaRecorder with PCM format
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=pcm'
       });
@@ -34,22 +36,25 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      // Step 3: Handle incoming audio data
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      // Step 4: Process recorded audio when stopped
       mediaRecorder.onstop = async () => {
-        // Convert WebM to WAV
+        // Convert WebM to WAV format required by Azure
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioContext = new AudioContext({ sampleRate: 16000 });
         
         try {
+          // Convert to proper format for assessment
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
           
-          // Create WAV file
+          // Create WAV file with correct specifications
           const wavBuffer = audioBufferToWav(audioBuffer);
           const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
           
@@ -68,7 +73,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
           audioContext.close();
         }
 
-        // Stop all tracks in the stream
+        // Cleanup: Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
