@@ -52,6 +52,13 @@ export function ChatContainer({
     }
   };
 
+  // Log messages state for debugging
+  console.log('Chat container render:', {
+    conversationId,
+    messageCount: messages.length,
+    messagesWithAudio: messages.filter(m => m.audio_url).length
+  });
+
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <ChatMessagesSection 

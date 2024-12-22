@@ -23,10 +23,16 @@ export function MessageBubble({
 
   const handlePlayAudio = async () => {
     if (isPlaying || !message.audio_url || !onPlayAudio) {
+      console.log('Cannot play audio:', { 
+        isPlaying, 
+        hasAudioUrl: !!message.audio_url,
+        hasPlayHandler: !!onPlayAudio 
+      });
       return;
     }
     
     try {
+      console.log('Playing audio from URL:', message.audio_url);
       setIsPlaying(true);
       await onPlayAudio(message.audio_url);
     } catch (error) {
@@ -50,6 +56,15 @@ export function MessageBubble({
     "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
     isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
   );
+
+  // Log message state for debugging
+  console.log('Message bubble render:', {
+    messageId: message.id,
+    hasAudioUrl: !!message.audio_url,
+    audioUrl: message.audio_url,
+    isUser,
+    isPlaying
+  });
 
   return (
     <div className={containerClasses}>
