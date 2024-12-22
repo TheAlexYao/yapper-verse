@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Effect for setting up the subscription
   useEffect(() => {
@@ -14,9 +16,15 @@ export function useMessageSubscription(conversationId: string | null) {
       return;
     }
 
+    // Prevent duplicate subscriptions
+    if (channelRef.current) {
+      console.log('Subscription already exists for conversation:', conversationId);
+      return;
+    }
+
     console.log('Setting up message subscription for conversation:', conversationId);
     
-    const channel = supabase
+    channelRef.current = supabase
       .channel(`conversation:${conversationId}`)
       .on(
         'postgres_changes',
@@ -71,7 +79,10 @@ export function useMessageSubscription(conversationId: string | null) {
     // Cleanup function
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
-      channel.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
     };
   }, [conversationId, toast]);
 
