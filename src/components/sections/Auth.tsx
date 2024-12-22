@@ -10,6 +10,7 @@ const Auth = () => {
   const supabase = useSupabaseClient();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isDevelopment = import.meta.env.DEV;
 
   useEffect(() => {
     const handleSession = async () => {
@@ -71,6 +72,14 @@ const Auth = () => {
     handleSession();
   }, [session, navigate, supabase, toast]);
 
+  // Determine the redirect URL based on environment
+  const baseUrl = isDevelopment 
+    ? 'http://localhost:5173'
+    : 'https://preview--yapper-verse.lovable.app';
+  
+  const redirectUrl = `${baseUrl}/auth/callback`;
+  console.log('Auth component - Using redirect URL:', redirectUrl);
+
   return (
     <section className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-8">
@@ -98,7 +107,7 @@ const Auth = () => {
               },
             }}
             providers={["google"]}
-            redirectTo={`${window.location.origin}/auth`}
+            redirectTo={redirectUrl}
             view="sign_in"
             showLinks={false}
             onlyThirdPartyProviders={true}
