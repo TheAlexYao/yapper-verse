@@ -13,6 +13,13 @@ export function useTTSHandler(conversationId: string) {
   const { isGeneratingTTS, startTTSGeneration, finishTTSGeneration } = useTTSState();
 
   const generateTTSForMessage = useCallback(async (message: Message) => {
+    console.log('Starting TTS generation for message:', {
+      messageId: message.id,
+      hasAudioUrl: !!message.audio_url,
+      hasReferenceAudio: !!message.reference_audio_url,
+      isUser: message.isUser
+    });
+
     // Skip if no text
     if (!message.text) {
       console.log('Skipping TTS generation: no text content');
@@ -39,12 +46,7 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
-    console.log('Starting TTS generation for message:', {
-      messageId: message.id,
-      text: message.text,
-      isUser: message.isUser
-    });
-    
+    console.log('Starting TTS generation process for message:', message.id);
     startTTSGeneration(message.id);
 
     try {
@@ -57,6 +59,11 @@ export function useTTSHandler(conversationId: string) {
       if (!profile?.target_language) {
         throw new Error('Target language not set');
       }
+
+      console.log('Generating audio with profile settings:', {
+        targetLanguage: profile.target_language,
+        voicePreference: profile.voice_preference
+      });
 
       const audioUrl = await generateTTS(
         message.text,

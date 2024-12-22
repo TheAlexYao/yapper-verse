@@ -53,19 +53,32 @@ export function ChatContainer({
         throw error;
       }
 
-      console.log('Setting initial messages:', messages);
-      return messages.map((msg): Message => ({
-        id: msg.id,
-        conversation_id: msg.conversation_id,
-        text: msg.content,
-        translation: msg.translation,
-        transliteration: msg.transliteration,
-        pronunciation_score: msg.pronunciation_score,
-        pronunciation_data: msg.pronunciation_data,
-        audio_url: msg.audio_url,
-        reference_audio_url: msg.reference_audio_url,
-        isUser: msg.is_user
-      }));
+      // Process messages and check for TTS needs
+      const formattedMessages = messages.map((msg): Message => {
+        const message = {
+          id: msg.id,
+          conversation_id: msg.conversation_id,
+          text: msg.content,
+          translation: msg.translation,
+          transliteration: msg.transliteration,
+          pronunciation_score: msg.pronunciation_score,
+          pronunciation_data: msg.pronunciation_data,
+          audio_url: msg.audio_url,
+          reference_audio_url: msg.reference_audio_url,
+          isUser: msg.is_user
+        };
+
+        // Check if message needs TTS
+        if (!msg.audio_url && !msg.reference_audio_url) {
+          console.log('Message needs TTS generation:', msg.id);
+          generateTTSForMessage(message);
+        }
+
+        return message;
+      });
+
+      console.log('Setting initial messages:', formattedMessages);
+      return formattedMessages;
     },
     initialData: initialMessages,
     enabled: !!conversationId,
@@ -74,7 +87,6 @@ export function ChatContainer({
   // Handle component mounting/unmounting
   useEffect(() => {
     isMountedRef.current = true;
-    
     return () => {
       isMountedRef.current = false;
     };
@@ -110,6 +122,7 @@ export function ChatContainer({
           
           // Check if message needs TTS
           if (msg && !msg.audio_url && !msg.reference_audio_url) {
+            console.log('Generating TTS for new message:', msg.id);
             generateTTSForMessage({
               id: msg.id,
               conversation_id: msg.conversation_id,
