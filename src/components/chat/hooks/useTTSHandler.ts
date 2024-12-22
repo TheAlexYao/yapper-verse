@@ -15,16 +15,9 @@ export function useTTSHandler(conversationId: string) {
   const { isGeneratingTTS, startTTSGeneration, finishTTSGeneration } = useTTSState();
 
   const generateTTSForMessage = useCallback(async (message: Message) => {
-    console.log('Starting TTS generation for message:', {
-      messageId: message.id,
-      hasAudioUrl: !!message.audio_url,
-      hasReferenceAudio: !!message.reference_audio_url,
-      isUser: message.isUser
-    });
-
-    // Skip if no text
-    if (!message.text) {
-      console.log('Skipping TTS generation: no text content');
+    // Skip if no text or message ID
+    if (!message.text || !message.id) {
+      console.log('Skipping TTS generation: no text content or message ID');
       return;
     }
 
@@ -42,7 +35,7 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
-    // Skip if already processing
+    // Skip if already processing this message
     if (isGeneratingTTS(message.id)) {
       console.log('Already processing TTS for message:', message.id);
       return;

@@ -1,31 +1,27 @@
 import { useState } from 'react';
 
-// Global set to track TTS generation across component instances
-const ttsInProgressIds = new Set<string>();
+// Set to track messages currently being processed
+const processingMessages = new Set<string>();
 
 export function useTTSState() {
-  const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
+  const [processing, setProcessing] = useState<Set<string>>(new Set());
 
   const isGeneratingTTS = (messageId: string) => {
-    return ttsInProgressIds.has(messageId);
+    return processingMessages.has(messageId);
   };
 
   const startTTSGeneration = (messageId: string) => {
-    ttsInProgressIds.add(messageId);
-    setProcessingTTS(prev => new Set([...prev, messageId]));
+    processingMessages.add(messageId);
+    setProcessing(new Set(processingMessages));
   };
 
   const finishTTSGeneration = (messageId: string) => {
-    ttsInProgressIds.delete(messageId);
-    setProcessingTTS(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(messageId);
-      return newSet;
-    });
+    processingMessages.delete(messageId);
+    setProcessing(new Set(processingMessages));
   };
 
   return {
-    processingTTS,
+    processingTTS: processing,
     isGeneratingTTS,
     startTTSGeneration,
     finishTTSGeneration
