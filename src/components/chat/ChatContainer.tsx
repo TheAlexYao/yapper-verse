@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
-import { PronunciationScoreModal } from "./PronunciationScoreModal";
+import { FeedbackModal } from "./FeedbackModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
@@ -67,7 +67,7 @@ export function ChatContainer({
       />
 
       {selectedMessageForScore && (
-        <PronunciationScoreModal
+        <FeedbackModal
           isOpen={!!selectedMessageForScore}
           onClose={() => setSelectedMessageForScore(null)}
           data={selectedMessageForScore.pronunciation_data || {}}
