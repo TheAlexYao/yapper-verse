@@ -23,13 +23,17 @@ export function ChatContainer({
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
-  const [processedMessages, setProcessedMessages] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   // Fetch messages using React Query
   const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
+      if (!conversationId) {
+        console.log('No conversation ID provided');
+        return [];
+      }
+      
       console.log('Fetching messages for conversation:', conversationId);
       const { data: messages, error } = await supabase
         .from('guided_conversation_messages')
@@ -55,6 +59,7 @@ export function ChatContainer({
       }));
     },
     initialData: initialMessages,
+    enabled: !!conversationId,
     refetchInterval: 3000,
   });
 
@@ -81,12 +86,13 @@ export function ChatContainer({
 
   // Generate TTS for new AI messages
   const generateTTSForMessage = useCallback(async (message: Message) => {
-    // Skip if already processed or processing
-    if (processedMessages.has(message.id) || processingTTS.has(message.id)) {
-      console.log('Skipping TTS generation - already processed or processing:', message.id);
+    // Skip if already processing
+    if (processingTTS.has(message.id)) {
+      console.log('Already processing TTS for message:', message.id);
       return;
     }
 
+    // Skip if message already has an audio URL
     if (!message.text || message.isUser || message.audio_url) {
       console.log('Skipping TTS generation:', { 
         hasText: !!message.text, 
@@ -116,9 +122,6 @@ export function ChatContainer({
             msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
           )
         );
-
-        // Mark as processed
-        setProcessedMessages(prev => new Set(prev).add(message.id));
       }
     } catch (error) {
       console.error('Error generating TTS:', error);
@@ -129,7 +132,7 @@ export function ChatContainer({
         return newSet;
       });
     }
-  }, [generateTTS, conversationId, queryClient, processingTTS, processedMessages]);
+  }, [generateTTS, conversationId, queryClient, processingTTS]);
 
   useEffect(() => {
     const generateTTSForNewMessages = async () => {
