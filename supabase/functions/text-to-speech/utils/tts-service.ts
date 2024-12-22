@@ -1,7 +1,6 @@
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { TTSRequest } from './types.ts';
-import { createTextHash } from './hash.ts';
 
 export async function generateSpeech(
   request: TTSRequest,
@@ -13,7 +12,9 @@ export async function generateSpeech(
   
   const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
   speechConfig.speechSynthesisVoiceName = voiceName;
-  speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm;
+  
+  // Use MP3 format instead of WAV for better browser compatibility
+  speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz96KBitRateMonoMp3;
 
   const ssml = `
     <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${request.languageCode}">
@@ -28,6 +29,7 @@ export async function generateSpeech(
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
   
   try {
+    console.log('Starting speech synthesis with voice:', voiceName);
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
       synthesizer.speakSsmlAsync(
         ssml,
@@ -40,18 +42,16 @@ export async function generateSpeech(
       throw new Error(`Speech synthesis failed: ${result.errorDetails}`);
     }
 
-    const audioData = result.audioData;
-    const blob = new Blob([audioData], { type: 'audio/wav' });
-    
+    // Upload to storage with MP3 content type
     const timestamp = new Date().getTime();
-    const randomString = Math.random().toString(36).substring(7);
-    const filename = `${timestamp}-${randomString}.wav`;
+    const filename = `${timestamp}-${crypto.randomUUID()}.mp3`;
 
+    console.log('Uploading audio file:', filename);
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('tts_cache')
-      .upload(filename, blob, {
-        contentType: 'audio/wav',
+      .upload(filename, result.audioData, {
+        contentType: 'audio/mpeg',
         cacheControl: '3600',
         upsert: false
       });
@@ -66,6 +66,10 @@ export async function generateSpeech(
       .getPublicUrl(filename);
 
     return publicUrl;
+
+  } catch (error) {
+    console.error('Speech synthesis error:', error);
+    throw error;
   } finally {
     synthesizer.close();
   }

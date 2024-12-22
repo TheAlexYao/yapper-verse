@@ -1,35 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-/**
- * Text-to-Speech Edge Function
- * 
- * This function handles the generation of speech audio from text using Azure's Cognitive Services.
- * It implements caching to avoid regenerating the same audio multiple times.
- * 
- * Required Environment Variables:
- * - AZURE_SPEECH_KEY: Azure Cognitive Services API key
- * - AZURE_SPEECH_REGION: Azure region (e.g., 'eastus')
- * - SUPABASE_URL: Project URL
- * - SUPABASE_SERVICE_ROLE_KEY: Service role key for database access
- * 
- * Request Parameters:
- * @param {string} text - The text to convert to speech
- * @param {string} gender - Voice gender ('male' or 'female', defaults to 'female')
- * @param {string} speed - Speech rate ('normal' or 'slow', defaults to 'normal')
- * @param {string} languageCode - BCP 47 language code (e.g., 'en-US', 'fr-FR')
- * 
- * Response:
- * @returns {Object} JSON object containing:
- *   - audioUrl: URL to the generated audio file
- *   - error?: Error message if generation failed
- * 
- * Caching:
- * - Audio files are cached in the 'tts_cache' storage bucket
- * - Cache keys are generated using text + gender + speed + language
- * - Cache entries are stored in the 'tts_cache' table
- */
+import { TTSRequest } from './utils/types.ts';
+import { generateSpeech } from './utils/tts-service.ts';
+import { createTextHash } from './utils/hash.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,12 +55,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Create hash for caching
-    const textToHash = `${text}-${gender}-${speed}-${languageCode}`;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(textToHash);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const textHash = await createTextHash(text, gender, speed, languageCode);
 
     // Check cache first
     console.log('Checking TTS cache for hash:', textHash);
@@ -111,90 +80,15 @@ serve(async (req) => {
 
     console.log('Cache miss, generating new audio');
 
-    // Get voice name from language settings
-    const { data: language } = await supabase
-      .from('languages')
-      .select(`${gender}_voice`)
-      .eq('code', languageCode)
-      .single();
-
-    if (!language) {
-      console.error(`No language found for code: ${languageCode}`);
-      return new Response(
-        JSON.stringify({ error: `Language not supported: ${languageCode}` }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    const voiceName = language[`${gender}_voice`];
-    if (!voiceName) {
-      console.error(`No ${gender} voice found for language ${languageCode}`);
-      return new Response(
-        JSON.stringify({ error: `No ${gender} voice available for ${languageCode}` }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Configure speech synthesis
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      Deno.env.get('AZURE_SPEECH_KEY')!,
-      Deno.env.get('AZURE_SPEECH_REGION')!
-    );
-
-    speechConfig.speechSynthesisVoiceName = voiceName;
-
-    // Generate SSML with proper language code
-    const ssml = `
-      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
-        <voice name="${voiceName}">
-          <prosody rate="${speed === 'slow' ? '0.7' : '1.0'}" pitch="+0%">
-            ${text}
-          </prosody>
-        </voice>
-      </speak>
-    `;
-
-    // Generate audio
-    console.log('Generating audio with voice:', voiceName);
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
-    const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
-      synthesizer.speakSsmlAsync(
-        ssml,
-        result => resolve(result),
-        error => reject(error)
-      );
-    });
-
-    if (result.errorDetails) {
-      throw new Error(`Speech synthesis failed: ${result.errorDetails}`);
-    }
-
-    // Upload to storage
-    const timestamp = new Date().getTime();
-    const filename = `${timestamp}-${textHash}.wav`;
-
-    console.log('Uploading audio file:', filename);
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('tts_cache')
-      .upload(filename, result.audioData, {
-        contentType: 'audio/wav',
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('tts_cache')
-      .getPublicUrl(filename);
+    const audioUrl = await generateSpeech({
+      text,
+      languageCode,
+      voiceGender: gender,
+      speed
+    }, Deno.env.get('AZURE_SPEECH_KEY')!, Deno.env.get('AZURE_SPEECH_REGION')!, supabase);
 
     // Cache the result
-    console.log('Caching audio URL:', publicUrl);
+    console.log('Caching audio URL:', audioUrl);
     await supabase
       .from('tts_cache')
       .upsert({
@@ -202,11 +96,11 @@ serve(async (req) => {
         text_content: text,
         language_code: languageCode,
         voice_gender: gender,
-        audio_url: publicUrl
+        audio_url: audioUrl
       });
 
     return new Response(
-      JSON.stringify({ audioUrl: publicUrl }),
+      JSON.stringify({ audioUrl }),
       { headers: corsHeaders }
     );
 
