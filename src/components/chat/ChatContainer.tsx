@@ -68,10 +68,11 @@ export function ChatContainer({
     enabled: !!conversationId,
   });
 
-  // Set up real-time subscription
+  // Set up real-time subscription with cleanup
   useEffect(() => {
     if (!conversationId) return;
 
+    console.log('Setting up subscription for conversation:', conversationId);
     const channel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
@@ -105,7 +106,9 @@ export function ChatContainer({
       )
       .subscribe();
 
+    // Cleanup subscription on unmount or conversationId change
     return () => {
+      console.log('Cleaning up subscription for conversation:', conversationId);
       supabase.removeChannel(channel);
     };
   }, [conversationId, generateTTSForMessage]);

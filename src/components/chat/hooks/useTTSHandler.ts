@@ -1,26 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTTS } from './useTTS';
+import { useTTSState } from './useTTSState';
 import type { Message } from '@/hooks/useConversation';
 import { useToast } from '@/hooks/use-toast';
-
-// Track TTS generation status across component instances
-const ttsInProgressIds = new Set<string>();
 
 export function useTTSHandler(conversationId: string) {
   const { generateTTS } = useTTS();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
+  const { isGeneratingTTS, startTTSGeneration, finishTTSGeneration } = useTTSState();
 
   const generateTTSForMessage = useCallback(async (message: Message) => {
-    // Skip if already processing
-    if (ttsInProgressIds.has(message.id)) {
-      console.log('Already processing TTS for message:', message.id);
-      return;
-    }
-
     // Skip if no text or already has required audio
     const hasRequiredAudio = message.isUser ? 
       message.reference_audio_url : 
@@ -35,9 +27,14 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
+    // Skip if already processing
+    if (isGeneratingTTS(message.id)) {
+      console.log('Already processing TTS for message:', message.id);
+      return;
+    }
+
     console.log('Starting TTS generation for message:', message.id);
-    ttsInProgressIds.add(message.id);
-    setProcessingTTS(prev => new Set(prev).add(message.id));
+    startTTSGeneration(message.id);
 
     try {
       const audioUrl = await generateTTS(message.text);
@@ -81,17 +78,11 @@ export function useTTSHandler(conversationId: string) {
         variant: "destructive",
       });
     } finally {
-      ttsInProgressIds.delete(message.id);
-      setProcessingTTS(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(message.id);
-        return newSet;
-      });
+      finishTTSGeneration(message.id);
     }
-  }, [generateTTS, conversationId, queryClient, toast]);
+  }, [generateTTS, conversationId, queryClient, toast, isGeneratingTTS, startTTSGeneration, finishTTSGeneration]);
 
   return {
-    generateTTSForMessage,
-    processingTTS
+    generateTTSForMessage
   };
 }
