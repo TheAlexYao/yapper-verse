@@ -7,7 +7,8 @@ export function useMessageSubscription(
   onNewMessage: (message: Message) => void
 ) {
   const channelRef = useRef<any>(null);
-  const retryTimeoutRef = useRef<number>();
+  // Update the type to NodeJS.Timeout
+  const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const maxRetries = 3;
   const retryDelay = 2000;
 
