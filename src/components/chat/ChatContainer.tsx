@@ -26,7 +26,7 @@ export function ChatContainer({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch messages using React Query
+  // Fetch messages using React Query with optimized caching
   const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
@@ -35,7 +35,6 @@ export function ChatContainer({
         return [];
       }
       
-      console.log('Fetching messages for conversation:', conversationId);
       const { data: messages, error } = await supabase
         .from('guided_conversation_messages')
         .select('*')
@@ -66,8 +65,8 @@ export function ChatContainer({
           isUser: msg.is_user
         };
 
+        // Only generate TTS if the message has no audio URLs
         if (!msg.audio_url && !msg.reference_audio_url) {
-          console.log('Message needs TTS generation:', msg.id);
           generateTTSForMessage(message);
         }
 
@@ -78,7 +77,8 @@ export function ChatContainer({
     },
     initialData: initialMessages,
     enabled: !!conversationId,
-    refetchInterval: 1000, // Poll every second
+    staleTime: 1000, // Consider data fresh for 1 second
+    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   const handlePlayTTS = async (audioUrl: string) => {
