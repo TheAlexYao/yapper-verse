@@ -47,6 +47,7 @@ export function useMessageSubscription(conversationId: string | null) {
         // Generate TTS for AI messages that don't have audio
         mappedMessages.forEach(msg => {
           if (!msg.isUser && !msg.audio_url) {
+            console.log('Generating TTS for message without audio:', msg.id);
             generateTTSForMessage(msg);
           }
         });
@@ -108,7 +109,9 @@ export function useMessageSubscription(conversationId: string | null) {
             // If this is a new AI message without audio, generate TTS
             if (payload.eventType === 'INSERT') {
               const newMessage = mapDatabaseMessageToMessage(payload.new);
+              console.log('New message received:', newMessage);
               if (!newMessage.isUser && !newMessage.audio_url) {
+                console.log('Generating TTS for new AI message:', newMessage.id);
                 generateTTSForMessage(newMessage);
               }
             }
@@ -135,7 +138,7 @@ export function useMessageSubscription(conversationId: string | null) {
       }
       isSettingUp.current = false;
     };
-  }, [conversationId]); // Only depend on conversationId
+  }, [conversationId, generateTTSForMessage]); // Add generateTTSForMessage to dependencies
 
   return { messages };
 }
