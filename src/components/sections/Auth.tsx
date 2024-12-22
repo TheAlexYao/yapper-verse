@@ -12,8 +12,8 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (session) {
-      const checkProfile = async () => {
+    const handleSession = async () => {
+      if (session) {
         try {
           console.log('Auth flow - Session detected:', session.user.id);
           console.log('Auth flow - User metadata:', session.user.user_metadata);
@@ -65,10 +65,10 @@ const Auth = () => {
             variant: "destructive",
           });
         }
-      };
+      }
+    };
 
-      checkProfile();
-    }
+    handleSession();
   }, [session, navigate, supabase, toast]);
 
   return (
@@ -98,7 +98,7 @@ const Auth = () => {
               },
             }}
             providers={["google"]}
-            redirectTo={`${window.location.origin}/auth`}
+            redirectTo={window.location.origin + "/auth"}
             view="sign_in"
             showLinks={false}
             onlyThirdPartyProviders={true}
