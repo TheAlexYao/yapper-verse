@@ -18,20 +18,51 @@ The system is repeatedly generating new audio for the same messages, even when a
 2. Missing reference_audio_url column in database schema
 3. Race conditions in audio URL updates
 
-**Database Context:**
-```sql
--- Messages Table Structure
-guided_conversation_messages
-  - audio_url (for AI messages)
-  - reference_audio_url (for user messages)
+### 2. Duplicate Message Subscriptions
+Multiple message subscriptions are being created for the same conversation.
+
+**Symptoms:**
+- Multiple "Setting up message subscription" logs for the same conversation ID
+- Duplicate subscription setup calls
+- Messages being processed multiple times
+
+**Root Causes:**
+1. useEffect dependency array not properly configured
+2. Multiple component re-renders triggering subscription setup
+3. Subscription cleanup not properly handled
+
+**Debugging Steps:**
+1. Add subscription tracking logs:
+```typescript
+console.log('Subscription setup attempt:', {
+  conversationId,
+  existingSubscriptions: supabase.getSubscriptions().length
+});
 ```
 
-**Relevant Tables:**
-1. `guided_conversation_messages`: Stores message content and audio URLs
-2. `tts_cache`: Caches generated audio files
-3. `profiles`: Contains user voice preferences
+2. Monitor cleanup:
+```typescript
+return () => {
+  console.log('Cleaning up subscription for:', conversationId);
+  subscription.unsubscribe();
+};
+```
 
-### 2. Audio URL Storage Issues
+3. Check component lifecycle:
+```typescript
+useEffect(() => {
+  console.log('ChatContainer mounted/updated');
+  return () => console.log('ChatContainer cleanup');
+}, []);
+```
+
+**Solutions:**
+1. Implement subscription tracking
+2. Add proper cleanup
+3. Review dependency array
+4. Add subscription status checks
+
+### 3. Audio URL Storage Issues
 Messages are failing to update with new audio URLs.
 
 **Error Pattern:**
@@ -54,39 +85,6 @@ FROM information_schema.role_table_grants
 WHERE table_name = 'guided_conversation_messages';
 ```
 
-## Debugging Steps
-
-1. **Check Message Processing Flow:**
-```typescript
-// Add these logs in ChatContainer
-console.log('Message state:', {
-  id: message.id,
-  hasAudioUrl: !!message.audio_url,
-  hasReferenceAudio: !!message.reference_audio_url,
-  isUser: message.isUser
-});
-```
-
-2. **Monitor Cache Operations:**
-```typescript
-// Add to useTTS hook
-console.log('Cache check:', {
-  text: text,
-  existingUrl: cacheEntry?.audio_url,
-  cacheHit: !!cacheEntry
-});
-```
-
-3. **Track Database Updates:**
-```typescript
-// Add to message update function
-console.log('Update attempt:', {
-  messageId: message.id,
-  updateData: updateData,
-  currentAudioUrl: message.audio_url
-});
-```
-
 ## Solutions
 
 1. **Prevent Duplicate Generation:**
@@ -99,10 +97,10 @@ console.log('Update attempt:', {
    - Check RLS policies
    - Implement proper error handling
 
-3. **Improve Caching:**
-   - Add memory cache layer
-   - Implement proper cache invalidation
-   - Add cache status tracking
+3. **Improve Subscription Management:**
+   - Track active subscriptions
+   - Implement proper cleanup
+   - Add subscription status checks
 
 ## Testing Checklist
 
@@ -112,6 +110,8 @@ console.log('Update attempt:', {
 - [ ] User messages have reference_audio_url
 - [ ] AI messages have audio_url
 - [ ] No 400 errors on PATCH requests
+- [ ] Single subscription per conversation
+- [ ] Clean subscription cleanup on unmount
 
 ## Next Steps
 
@@ -119,3 +119,5 @@ console.log('Update attempt:', {
 2. Implement proper cache checking
 3. Add error handling for database updates
 4. Fix RLS policies if needed
+5. Implement subscription tracking
+6. Add proper cleanup handlers
