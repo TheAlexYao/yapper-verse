@@ -4,10 +4,10 @@ import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
 import type { Message } from "@/hooks/useConversation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { setupMessageSubscription } from "./hooks/conversation/useMessageSubscription";
+import { useMessageSubscription } from "./hooks/useMessageSubscription";
 
 interface ChatContainerProps {
   messages: Message[];
@@ -25,16 +25,15 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [localMessages, setLocalMessages] = useState<Message[]>(initialMessages);
+  const { messages, setMessages } = useMessageSubscription(conversationId);
 
-  // Fetch messages using React Query with optimized caching
-  const { data: messages = localMessages } = useQuery({
+  // Fetch messages using React Query
+  const { data: fetchedMessages } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
         console.log('No conversation ID provided');
-        return localMessages;
+        return initialMessages;
       }
       
       const { data: messages, error } = await supabase
@@ -77,35 +76,16 @@ export function ChatContainer({
         return message;
       });
 
-      setLocalMessages(formattedMessages);
+      setMessages(formattedMessages);
       return formattedMessages;
     },
-    initialData: localMessages,
+    initialData: initialMessages,
     enabled: !!conversationId,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    refetchOnWindowFocus: false, // Prevent refetch on tab focus
-    refetchOnMount: false // Prevent refetch on component mount
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
-
-  useEffect(() => {
-    if (!conversationId) return;
-
-    console.log('Setting up message subscription for conversation:', conversationId);
-    
-    const subscription = setupMessageSubscription(conversationId, (newMessages: Message[]) => {
-      console.log('Received new messages from subscription:', newMessages);
-      setLocalMessages(prevMessages => {
-        const updatedMessages = [...prevMessages, ...newMessages];
-        queryClient.setQueryData(['chat-messages', conversationId], updatedMessages);
-        return updatedMessages;
-      });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [conversationId, queryClient]);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
@@ -137,13 +117,13 @@ export function ChatContainer({
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <ChatMessagesSection 
-        messages={messages || []}
+        messages={fetchedMessages || []}
         onPlayAudio={handlePlayTTS}
         onShowScore={setSelectedMessageForScore}
       />
 
       <ChatBottomSection 
-        messages={messages || []}
+        messages={fetchedMessages || []}
         conversationId={conversationId}
         onMessageSend={onMessageSend}
       />
