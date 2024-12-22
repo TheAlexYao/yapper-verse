@@ -6,6 +6,7 @@ import { useTTSHandler } from "./hooks/useTTSHandler";
 import type { Message } from "@/hooks/useConversation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChatContainerProps {
   messages: Message[];
@@ -22,6 +23,7 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
+  const { toast } = useToast();
 
   // Fetch messages using React Query
   const { data: messages = [] } = useQuery({
@@ -41,6 +43,11 @@ export function ChatContainer({
 
       if (error) {
         console.error('Error fetching messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch messages. Please try again.",
+          variant: "destructive",
+        });
         throw error;
       }
 
@@ -59,37 +66,62 @@ export function ChatContainer({
     },
     initialData: initialMessages,
     enabled: !!conversationId,
-    refetchInterval: 3000,
   });
 
-  // Generate TTS for new messages
+  // Set up real-time subscription
   useEffect(() => {
-    const generateTTSForNewMessages = async () => {
-      const messagesNeedingTTS = messages.filter(msg => {
-        // For AI messages, check if they need audio_url
-        if (!msg.isUser) {
-          return !msg.audio_url;
-        }
-        // For user messages, check if they need reference_audio_url
-        return !msg.reference_audio_url;
-      });
-      
-      for (const message of messagesNeedingTTS) {
-        await generateTTSForMessage(message);
-      }
-    };
+    if (!conversationId) return;
 
-    generateTTSForNewMessages();
-  }, [messages, generateTTSForMessage]);
+    const channel = supabase
+      .channel(`conversation:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          const msg = payload.new;
+          
+          // Check if message needs TTS
+          if (msg && !msg.audio_url && !msg.reference_audio_url) {
+            generateTTSForMessage({
+              id: msg.id,
+              conversation_id: msg.conversation_id,
+              text: msg.content,
+              translation: msg.translation,
+              transliteration: msg.transliteration,
+              pronunciation_score: msg.pronunciation_score,
+              pronunciation_data: msg.pronunciation_data,
+              audio_url: msg.audio_url,
+              reference_audio_url: msg.reference_audio_url,
+              isUser: msg.is_user
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, generateTTSForMessage]);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
       console.error('No audio URL provided');
+      toast({
+        title: "Error",
+        description: "No audio available to play.",
+        variant: "destructive",
+      });
       return;
     }
     
     try {
-      // Remove any double encoding that might have occurred
       const cleanUrl = audioUrl.startsWith('http') ? audioUrl : decodeURIComponent(audioUrl);
       console.log('Playing audio from URL:', cleanUrl);
       
@@ -97,6 +129,11 @@ export function ChatContainer({
       await audio.play();
     } catch (error) {
       console.error('Error playing audio:', error);
+      toast({
+        title: "Error",
+        description: "Failed to play audio. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

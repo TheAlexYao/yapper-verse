@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTTS } from './useTTS';
 import type { Message } from '@/hooks/useConversation';
+import { useToast } from '@/hooks/use-toast';
 
 // Track TTS generation status across component instances
 const ttsInProgressIds = new Set<string>();
@@ -10,6 +11,7 @@ const ttsInProgressIds = new Set<string>();
 export function useTTSHandler(conversationId: string) {
   const { generateTTS } = useTTS();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
 
   const generateTTSForMessage = useCallback(async (message: Message) => {
@@ -19,22 +21,21 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
-    // For AI messages: generate and store as audio_url
-    // For user messages: generate and store as reference_audio_url
+    // Skip if no text or already has required audio
     const hasRequiredAudio = message.isUser ? 
       message.reference_audio_url : 
       message.audio_url;
 
-    // Skip if message already has the required audio URL
     if (!message.text || hasRequiredAudio) {
       console.log('Skipping TTS generation:', { 
         hasText: !!message.text, 
-        hasRequiredAudio
+        hasRequiredAudio,
+        messageId: message.id 
       });
       return;
     }
 
-    console.log('Generating TTS for message:', message.text);
+    console.log('Starting TTS generation for message:', message.id);
     ttsInProgressIds.add(message.id);
     setProcessingTTS(prev => new Set(prev).add(message.id));
 
@@ -55,6 +56,11 @@ export function useTTSHandler(conversationId: string) {
 
         if (error) {
           console.error('Error updating message with audio URL:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save audio URL. Please try again.",
+            variant: "destructive",
+          });
           return;
         }
 
@@ -69,6 +75,11 @@ export function useTTSHandler(conversationId: string) {
       }
     } catch (error) {
       console.error('Error generating TTS:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate audio. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       ttsInProgressIds.delete(message.id);
       setProcessingTTS(prev => {
@@ -77,7 +88,7 @@ export function useTTSHandler(conversationId: string) {
         return newSet;
       });
     }
-  }, [generateTTS, conversationId, queryClient]);
+  }, [generateTTS, conversationId, queryClient, toast]);
 
   return {
     generateTTSForMessage,
