@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,18 @@ export function useMessageSubscription(conversationId: string | null) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+
+  const mapDatabaseMessageToMessage = (dbMessage: any): Message => ({
+    id: dbMessage.id,
+    text: dbMessage.content,
+    isUser: dbMessage.is_user,
+    translation: dbMessage.translation,
+    transliteration: dbMessage.transliteration,
+    audio_url: dbMessage.audio_url,
+    reference_audio_url: dbMessage.reference_audio_url,
+    pronunciation_score: dbMessage.pronunciation_score,
+    pronunciation_data: dbMessage.pronunciation_data
+  });
 
   // Load initial messages
   useEffect(() => {
@@ -25,8 +37,9 @@ export function useMessageSubscription(conversationId: string | null) {
 
         if (error) throw error;
 
-        console.log('Setting initial messages:', data);
-        setMessages(data || []);
+        const mappedMessages = data.map(mapDatabaseMessageToMessage);
+        console.log('Setting initial messages:', mappedMessages);
+        setMessages(mappedMessages);
       } catch (error) {
         console.error('Error loading messages:', error);
         toast({
@@ -78,7 +91,8 @@ export function useMessageSubscription(conversationId: string | null) {
               return;
             }
 
-            setMessages(data || []);
+            const mappedMessages = data.map(mapDatabaseMessageToMessage);
+            setMessages(mappedMessages);
           }
         )
         .subscribe((status) => {
