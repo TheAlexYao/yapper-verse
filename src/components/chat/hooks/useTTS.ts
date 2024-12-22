@@ -7,15 +7,20 @@ export function useTTS() {
   const { toast } = useToast();
   const memoryCache = new Map<string, string>();
 
-  const generateTTS = async (text: string, voicePreference: string = 'female', speed: 'normal' | 'slow' = 'normal') => {
+  const generateTTS = async (
+    text: string, 
+    voicePreference: string = 'female', 
+    speed: 'normal' | 'slow' = 'normal'
+  ) => {
     try {
-      // Check authentication first
+      console.log('Generating TTS for:', { text, voicePreference, speed });
+      
+      // Get user profile for language settings
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Get user profile for language settings
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('target_language')
@@ -29,11 +34,6 @@ export function useTTS() {
 
       if (!profile?.target_language) {
         console.error('No target language set in profile');
-        toast({
-          title: "Language Setting Required",
-          description: "Please set your target language in your profile settings.",
-          variant: "destructive",
-        });
         throw new Error('Target language not set in user profile');
       }
 
@@ -42,7 +42,7 @@ export function useTTS() {
 
       // Check memory cache first
       if (memoryCache.has(textHash)) {
-        console.log('Memory cache hit, using cached audio URL');
+        console.log('Memory cache hit for:', textHash);
         return memoryCache.get(textHash);
       }
 
@@ -54,7 +54,7 @@ export function useTTS() {
         .maybeSingle();
 
       if (cacheData?.audio_url) {
-        console.log('Database cache hit, using cached audio URL:', cacheData.audio_url);
+        console.log('Database cache hit for:', textHash);
         memoryCache.set(textHash, cacheData.audio_url);
         return cacheData.audio_url;
       }
@@ -79,10 +79,26 @@ export function useTTS() {
         throw new Error('No audio URL returned from TTS service');
       }
 
-      console.log('Generated new audio URL:', data.audioUrl);
+      console.log('Successfully generated audio URL:', data.audioUrl);
 
       // Update memory cache
       memoryCache.set(textHash, data.audioUrl);
+      
+      // Update database cache
+      const { error: cacheError } = await supabase
+        .from('tts_cache')
+        .insert({
+          text_hash: textHash,
+          text_content: text,
+          language_code: profile.target_language,
+          voice_gender: voicePreference,
+          audio_url: data.audioUrl
+        });
+
+      if (cacheError) {
+        console.error('Error updating TTS cache:', cacheError);
+      }
+
       return data.audioUrl;
 
     } catch (error) {
