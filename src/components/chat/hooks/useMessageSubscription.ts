@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,8 @@ export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTS } = useTTS();
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const cleanedUpRef = useRef(false);
 
   const generateAudioForMessage = async (content: string, messageId: string) => {
     try {
@@ -53,8 +55,7 @@ export function useMessageSubscription(conversationId: string | null) {
 
   // Effect for setting up the subscription
   useEffect(() => {
-    if (!conversationId) {
-      console.log('No conversation ID provided');
+    if (!conversationId || cleanedUpRef.current) {
       return;
     }
 
@@ -109,19 +110,27 @@ export function useMessageSubscription(conversationId: string | null) {
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to conversation:', conversationId);
         }
-        if (status === 'CLOSED') {
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          console.log('Subscription closed or errored:', status);
           toast({
-            title: "Connection closed",
+            title: "Connection issue",
             description: "Reconnecting to chat...",
             variant: "default",
           });
         }
       });
 
+    channelRef.current = channel;
+
     // Cleanup function
     return () => {
+      if (cleanedUpRef.current) return;
+      
       console.log('Cleaning up subscription for conversation:', conversationId);
-      channel.unsubscribe();
+      if (channelRef.current) {
+        cleanedUpRef.current = true;
+        channelRef.current.unsubscribe();
+      }
     };
   }, [conversationId, toast, generateTTS]);
 
