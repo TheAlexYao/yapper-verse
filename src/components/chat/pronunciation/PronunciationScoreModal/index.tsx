@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Volume2, Waveform } from "lucide-react";
+import { Volume2, AudioWaveform } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PronunciationData {
@@ -80,7 +80,7 @@ export function PronunciationScoreModal({
           {/* Audio Comparison Section */}
           <section className="space-y-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Waveform className="h-5 w-5" />
+              <AudioWaveform className="h-5 w-5" />
               Compare Audio
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
