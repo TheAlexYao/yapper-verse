@@ -115,7 +115,7 @@ const Auth = () => {
     ? 'http://localhost:5173'
     : 'https://preview--yapper-verse.lovable.app';
   
-  const redirectUrl = `${baseUrl}/auth/callback`;
+  const redirectUrl = `${baseUrl}/dashboard`;
   console.log('Auth component - Using redirect URL:', redirectUrl);
 
   return (
