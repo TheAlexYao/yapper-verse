@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { useTTS } from "./hooks/useTTS";
@@ -22,6 +22,7 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
+  const [processingTTS, setProcessingTTS] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   // Fetch messages using React Query
@@ -40,7 +41,6 @@ export function ChatContainer({
         throw error;
       }
 
-      // Format messages
       return messages.map((msg): Message => ({
         id: msg.id,
         conversation_id: msg.conversation_id,
@@ -54,29 +54,24 @@ export function ChatContainer({
       }));
     },
     initialData: initialMessages,
-    refetchInterval: 3000, // Poll every 3 seconds as backup
+    refetchInterval: 3000,
   });
 
-  // Handle new message send
   const handleMessageSend = async (message: Message) => {
     try {
       console.log('Sending message:', message);
       
-      // Optimistically update UI
       queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) => 
         [...old, message]
       );
 
-      // Send message
       await onMessageSend(message);
 
-      // Trigger immediate refetch to get AI response
       await queryClient.invalidateQueries({
         queryKey: ['chat-messages', conversationId],
       });
     } catch (error) {
       console.error('Error sending message:', error);
-      // Revert optimistic update on error
       queryClient.invalidateQueries({
         queryKey: ['chat-messages', conversationId],
       });
@@ -84,33 +79,54 @@ export function ChatContainer({
   };
 
   // Generate TTS for new AI messages
+  const generateTTSForMessage = useCallback(async (message: Message) => {
+    if (processingTTS.has(message.id)) {
+      console.log('Already processing TTS for message:', message.id);
+      return;
+    }
+
+    console.log('Generating TTS for message:', message.text);
+    setProcessingTTS(prev => new Set(prev).add(message.id));
+
+    try {
+      const audioUrl = await generateTTS(message.text);
+      
+      if (audioUrl) {
+        await supabase
+          .from('guided_conversation_messages')
+          .update({ audio_url: audioUrl })
+          .eq('id', message.id);
+
+        queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) =>
+          old.map(msg =>
+            msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error generating TTS:', error);
+    } finally {
+      setProcessingTTS(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(message.id);
+        return newSet;
+      });
+    }
+  }, [generateTTS, conversationId, queryClient, processingTTS]);
+
   useEffect(() => {
     const generateTTSForNewMessages = async () => {
-      const messagesNeedingTTS = messages.filter(msg => !msg.isUser && !msg.audio_url);
+      const messagesNeedingTTS = messages.filter(
+        msg => !msg.isUser && !msg.audio_url && !processingTTS.has(msg.id)
+      );
       
       for (const message of messagesNeedingTTS) {
-        console.log('Generating TTS for message:', message.text);
-        const audioUrl = await generateTTS(message.text);
-        
-        if (audioUrl) {
-          // Update message with audio URL
-          await supabase
-            .from('guided_conversation_messages')
-            .update({ audio_url: audioUrl })
-            .eq('id', message.id);
-
-          // Update local cache
-          queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) =>
-            old.map(msg =>
-              msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
-            )
-          );
-        }
+        await generateTTSForMessage(message);
       }
     };
 
     generateTTSForNewMessages();
-  }, [messages, generateTTS, conversationId, queryClient]);
+  }, [messages, generateTTSForMessage]);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
