@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const isLoadingMessages = useRef(false);
-  const isMounted = useRef(true);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
 
@@ -26,28 +24,20 @@ export function useMessageSubscription(conversationId: string | null) {
     reference_audio_url: msg.reference_audio_url,
   }), []);
 
-  // Memoize the fetchMessages function
+  // Fetch messages
   const fetchMessages = useCallback(async () => {
-    if (!conversationId || isLoadingMessages.current || !isMounted.current) return;
+    if (!conversationId) return;
 
     try {
-      isLoadingMessages.current = true;
       console.log('Fetching messages for conversation:', conversationId);
-
       const { data: messagesData, error } = await supabase
         .from('guided_conversation_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return;
-      }
+      if (error) throw error;
 
-      if (!isMounted.current) return;
-
-      // Transform the messages
       const transformedMessages = messagesData.map(transformMessage);
       setMessages(transformedMessages);
 
@@ -58,80 +48,56 @@ export function useMessageSubscription(conversationId: string | null) {
         }
       }
     } catch (error) {
-      console.error('Error in fetchMessages:', error);
-    } finally {
-      isLoadingMessages.current = false;
+      console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages. Please try refreshing the page.",
+        variant: "destructive",
+      });
     }
-  }, [conversationId, generateTTSForMessage, transformMessage]);
+  }, [conversationId, generateTTSForMessage, transformMessage, toast]);
 
-  // Memoize the setupSubscription function
-  const setupSubscription = useCallback(async () => {
-    if (!conversationId || !isMounted.current) return;
-
-    try {
-      console.log('Setting up message subscription for conversation:', conversationId);
-      
-      // Clean up existing subscription if any
-      if (channelRef.current) {
-        await channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-
-      channelRef.current = supabase
-        .channel(`messages:${conversationId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'guided_conversation_messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          async () => {
-            if (!isMounted.current) return;
-            console.log('Received message update');
-            await fetchMessages();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Subscription status:', status);
-
-          if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to conversation:', conversationId);
-          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            console.log('Subscription closed or errored:', status);
-            
-            if (!isMounted.current) return;
-
-            toast({
-              title: "Connection Error",
-              description: "Failed to maintain connection. Please refresh the page.",
-              variant: "destructive",
-            });
-          }
-        });
-    } catch (error) {
-      console.error('Error setting up subscription:', error);
-    }
-  }, [conversationId, fetchMessages, toast]);
-
-  // Set up subscription when conversationId changes
   useEffect(() => {
     if (!conversationId) return;
-    
-    isMounted.current = true;
-    fetchMessages();
-    setupSubscription();
 
-    // Cleanup function
+    // Initial fetch
+    fetchMessages();
+
+    // Set up subscription
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        async () => {
+          await fetchMessages();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CLOSED') {
+          toast({
+            title: "Connection Lost",
+            description: "Please refresh the page to reconnect.",
+            variant: "destructive",
+          });
+        }
+      });
+
+    channelRef.current = channel;
+
+    // Cleanup
     return () => {
-      isMounted.current = false;
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
       }
     };
-  }, [conversationId, fetchMessages, setupSubscription]);
+  }, [conversationId, fetchMessages, toast]);
 
   return { messages };
 }
