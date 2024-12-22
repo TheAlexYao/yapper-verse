@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { FeedbackModal } from "./FeedbackModal";
@@ -21,9 +21,12 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
+  
+  // Memoize the message subscription to prevent unnecessary re-renders
   const { messages } = useMessageSubscription(conversationId);
 
-  const handlePlayTTS = async (audioUrl: string) => {
+  // Memoize the audio playback handler
+  const handlePlayTTS = useCallback(async (audioUrl: string) => {
     if (!audioUrl) {
       console.error('No audio URL provided');
       toast({
@@ -48,7 +51,7 @@ export function ChatContainer({
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
