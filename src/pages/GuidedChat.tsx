@@ -17,18 +17,13 @@ export default function GuidedChat() {
   const { toast } = useToast();
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
 
-  const { conversationId, messages, setMessages } = useConversationSetup(character, scenario);
+  const { conversationId, messages } = useConversationSetup(character, scenario);
   const { handleMessageSend } = useMessageHandling(conversationId);
 
   const handleMessageUpdate = async (message: Message) => {
     console.log('Handling message update in GuidedChat:', message);
     try {
       await handleMessageSend(message);
-      // Update the messages array with the new message
-      setMessages(prevMessages => {
-        console.log('Updating messages array:', [...prevMessages, message]);
-        return [...prevMessages, message];
-      });
     } catch (error) {
       console.error('Error handling message update:', error);
       toast({
@@ -100,7 +95,6 @@ export default function GuidedChat() {
       />
 
       <ChatContainer
-        messages={messages}
         onMessageSend={handleMessageUpdate}
         onPlayTTS={handlePlayTTS}
         conversationId={conversationId!}

@@ -2,10 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMessageSubscription } from "./useMessageSubscription";
-import { 
-  fetchExistingConversation, 
-  createNewConversation,
-} from "./conversation/useConversationQuery";
 
 export function useConversationSetup(character: any, scenario: any) {
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -56,11 +52,14 @@ export function useConversationSetup(character: any, scenario: any) {
           throw new Error('Language IDs not found');
         }
 
-        const existingConversation = await fetchExistingConversation(
-          user.id,
-          character.id,
-          scenario.id
-        );
+        // Check for existing conversation
+        const { data: existingConversation } = await supabase
+          .from('guided_conversations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('character_id', character.id)
+          .eq('scenario_id', scenario.id)
+          .single();
 
         let newConversationId: string;
 
@@ -68,13 +67,27 @@ export function useConversationSetup(character: any, scenario: any) {
           console.log('Found existing conversation:', existingConversation.id);
           newConversationId = existingConversation.id;
         } else {
-          const newConversation = await createNewConversation(
-            user.id,
-            character.id,
-            scenario.id,
-            nativeLanguageId,
-            targetLanguageId
-          );
+          const { data: newConversation, error: createError } = await supabase
+            .from('guided_conversations')
+            .insert({
+              user_id: user.id,
+              character_id: character.id,
+              scenario_id: scenario.id,
+              native_language_id: nativeLanguageId,
+              target_language_id: targetLanguageId,
+              status: 'active',
+              metrics: {
+                pronunciationScore: 0,
+                stylePoints: 0,
+                sentencesUsed: 0,
+                sentenceLimit: 10
+              }
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          if (!newConversation) throw new Error('Failed to create conversation');
 
           console.log('Created new conversation:', newConversation.id);
           newConversationId = newConversation.id;
