@@ -3,6 +3,7 @@ import { MessageContent } from "./message/MessageContent";
 import { AudioButton } from "./message/AudioButton";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/hooks/useConversation";
+import { useToast } from "@/hooks/use-toast";
 
 interface MessageBubbleProps {
   isUser?: boolean;
@@ -13,15 +14,23 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScore }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const { toast } = useToast();
 
   const handlePlayAudio = async () => {
-    if (isPlaying || !message.audio_url || !onPlayAudio) return;
+    if (isPlaying || !message.audio_url || !onPlayAudio) {
+      return;
+    }
     
-    setIsPlaying(true);
     try {
+      setIsPlaying(true);
       await onPlayAudio(message.audio_url);
     } catch (error) {
       console.error('Error playing audio:', error);
+      toast({
+        title: "Error",
+        description: "Failed to play audio. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsPlaying(false);
     }
@@ -40,7 +49,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
           text={message.text}
           transliteration={message.transliteration}
           translation={message.translation}
-          isUser={message.isUser}
+          isUser={isUser}
           pronunciationScore={message.pronunciation_score}
           onShowScore={() => onShowScore?.(message)}
         />
@@ -48,7 +57,7 @@ export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScor
         {message.audio_url && (
           <AudioButton
             onPlay={handlePlayAudio}
-            isUser={message.isUser}
+            isUser={isUser}
             isPlaying={isPlaying}
             disabled={!message.audio_url}
           />
