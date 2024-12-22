@@ -64,8 +64,8 @@ export function ChatContainer({
           isUser: msg.is_user
         };
 
-        // Only generate TTS if the message has no audio URLs
-        if (!msg.audio_url && !msg.reference_audio_url) {
+        // Only generate TTS if the message has no audio URLs and is not a user message
+        if (!msg.audio_url && !msg.reference_audio_url && !msg.is_user) {
           generateTTSForMessage(message);
         }
 
@@ -77,8 +77,10 @@ export function ChatContainer({
     },
     initialData: initialMessages,
     enabled: !!conversationId,
-    staleTime: 1000, // Consider data fresh for 1 second
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (renamed from cacheTime)
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on tab focus
+    refetchOnMount: false // Prevent refetch on component mount
   });
 
   const handlePlayTTS = async (audioUrl: string) => {
