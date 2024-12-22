@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
-import { setupLanguages } from "./conversation/useLanguageSetup";
+import { useMessageSubscription } from "./useMessageSubscription";
 import { 
   fetchExistingConversation, 
   createNewConversation,
@@ -11,89 +11,8 @@ import {
 
 export function useConversationSetup(character: any, scenario: any) {
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, setMessages } = useMessageSubscription(conversationId);
   const { toast } = useToast();
-  const channelRef = useRef<any>(null);
-  const messagesRef = useRef<Message[]>([]);
-
-  // Keep messagesRef in sync with messages state
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  // Set up subscription
-  useEffect(() => {
-    if (!conversationId) return;
-
-    console.log('Setting up message subscription for conversation:', conversationId);
-    
-    // Clean up existing subscription if any
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      channelRef.current.unsubscribe();
-    }
-
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          console.log('Received new message:', payload);
-          const newMessage = payload.new;
-          const formattedMessage: Message = {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            text: newMessage.content,
-            translation: newMessage.translation,
-            transliteration: newMessage.transliteration,
-            pronunciation_score: newMessage.pronunciation_score,
-            pronunciation_data: newMessage.pronunciation_data,
-            audio_url: newMessage.audio_url,
-            isUser: newMessage.is_user
-          };
-
-          // Use functional update to ensure we have the latest state
-          setMessages(prevMessages => {
-            // Check if message already exists in current messages
-            const exists = prevMessages.some(msg => msg.id === formattedMessage.id) ||
-                          messagesRef.current.some(msg => msg.id === formattedMessage.id);
-            
-            if (exists) {
-              console.log('Message already exists, skipping:', formattedMessage.id);
-              return prevMessages;
-            }
-            
-            console.log('Adding new message to state:', formattedMessage);
-            return [...prevMessages, formattedMessage];
-          });
-        }
-      );
-
-    // Store channel reference
-    channelRef.current = channel;
-
-    // Subscribe to channel
-    channel.subscribe((status: string) => {
-      console.log('Subscription status:', status);
-      if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to conversation:', conversationId);
-      }
-    });
-
-    return () => {
-      console.log('Cleaning up message subscription');
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-    };
-  }, [conversationId]);
 
   // Main setup effect
   useEffect(() => {
@@ -104,10 +23,43 @@ export function useConversationSetup(character: any, scenario: any) {
       }
 
       try {
-        const { nativeLanguageId, targetLanguageId, userId } = await setupLanguages();
-        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No authenticated user');
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('native_language, target_language')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          throw profileError;
+        }
+
+        if (!profile?.native_language || !profile?.target_language) {
+          throw new Error('Language preferences not set');
+        }
+
+        const { data: languages, error: languagesError } = await supabase
+          .from('languages')
+          .select('id, code')
+          .in('code', [profile.native_language, profile.target_language]);
+
+        if (languagesError || !languages || languages.length !== 2) {
+          console.error('Error fetching languages:', languagesError);
+          throw new Error('Could not find language IDs');
+        }
+
+        const nativeLanguageId = languages.find(l => l.code === profile.native_language)?.id;
+        const targetLanguageId = languages.find(l => l.code === profile.target_language)?.id;
+
+        if (!nativeLanguageId || !targetLanguageId) {
+          throw new Error('Language IDs not found');
+        }
+
         const existingConversation = await fetchExistingConversation(
-          userId,
+          user.id,
           character.id,
           scenario.id
         );
@@ -119,7 +71,7 @@ export function useConversationSetup(character: any, scenario: any) {
           newConversationId = existingConversation.id;
         } else {
           const newConversation = await createNewConversation(
-            userId,
+            user.id,
             character.id,
             scenario.id,
             nativeLanguageId,
@@ -133,7 +85,7 @@ export function useConversationSetup(character: any, scenario: any) {
           const { error: generateError } = await supabase.functions.invoke('generate-chat-response', {
             body: {
               conversationId: newConversationId,
-              userId,
+              userId: user.id,
               isInitialMessage: true
             },
           });
@@ -164,7 +116,7 @@ export function useConversationSetup(character: any, scenario: any) {
     };
 
     setupConversation();
-  }, [character?.id, scenario?.id, toast]);
+  }, [character?.id, scenario?.id, toast, setMessages]);
 
   return { conversationId, messages, setMessages };
 }
