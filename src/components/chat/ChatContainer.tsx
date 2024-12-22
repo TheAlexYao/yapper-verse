@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { useTTS } from "./hooks/useTTS";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import type { Message } from "@/hooks/useConversation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatContainerProps {
@@ -14,111 +15,102 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ 
-  messages, 
+  messages: initialMessages, 
   onMessageSend, 
   onPlayTTS, 
   conversationId 
 }: ChatContainerProps) {
   const { generateTTS } = useTTS();
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
-  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false);
-  const channelRef = useRef<any>(null);
-  const [localMessages, setLocalMessages] = useState<Message[]>(messages);
+  const queryClient = useQueryClient();
 
-  // Initialize messages and set up real-time subscription
-  useEffect(() => {
-    if (!conversationId) return;
+  // Fetch messages using React Query
+  const { data: messages = [] } = useQuery({
+    queryKey: ['chat-messages', conversationId],
+    queryFn: async () => {
+      console.log('Fetching messages for conversation:', conversationId);
+      const { data: messages, error } = await supabase
+        .from('guided_conversation_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
 
-    console.log('Setting up message subscription for conversation:', conversationId);
-    
-    // Clean up existing subscription if any
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      channelRef.current.unsubscribe();
-    }
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
 
-    // Create a new channel for this conversation
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        async (payload) => {
-          console.log('Received new message:', payload);
-          const newMessage = payload.new;
-          
-          // Format the message
-          const formattedMessage: Message = {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            text: newMessage.content,
-            translation: newMessage.translation,
-            transliteration: newMessage.transliteration,
-            pronunciation_score: newMessage.pronunciation_score,
-            pronunciation_data: newMessage.pronunciation_data,
-            audio_url: newMessage.audio_url,
-            reference_audio_url: newMessage.reference_audio_url,
-            isUser: newMessage.is_user
-          };
+      // Format messages
+      return messages.map((msg): Message => ({
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        text: msg.content,
+        translation: msg.translation,
+        transliteration: msg.transliteration,
+        pronunciation_score: msg.pronunciation_score,
+        pronunciation_data: msg.pronunciation_data,
+        audio_url: msg.audio_url,
+        isUser: msg.is_user
+      }));
+    },
+    initialData: initialMessages,
+    refetchInterval: 3000, // Poll every 3 seconds as backup
+  });
 
-          // Update messages state, ensuring no duplicates
-          setLocalMessages(prevMessages => {
-            const messageExists = prevMessages.some(msg => msg.id === formattedMessage.id);
-            if (messageExists) {
-              console.log('Message already exists, skipping:', formattedMessage.id);
-              return prevMessages;
-            }
-            console.log('Adding new message to state:', formattedMessage);
-            return [...prevMessages, formattedMessage];
-          });
-
-          // Generate TTS for new AI messages if needed
-          if (!formattedMessage.isUser && !formattedMessage.audio_url) {
-            console.log('Generating TTS for new AI message:', formattedMessage.text);
-            const audioUrl = await generateTTS(formattedMessage.text);
-            if (audioUrl) {
-              setLocalMessages(prev => 
-                prev.map(msg => 
-                  msg.id === formattedMessage.id 
-                    ? { ...msg, audio_url: audioUrl }
-                    : msg
-                )
-              );
-            }
-          }
-        }
+  // Handle new message send
+  const handleMessageSend = async (message: Message) => {
+    try {
+      console.log('Sending message:', message);
+      
+      // Optimistically update UI
+      queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) => 
+        [...old, message]
       );
 
-    // Store channel reference and subscribe
-    channelRef.current = channel;
-    
-    channel.subscribe((status: string) => {
-      console.log('Subscription status:', status);
-      if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to conversation:', conversationId);
-      }
-    });
+      // Send message
+      await onMessageSend(message);
 
-    // Cleanup function
-    return () => {
-      console.log('Cleaning up message subscription');
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
+      // Trigger immediate refetch to get AI response
+      await queryClient.invalidateQueries({
+        queryKey: ['chat-messages', conversationId],
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({
+        queryKey: ['chat-messages', conversationId],
+      });
+    }
+  };
+
+  // Generate TTS for new AI messages
+  useEffect(() => {
+    const generateTTSForNewMessages = async () => {
+      const messagesNeedingTTS = messages.filter(msg => !msg.isUser && !msg.audio_url);
+      
+      for (const message of messagesNeedingTTS) {
+        console.log('Generating TTS for message:', message.text);
+        const audioUrl = await generateTTS(message.text);
+        
+        if (audioUrl) {
+          // Update message with audio URL
+          await supabase
+            .from('guided_conversation_messages')
+            .update({ audio_url: audioUrl })
+            .eq('id', message.id);
+
+          // Update local cache
+          queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) =>
+            old.map(msg =>
+              msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
+            )
+          );
+        }
       }
     };
-  }, [conversationId, generateTTS]);
 
-  // Update local messages when props messages change
-  useEffect(() => {
-    console.log('Setting initial messages:', messages);
-    setLocalMessages(messages);
-  }, [messages]);
+    generateTTSForNewMessages();
+  }, [messages, generateTTS, conversationId, queryClient]);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
@@ -137,15 +129,15 @@ export function ChatContainer({
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <ChatMessagesSection 
-        messages={localMessages}
+        messages={messages}
         onPlayAudio={handlePlayTTS}
         onShowScore={setSelectedMessageForScore}
       />
 
       <ChatBottomSection 
-        messages={localMessages}
+        messages={messages}
         conversationId={conversationId}
-        onMessageSend={onMessageSend}
+        onMessageSend={handleMessageSend}
       />
 
       {selectedMessageForScore && (
