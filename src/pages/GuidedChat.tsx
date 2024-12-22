@@ -1,20 +1,22 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useToast } from "@/hooks/use-toast";
 import { useMessageHandling } from "@/components/chat/hooks/useMessageHandling";
 import { useConversationSetup } from "@/components/chat/hooks/useConversationSetup";
+import { useTTS } from "@/components/chat/hooks/useTTS";
 import type { Message } from "@/hooks/useConversation";
 
-interface GuidedChatProps {
-  character: any;
-  scenario: any;
-}
-
-export function GuidedChat({ character, scenario }: GuidedChatProps) {
+export default function GuidedChat() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { scenario, character } = location.state || {};
   const { toast } = useToast();
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const { generateTTS } = useTTS();
 
-  const { conversationId, messages } = useConversationSetup(character, scenario);
+  const { conversationId } = useConversationSetup(character, scenario);
   const { handleMessageSend } = useMessageHandling(conversationId);
 
   const handleMessageUpdate = async (message: Message) => {
@@ -54,6 +56,11 @@ export function GuidedChat({ character, scenario }: GuidedChatProps) {
     }
   };
 
+  if (!scenario || !character) {
+    navigate("/scenarios");
+    return null;
+  }
+
   if (!conversationId) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -63,7 +70,13 @@ export function GuidedChat({ character, scenario }: GuidedChatProps) {
   }
 
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="flex flex-col h-screen">
+      <ChatHeader
+        scenario={scenario}
+        character={character}
+        onBack={() => navigate("/character", { state: { scenario } })}
+      />
+
       <ChatContainer
         onMessageSend={handleMessageUpdate}
         onPlayTTS={handlePlayTTS}
