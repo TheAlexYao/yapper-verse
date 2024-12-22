@@ -11,14 +11,14 @@ export function AudioComparison({ userAudioUrl, referenceAudioUrl, onPlayAudio }
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
-        <AudioWaveform className="h-5 w-5 text-primary" />
+        <AudioWaveform className="h-5 w-5 text-[#7843e6]" />
         Compare Audio
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {userAudioUrl && (
           <Button
             variant="outline"
-            className="flex-1 border-2 border-primary hover:bg-primary/10 hover:text-primary transition-colors"
+            className="flex-1 border-2 border-[#9b87f5] hover:bg-[#9b87f5]/10 hover:text-[#9b87f5] transition-colors"
             onClick={() => onPlayAudio(userAudioUrl)}
           >
             <Volume2 className="mr-2 h-4 w-4" />
@@ -28,7 +28,7 @@ export function AudioComparison({ userAudioUrl, referenceAudioUrl, onPlayAudio }
         {referenceAudioUrl && (
           <Button
             variant="outline"
-            className="flex-1 border-2 border-accent hover:bg-accent/10 hover:text-accent transition-colors"
+            className="flex-1 border-2 border-[#7843e6] hover:bg-[#7843e6]/10 hover:text-[#7843e6] transition-colors"
             onClick={() => onPlayAudio(referenceAudioUrl)}
           >
             <Volume2 className="mr-2 h-4 w-4" />

@@ -8,10 +8,10 @@ export function AIFeedback({ score }: AIFeedbackProps) {
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-primary" />
+        <Sparkles className="h-5 w-5 text-[#7843e6]" />
         AI Feedback
       </h3>
-      <div className="p-4 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20">
+      <div className="p-4 rounded-lg bg-gradient-to-r from-[#9b87f5]/5 to-[#7843e6]/5 border border-[#9b87f5]/20">
         <p className="text-sm text-muted-foreground">
           {score >= 90
             ? "Excellent pronunciation! Keep up the great work."

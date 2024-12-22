@@ -70,6 +70,7 @@ export function PronunciationScoreModal({
         </DialogHeader>
 
         <div className="space-y-8 py-4">
+          {/* Score Circle */}
           <div className="p-6 rounded-xl bg-gradient-to-r from-[#9b87f5]/10 to-[#7843e6]/10 border border-[#9b87f5]/20">
             <div className="flex items-center justify-center mb-4">
               <div className="relative">

@@ -1,4 +1,3 @@
-import { Progress } from "@/components/ui/progress";
 import { Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +23,12 @@ export function OverallScores({ scores }: OverallScoresProps) {
     return "bg-gradient-to-r from-red-500 to-red-600";
   };
 
+  const scoreItems = [
+    { label: "Accuracy", value: scores.accuracy },
+    { label: "Fluency", value: scores.fluency },
+    { label: "Completeness", value: scores.completeness },
+  ];
+
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -31,11 +36,7 @@ export function OverallScores({ scores }: OverallScoresProps) {
         Performance Metrics
       </h3>
       <div className="grid grid-cols-1 gap-6 p-4 rounded-lg bg-gradient-to-br from-[#9b87f5]/5 via-accent/5 to-[#7843e6]/5">
-        {[
-          { label: "Accuracy", value: scores.accuracy },
-          { label: "Fluency", value: scores.fluency },
-          { label: "Completeness", value: scores.completeness },
-        ].map((score) => (
+        {scoreItems.map((score) => (
           <div key={score.label} className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>{score.label}</span>
