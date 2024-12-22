@@ -9,8 +9,18 @@ export function useTTS() {
 
   const generateTTS = async (text: string, voicePreference: string = 'female', speed: 'normal' | 'slow' = 'normal') => {
     try {
-      // Generate a hash for the text + voice + speed combination
-      const textHash = `${text}-${voicePreference}-${speed}`;
+      // Get user profile for language settings
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('target_language')
+        .single();
+
+      if (!profile?.target_language) {
+        throw new Error('Target language not set in user profile');
+      }
+
+      // Generate a hash for the text + voice + speed + language combination
+      const textHash = `${text}-${voicePreference}-${speed}-${profile.target_language}`;
 
       // Check memory cache first
       if (memoryCache.has(textHash)) {
@@ -37,7 +47,8 @@ export function useTTS() {
         body: {
           text,
           gender: voicePreference,
-          speed
+          speed,
+          languageCode: profile.target_language // Add the language code here
         }
       });
 
