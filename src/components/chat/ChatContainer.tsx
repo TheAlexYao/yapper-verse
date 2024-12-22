@@ -78,7 +78,7 @@ export function ChatContainer({
     initialData: initialMessages,
     enabled: !!conversationId,
     staleTime: 1000, // Consider data fresh for 1 second
-    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (renamed from cacheTime)
   });
 
   const handlePlayTTS = async (audioUrl: string) => {
