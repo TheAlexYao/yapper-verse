@@ -47,6 +47,7 @@ export function PronunciationModal({
 
           <AudioRecorder
             onRecordingComplete={(blob) => onSubmit(0, blob)}
+            isProcessing={isProcessing}
             disabled={isProcessing}
           />
         </div>

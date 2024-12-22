@@ -1,22 +1,33 @@
 import { Button } from "@/components/ui/button";
 import { Play, Turtle, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface AudioControlsProps {
-  onPlayNormal: () => void;
-  onPlaySlow: () => void;
-  isGenerating: boolean;
+  audioUrl: string;
 }
 
-export function AudioControls({ onPlayNormal, onPlaySlow, isGenerating }: AudioControlsProps) {
+export function AudioControls({ audioUrl }: AudioControlsProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const playAudio = async (speed: 'normal' | 'slow') => {
+    const audio = new Audio(audioUrl);
+    if (speed === 'slow') {
+      audio.playbackRate = 0.7;
+    }
+    setIsPlaying(true);
+    await audio.play();
+    audio.onended = () => setIsPlaying(false);
+  };
+
   return (
     <div className="flex gap-2">
       <Button
         variant="outline"
         className="flex-1 border-2 border-[#38b6ff] hover:bg-[#38b6ff]/10 hover:text-[#38b6ff] transition-colors"
-        onClick={onPlayNormal}
-        disabled={isGenerating}
+        onClick={() => playAudio('normal')}
+        disabled={isPlaying}
       >
-        {isGenerating ? (
+        {isPlaying ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Play className="mr-2 h-4 w-4" />
@@ -26,10 +37,10 @@ export function AudioControls({ onPlayNormal, onPlaySlow, isGenerating }: AudioC
       <Button
         variant="outline"
         className="flex-1 border-2 border-[#7843e6] hover:bg-[#7843e6]/10 hover:text-[#7843e6] transition-colors"
-        onClick={onPlaySlow}
-        disabled={isGenerating}
+        onClick={() => playAudio('slow')}
+        disabled={isPlaying}
       >
-        {isGenerating ? (
+        {isPlaying ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <Turtle className="mr-2 h-6 w-6" />
