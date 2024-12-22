@@ -89,14 +89,19 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Pre-generate normal speed audio only
-      const normalAudioUrl = await generateTTS(response.text, profile.voice_preference || 'female', 'normal');
+      // Generate reference audio (normal speed only)
+      console.log('Generating reference audio for:', response.text);
+      const normalAudioUrl = await generateTTS(
+        response.text, 
+        profile.voice_preference || 'female',
+        'normal'
+      );
       
       if (!normalAudioUrl) {
-        throw new Error('Failed to generate audio');
+        throw new Error('Failed to generate reference audio');
       }
 
-      // Store both the response and the generated audio URL
+      // Store response with the generated audio URL
       setSelectedResponse({ 
         ...response, 
         audio_url: normalAudioUrl,
@@ -104,10 +109,10 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       });
       setShowPronunciationModal(true);
     } catch (error) {
-      console.error('Error generating TTS:', error);
+      console.error('Error preparing pronunciation practice:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio. Please try again.",
+        description: "Failed to prepare pronunciation practice. Please try again.",
         variant: "destructive",
       });
     }
