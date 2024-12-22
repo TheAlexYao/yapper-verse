@@ -8,7 +8,7 @@ import { AudioComparison } from "./AudioComparison";
 import { AIFeedback } from "./AIFeedback";
 import { OverallScores } from "./OverallScores";
 import { WordAnalysis } from "./WordAnalysis";
-import { Star, Trophy } from "lucide-react";
+import { Star } from "lucide-react";
 
 interface PronunciationData {
   NBest?: Array<{
@@ -61,28 +61,20 @@ export function PronunciationScoreModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-[#9b87f5]/5 via-background to-[#7843e6]/5">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-[#9b87f5] to-[#7843e6] bg-clip-text text-transparent">
-            <Trophy className="h-8 w-8 text-[#7843e6]" />
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <Star className="h-6 w-6" />
             Pronunciation Results
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 py-4">
-          {/* Score Circle */}
-          <div className="p-6 rounded-xl bg-gradient-to-r from-[#9b87f5]/10 to-[#7843e6]/10 border border-[#9b87f5]/20">
-            <div className="flex items-center justify-center mb-4">
-              <div className="relative">
-                <div className="absolute inset-0 animate-spin-slow">
-                  <div className="h-32 w-32 rounded-full border-4 border-[#7843e6]/20 border-t-[#7843e6]"></div>
-                </div>
-                <div className="h-32 w-32 rounded-full bg-gradient-to-br from-[#9b87f5]/10 to-[#7843e6]/10 flex items-center justify-center">
-                  <div className="text-4xl font-bold bg-gradient-to-r from-[#9b87f5] to-[#7843e6] bg-clip-text text-transparent">
-                    {scores.overall.toFixed(0)}%
-                  </div>
-                </div>
-              </div>
+        <div className="space-y-6 py-4">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center rounded-full bg-accent/5 p-8">
+              <span className="text-4xl font-bold">
+                {scores.overall.toFixed(0)}%
+              </span>
             </div>
           </div>
 
