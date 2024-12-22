@@ -25,6 +25,7 @@ export function ChatContainer({
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
+  const isMountedRef = useRef(false);
 
   // Fetch messages using React Query
   const { data: messages = [] } = useQuery({
@@ -70,9 +71,18 @@ export function ChatContainer({
     enabled: !!conversationId,
   });
 
+  // Handle component mounting/unmounting
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Set up real-time subscription with cleanup
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !isMountedRef.current) return;
 
     // Clean up existing subscription if any
     if (channelRef.current) {
@@ -93,6 +103,8 @@ export function ChatContainer({
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
+          if (!isMountedRef.current) return;
+          
           console.log('New message received:', payload);
           const msg = payload.new;
           
@@ -114,6 +126,7 @@ export function ChatContainer({
         }
       )
       .subscribe((status) => {
+        if (!isMountedRef.current) return;
         console.log('Subscription status:', status);
       });
 
