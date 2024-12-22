@@ -2,35 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-/**
- * Text-to-Speech Edge Function
- * 
- * This function handles the generation of speech audio from text using Azure's Cognitive Services.
- * It implements caching to avoid regenerating the same audio multiple times.
- * 
- * Required Environment Variables:
- * - AZURE_SPEECH_KEY: Azure Cognitive Services API key
- * - AZURE_SPEECH_REGION: Azure region (e.g., 'eastus')
- * - SUPABASE_URL: Project URL
- * - SUPABASE_SERVICE_ROLE_KEY: Service role key for database access
- * 
- * Request Parameters:
- * @param {string} text - The text to convert to speech
- * @param {string} gender - Voice gender ('male' or 'female', defaults to 'female')
- * @param {string} speed - Speech rate ('normal' or 'slow', defaults to 'normal')
- * @param {string} languageCode - BCP 47 language code (e.g., 'en-US', 'fr-FR')
- * 
- * Response:
- * @returns {Object} JSON object containing:
- *   - audioUrl: URL to the generated audio file
- *   - error?: Error message if generation failed
- * 
- * Caching:
- * - Audio files are cached in the 'tts_cache' storage bucket
- * - Cache keys are generated using text + gender + speed + language
- * - Cache entries are stored in the 'tts_cache' table
- */
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -38,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -47,33 +17,12 @@ serve(async (req) => {
     console.log('Processing TTS request...');
     const { text, gender = 'female', speed = 'normal', languageCode } = await req.json();
 
-    if (!text) {
-      console.error('Missing required text parameter');
+    if (!text || !languageCode) {
       return new Response(
-        JSON.stringify({ error: 'Text is required' }),
+        JSON.stringify({ error: 'Text and language code are required' }),
         { status: 400, headers: corsHeaders }
       );
     }
-
-    if (!languageCode) {
-      console.error('Missing required languageCode parameter');
-      return new Response(
-        JSON.stringify({ error: 'Language code is required' }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Validate BCP 47 language code format
-    const bcp47Regex = /^[a-z]{2,3}(-[A-Z]{2,3})?$/;
-    if (!bcp47Regex.test(languageCode)) {
-      console.error('Invalid language code format:', languageCode);
-      return new Response(
-        JSON.stringify({ error: `Invalid language code format. Expected BCP 47 format (e.g., 'en-US', 'zh-CN')` }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    console.log('TTS request parameters:', { text, gender, speed, languageCode });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -90,16 +39,11 @@ serve(async (req) => {
 
     // Check cache first
     console.log('Checking TTS cache for hash:', textHash);
-    const { data: cacheEntry, error: cacheError } = await supabase
+    const { data: cacheEntry } = await supabase
       .from('tts_cache')
       .select('audio_url')
       .eq('text_hash', textHash)
       .maybeSingle();
-
-    if (cacheError) {
-      console.error('Cache lookup error:', cacheError);
-      throw cacheError;
-    }
 
     if (cacheEntry?.audio_url) {
       console.log('Cache hit, returning cached audio URL');
@@ -119,7 +63,6 @@ serve(async (req) => {
       .single();
 
     if (!language) {
-      console.error(`No language found for code: ${languageCode}`);
       return new Response(
         JSON.stringify({ error: `Language not supported: ${languageCode}` }),
         { status: 400, headers: corsHeaders }
@@ -128,7 +71,6 @@ serve(async (req) => {
 
     const voiceName = language[`${gender}_voice`];
     if (!voiceName) {
-      console.error(`No ${gender} voice found for language ${languageCode}`);
       return new Response(
         JSON.stringify({ error: `No ${gender} voice available for ${languageCode}` }),
         { status: 400, headers: corsHeaders }
@@ -143,7 +85,7 @@ serve(async (req) => {
 
     speechConfig.speechSynthesisVoiceName = voiceName;
 
-    // Generate SSML with proper language code
+    // Generate SSML
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
         <voice name="${voiceName}">
@@ -155,7 +97,6 @@ serve(async (req) => {
     `;
 
     // Generate audio
-    console.log('Generating audio with voice:', voiceName);
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
       synthesizer.speakSsmlAsync(
@@ -193,7 +134,7 @@ serve(async (req) => {
       .from('tts_cache')
       .getPublicUrl(filename);
 
-    // Cache the result
+    // Cache the result using upsert to handle duplicates
     console.log('Caching audio URL:', publicUrl);
     await supabase
       .from('tts_cache')
@@ -203,6 +144,8 @@ serve(async (req) => {
         language_code: languageCode,
         voice_gender: gender,
         audio_url: publicUrl
+      }, {
+        onConflict: 'text_hash'
       });
 
     return new Response(
