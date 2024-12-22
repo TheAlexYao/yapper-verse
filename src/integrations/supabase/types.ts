@@ -143,6 +143,7 @@ export type Database = {
           is_user: boolean
           pronunciation_data: Json | null
           pronunciation_score: number | null
+          reference_audio_url: string | null
           sentence_count: number | null
           translation: string | null
           transliteration: string | null
@@ -157,6 +158,7 @@ export type Database = {
           is_user?: boolean
           pronunciation_data?: Json | null
           pronunciation_score?: number | null
+          reference_audio_url?: string | null
           sentence_count?: number | null
           translation?: string | null
           transliteration?: string | null
@@ -171,6 +173,7 @@ export type Database = {
           is_user?: boolean
           pronunciation_data?: Json | null
           pronunciation_score?: number | null
+          reference_audio_url?: string | null
           sentence_count?: number | null
           translation?: string | null
           transliteration?: string | null
