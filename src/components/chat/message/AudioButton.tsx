@@ -1,30 +1,34 @@
-import { Play, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Play, Pause } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface AudioButtonProps {
   onPlay: () => void;
-  isUser: boolean;
+  isUser?: boolean;
   isPlaying?: boolean;
   disabled?: boolean;
 }
 
-export function AudioButton({ onPlay, isUser, isPlaying, disabled }: AudioButtonProps) {
+export function AudioButton({
+  onPlay,
+  isUser = false,
+  isPlaying = false,
+  disabled = false
+}: AudioButtonProps) {
   return (
     <Button
       variant="ghost"
-      size="icon"
-      className={cn(
-        "mt-1 h-6 w-6",
-        isUser 
-          ? "hover:bg-white/10 text-white" 
-          : "hover:bg-accent-foreground/10"
-      )}
+      size="sm"
       onClick={onPlay}
-      disabled={isPlaying || disabled}
+      disabled={disabled}
+      className={cn(
+        "px-2 h-7",
+        isUser ? "text-white hover:text-white/90" : "text-muted-foreground hover:text-foreground",
+        disabled && "opacity-50 cursor-not-allowed"
+      )}
     >
       {isPlaying ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Pause className="h-4 w-4" />
       ) : (
         <Play className="h-4 w-4" />
       )}

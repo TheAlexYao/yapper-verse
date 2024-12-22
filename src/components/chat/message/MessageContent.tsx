@@ -1,50 +1,63 @@
 import { cn } from "@/lib/utils";
+import { Play, Volume2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageContentProps {
   text: string;
-  transliteration?: string;
-  translation?: string;
-  isUser: boolean;
-  pronunciationScore?: number;
+  transliteration?: string | null;
+  translation?: string | null;
+  isUser?: boolean;
+  pronunciationScore?: number | null;
   onShowScore?: () => void;
 }
 
-export function MessageContent({ 
-  text, 
-  transliteration, 
-  translation, 
-  isUser,
+export function MessageContent({
+  text,
+  transliteration,
+  translation,
+  isUser = false,
   pronunciationScore,
-  onShowScore
+  onShowScore,
 }: MessageContentProps) {
   return (
-    <div className="space-y-1.5 overflow-hidden">
-      <p className="text-base font-medium break-words leading-relaxed">
+    <div className="space-y-2">
+      <p className={cn(
+        "text-base leading-relaxed",
+        isUser ? "text-white" : "text-foreground"
+      )}>
         {text}
       </p>
+
       {transliteration && (
         <p className={cn(
-          "text-sm italic break-words",
-          isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
+          "text-sm",
+          isUser ? "text-white/80" : "text-muted-foreground"
         )}>
           {transliteration}
         </p>
       )}
+
       {translation && (
         <p className={cn(
-          "text-sm break-words",
-          isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
+          "text-sm italic",
+          isUser ? "text-white/80" : "text-muted-foreground"
         )}>
           {translation}
         </p>
       )}
-      {isUser && typeof pronunciationScore === 'number' && (
-        <button
+
+      {pronunciationScore !== null && pronunciationScore !== undefined && (
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onShowScore}
-          className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
+          className={cn(
+            "px-2 h-7 text-xs",
+            isUser ? "text-white hover:text-white/90" : "text-muted-foreground hover:text-foreground"
+          )}
         >
-          Pronunciation Score: {pronunciationScore}%
-        </button>
+          Score: {pronunciationScore}%
+        </Button>
       )}
     </div>
   );

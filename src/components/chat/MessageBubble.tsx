@@ -12,7 +12,12 @@ interface MessageBubbleProps {
   onShowScore?: (message: Message) => void;
 }
 
-export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScore }: MessageBubbleProps) {
+export function MessageBubble({ 
+  isUser = false, 
+  message, 
+  onPlayAudio, 
+  onShowScore 
+}: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const { toast } = useToast();
 
