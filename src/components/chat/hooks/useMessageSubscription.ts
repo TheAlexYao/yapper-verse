@@ -12,6 +12,7 @@ export function useMessageSubscription(conversationId: string | null) {
 
   const mapDatabaseMessageToMessage = (dbMessage: any): Message => ({
     id: dbMessage.id,
+    conversation_id: dbMessage.conversation_id,
     text: dbMessage.content,
     isUser: dbMessage.is_user,
     translation: dbMessage.translation,
