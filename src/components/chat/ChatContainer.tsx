@@ -37,6 +37,7 @@ export function ChatContainer({
       channelRef.current.unsubscribe();
     }
 
+    // Create a new channel for this conversation
     const channel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
@@ -47,11 +48,11 @@ export function ChatContainer({
           table: 'guided_conversation_messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('Received new message:', payload);
           const newMessage = payload.new;
           
-          // Format the message to match our Message type
+          // Format the message
           const formattedMessage: Message = {
             id: newMessage.id,
             conversation_id: newMessage.conversation_id,
@@ -65,10 +66,10 @@ export function ChatContainer({
             isUser: newMessage.is_user
           };
 
+          // Update messages state, ensuring no duplicates
           setLocalMessages(prevMessages => {
-            // Check if message already exists
-            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
-            if (exists) {
+            const messageExists = prevMessages.some(msg => msg.id === formattedMessage.id);
+            if (messageExists) {
               console.log('Message already exists, skipping:', formattedMessage.id);
               return prevMessages;
             }
@@ -76,17 +77,26 @@ export function ChatContainer({
             return [...prevMessages, formattedMessage];
           });
 
-          // Generate TTS for new AI messages
+          // Generate TTS for new AI messages if needed
           if (!formattedMessage.isUser && !formattedMessage.audio_url) {
-            generateTTSForMessage(formattedMessage);
+            console.log('Generating TTS for new AI message:', formattedMessage.text);
+            const audioUrl = await generateTTS(formattedMessage.text);
+            if (audioUrl) {
+              setLocalMessages(prev => 
+                prev.map(msg => 
+                  msg.id === formattedMessage.id 
+                    ? { ...msg, audio_url: audioUrl }
+                    : msg
+                )
+              );
+            }
           }
         }
       );
 
-    // Store channel reference
+    // Store channel reference and subscribe
     channelRef.current = channel;
-
-    // Subscribe to channel
+    
     channel.subscribe((status: string) => {
       console.log('Subscription status:', status);
       if (status === 'SUBSCRIBED') {
@@ -94,6 +104,7 @@ export function ChatContainer({
       }
     });
 
+    // Cleanup function
     return () => {
       console.log('Cleaning up message subscription');
       if (channelRef.current) {
@@ -101,37 +112,13 @@ export function ChatContainer({
         channelRef.current = null;
       }
     };
-  }, [conversationId]);
+  }, [conversationId, generateTTS]);
 
   // Update local messages when props messages change
   useEffect(() => {
     console.log('Setting initial messages:', messages);
     setLocalMessages(messages);
   }, [messages]);
-
-  const generateTTSForMessage = async (message: Message) => {
-    if (!message.text || isGeneratingTTS) return;
-    
-    setIsGeneratingTTS(true);
-    try {
-      console.log('Generating TTS for message:', message.text);
-      const audioUrl = await generateTTS(message.text);
-      if (audioUrl) {
-        setLocalMessages(prev => 
-          prev.map(msg => 
-            msg.id === message.id 
-              ? { ...msg, audio_url: audioUrl }
-              : msg
-          )
-        );
-        console.log('TTS generated successfully:', audioUrl);
-      }
-    } catch (error) {
-      console.error('Error generating TTS:', error);
-    } finally {
-      setIsGeneratingTTS(false);
-    }
-  };
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
