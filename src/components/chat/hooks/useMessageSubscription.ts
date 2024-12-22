@@ -12,24 +12,11 @@ export function useMessageSubscription(conversationId: string | null) {
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
   const isSettingUp = useRef(false);
 
-  const mapDatabaseMessageToMessage = (dbMessage: any): Message => ({
-    id: dbMessage.id,
-    conversation_id: dbMessage.conversation_id,
-    text: dbMessage.content,
-    isUser: dbMessage.is_user,
-    translation: dbMessage.translation,
-    transliteration: dbMessage.transliteration,
-    audio_url: dbMessage.audio_url,
-    reference_audio_url: dbMessage.reference_audio_url,
-    pronunciation_score: dbMessage.pronunciation_score,
-    pronunciation_data: dbMessage.pronunciation_data
-  });
-
   // Load initial messages
   useEffect(() => {
-    async function loadMessages() {
-      if (!conversationId) return;
+    if (!conversationId) return;
 
+    async function loadMessages() {
       try {
         console.log('Loading initial messages for conversation:', conversationId);
         const { data, error } = await supabase
@@ -40,7 +27,19 @@ export function useMessageSubscription(conversationId: string | null) {
 
         if (error) throw error;
 
-        const mappedMessages = data.map(mapDatabaseMessageToMessage);
+        const mappedMessages = data.map(msg => ({
+          id: msg.id,
+          conversation_id: msg.conversation_id,
+          text: msg.content,
+          isUser: msg.is_user,
+          translation: msg.translation,
+          transliteration: msg.transliteration,
+          audio_url: msg.audio_url,
+          reference_audio_url: msg.reference_audio_url,
+          pronunciation_score: msg.pronunciation_score,
+          pronunciation_data: msg.pronunciation_data
+        }));
+
         console.log('Setting initial messages:', mappedMessages);
         setMessages(mappedMessages);
 
@@ -102,13 +101,25 @@ export function useMessageSubscription(conversationId: string | null) {
               return;
             }
 
-            const mappedMessages = data.map(mapDatabaseMessageToMessage);
+            const mappedMessages = data.map(msg => ({
+              id: msg.id,
+              conversation_id: msg.conversation_id,
+              text: msg.content,
+              isUser: msg.is_user,
+              translation: msg.translation,
+              transliteration: msg.transliteration,
+              audio_url: msg.audio_url,
+              reference_audio_url: msg.reference_audio_url,
+              pronunciation_score: msg.pronunciation_score,
+              pronunciation_data: msg.pronunciation_data
+            }));
+
             setMessages(mappedMessages);
 
             // If this is a new AI message without audio, generate TTS
             if (payload.eventType === 'INSERT') {
-              const newMessage = mapDatabaseMessageToMessage(payload.new);
-              if (!newMessage.isUser && !newMessage.audio_url) {
+              const newMessage = mappedMessages.find(m => m.id === payload.new.id);
+              if (newMessage && !newMessage.isUser && !newMessage.audio_url) {
                 generateTTSForMessage(newMessage);
               }
             }
