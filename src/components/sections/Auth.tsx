@@ -23,6 +23,8 @@ const Auth = () => {
           console.log('Auth flow - Session detected:', session.user.id);
           console.log('Auth flow - User metadata:', session.user.user_metadata);
           console.log('Auth flow - Provider:', session.user.app_metadata.provider);
+          console.log('Auth flow - Access token:', session.access_token ? 'Present' : 'Missing');
+          console.log('Auth flow - Full session:', JSON.stringify(session, null, 2));
           
           const { data: profile, error } = await supabase
             .from('profiles')
