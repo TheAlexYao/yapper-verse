@@ -16,7 +16,7 @@ serve(async (req) => {
 
   try {
     console.log('Processing TTS request...');
-    const { text, gender = 'female', speed = 'normal' } = await req.json();
+    const { text, gender = 'female', speed = 'normal', languageCode } = await req.json();
 
     if (!text) {
       console.error('Missing required text parameter');
@@ -26,7 +26,25 @@ serve(async (req) => {
       );
     }
 
-    console.log('TTS request parameters:', { text, gender, speed });
+    if (!languageCode) {
+      console.error('Missing required languageCode parameter');
+      return new Response(
+        JSON.stringify({ error: 'Language code is required' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate BCP 47 language code format
+    const bcp47Regex = /^[a-z]{2,3}(-[A-Z]{2,3})?$/;
+    if (!bcp47Regex.test(languageCode)) {
+      console.error('Invalid language code format:', languageCode);
+      return new Response(
+        JSON.stringify({ error: `Invalid language code format. Expected BCP 47 format (e.g., 'en-US', 'zh-CN')` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log('TTS request parameters:', { text, gender, speed, languageCode });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -34,7 +52,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Create hash for caching
-    const textToHash = `${text}-${gender}-${speed}`;
+    const textToHash = `${text}-${gender}-${speed}-${languageCode}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(textToHash);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -64,42 +82,41 @@ serve(async (req) => {
 
     console.log('Cache miss, generating new audio');
 
+    // Get voice name from language settings
+    const { data: language } = await supabase
+      .from('languages')
+      .select(`${gender}_voice`)
+      .eq('code', languageCode)
+      .single();
+
+    if (!language) {
+      console.error(`No language found for code: ${languageCode}`);
+      return new Response(
+        JSON.stringify({ error: `Language not supported: ${languageCode}` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const voiceName = language[`${gender}_voice`];
+    if (!voiceName) {
+      console.error(`No ${gender} voice found for language ${languageCode}`);
+      return new Response(
+        JSON.stringify({ error: `No ${gender} voice available for ${languageCode}` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Configure speech synthesis
     const speechConfig = sdk.SpeechConfig.fromSubscription(
       Deno.env.get('AZURE_SPEECH_KEY')!,
       Deno.env.get('AZURE_SPEECH_REGION')!
     );
 
-    // Get voice name from language settings
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('target_language')
-      .single();
-
-    if (!profile?.target_language) {
-      throw new Error('Target language not set');
-    }
-
-    const { data: language } = await supabase
-      .from('languages')
-      .select(`${gender}_voice`)
-      .eq('code', profile.target_language)
-      .single();
-
-    if (!language) {
-      throw new Error(`No voice found for language ${profile.target_language}`);
-    }
-
-    const voiceName = language[`${gender}_voice`];
-    if (!voiceName) {
-      throw new Error(`No ${gender} voice found for language ${profile.target_language}`);
-    }
-
     speechConfig.speechSynthesisVoiceName = voiceName;
 
-    // Generate SSML
+    // Generate SSML with proper language code
     const ssml = `
-      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${profile.target_language}">
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${languageCode}">
         <voice name="${voiceName}">
           <prosody rate="${speed === 'slow' ? '0.7' : '1.0'}" pitch="+0%">
             ${text}
@@ -154,7 +171,7 @@ serve(async (req) => {
       .upsert({
         text_hash: textHash,
         text_content: text,
-        language_code: profile.target_language,
+        language_code: languageCode,
         voice_gender: gender,
         audio_url: publicUrl
       });
