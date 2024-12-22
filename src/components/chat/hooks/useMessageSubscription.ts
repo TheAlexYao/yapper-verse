@@ -11,6 +11,7 @@ export function useMessageSubscription(conversationId: string | null) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasInitializedRef = useRef(false);
   const isSubscribedRef = useRef(false);
+  const cleanupInProgressRef = useRef(false);
 
   const generateAudioForMessage = async (content: string, messageId: string) => {
     try {
@@ -111,7 +112,7 @@ export function useMessageSubscription(conversationId: string | null) {
 
   // Effect for setting up the subscription
   useEffect(() => {
-    if (!conversationId || isSubscribedRef.current) return;
+    if (!conversationId || isSubscribedRef.current || cleanupInProgressRef.current) return;
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
@@ -167,11 +168,13 @@ export function useMessageSubscription(conversationId: string | null) {
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.log('Subscription closed or errored:', status);
           isSubscribedRef.current = false;
-          toast({
-            title: "Connection issue",
-            description: "Reconnecting to chat...",
-            variant: "default",
-          });
+          if (!cleanupInProgressRef.current) {
+            toast({
+              title: "Connection issue",
+              description: "Reconnecting to chat...",
+              variant: "default",
+            });
+          }
         }
       });
 
@@ -180,11 +183,13 @@ export function useMessageSubscription(conversationId: string | null) {
     // Cleanup function
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
+      cleanupInProgressRef.current = true;
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
         isSubscribedRef.current = false;
       }
+      cleanupInProgressRef.current = false;
     };
   }, [conversationId, toast, generateTTS]);
 
