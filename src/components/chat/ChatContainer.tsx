@@ -1,9 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
-import { useMessageSubscription } from "./hooks/useMessageSubscription";
 import type { Message } from "@/hooks/useConversation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,40 +74,12 @@ export function ChatContainer({
         return message;
       });
 
-      console.log('Setting initial messages:', formattedMessages);
       return formattedMessages;
     },
     initialData: initialMessages,
     enabled: !!conversationId,
-    staleTime: 0, // Always consider data stale to ensure fresh fetches
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchInterval: 1000, // Poll every second
   });
-
-  const handleNewMessage = useCallback((newMessage: Message) => {
-    queryClient.setQueryData(['chat-messages', conversationId], (oldData: Message[] = []) => {
-      // Check if message already exists
-      const exists = oldData.some(msg => msg.id === newMessage.id);
-      if (exists) {
-        console.log('Message already exists, skipping:', newMessage.id);
-        return oldData;
-      }
-      
-      // Check if message needs TTS
-      if (!newMessage.audio_url && !newMessage.reference_audio_url) {
-        console.log('New message needs TTS generation:', newMessage.id);
-        generateTTSForMessage(newMessage);
-      }
-      
-      // Force a re-render by creating a new array
-      const updatedMessages = [...oldData, newMessage];
-      console.log('Updating messages array:', updatedMessages);
-      return updatedMessages;
-    });
-  }, [generateTTSForMessage, queryClient, conversationId]);
-
-  // Set up stable subscription
-  useMessageSubscription(conversationId, handleNewMessage);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
