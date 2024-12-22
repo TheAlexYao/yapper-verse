@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
@@ -24,6 +24,7 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
+  const channelRef = useRef<any>(null);
 
   // Fetch messages using React Query
   const { data: messages = [] } = useQuery({
@@ -51,6 +52,7 @@ export function ChatContainer({
         throw error;
       }
 
+      console.log('Setting initial messages:', messages);
       return messages.map((msg): Message => ({
         id: msg.id,
         conversation_id: msg.conversation_id,
@@ -71,6 +73,13 @@ export function ChatContainer({
   // Set up real-time subscription with cleanup
   useEffect(() => {
     if (!conversationId) return;
+
+    // Clean up existing subscription if any
+    if (channelRef.current) {
+      console.log('Cleaning up existing subscription');
+      channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
 
     console.log('Setting up subscription for conversation:', conversationId);
     const channel = supabase
@@ -104,12 +113,20 @@ export function ChatContainer({
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    // Store channel reference
+    channelRef.current = channel;
 
     // Cleanup subscription on unmount or conversationId change
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
     };
   }, [conversationId, generateTTSForMessage]);
 
