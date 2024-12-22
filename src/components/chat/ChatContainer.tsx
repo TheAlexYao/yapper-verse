@@ -80,6 +80,9 @@ export function ChatContainer({
     },
     initialData: initialMessages,
     enabled: !!conversationId,
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const handleNewMessage = useCallback((newMessage: Message) => {
@@ -97,7 +100,10 @@ export function ChatContainer({
         generateTTSForMessage(newMessage);
       }
       
-      return [...oldData, newMessage];
+      // Force a re-render by creating a new array
+      const updatedMessages = [...oldData, newMessage];
+      console.log('Updating messages array:', updatedMessages);
+      return updatedMessages;
     });
   }, [generateTTSForMessage, queryClient, conversationId]);
 
