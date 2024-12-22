@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Play, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MessageContentProps {
@@ -9,6 +8,7 @@ interface MessageContentProps {
   isUser?: boolean;
   pronunciationScore?: number | null;
   onShowScore?: () => void;
+  className?: string;
 }
 
 export function MessageContent({
@@ -18,9 +18,10 @@ export function MessageContent({
   isUser = false,
   pronunciationScore,
   onShowScore,
+  className,
 }: MessageContentProps) {
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", className)}>
       <p className={cn(
         "text-base leading-relaxed",
         isUser ? "text-white" : "text-foreground"

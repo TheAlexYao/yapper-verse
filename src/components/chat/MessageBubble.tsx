@@ -41,15 +41,19 @@ export function MessageBubble({
     }
   };
 
+  const containerClasses = cn(
+    "flex gap-2",
+    isUser ? "flex-row-reverse" : "flex-row"
+  );
+
+  const bubbleClasses = cn(
+    "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
+    isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
+  );
+
   return (
-    <div className={cn(
-      "flex gap-2",
-      isUser ? "flex-row-reverse" : "flex-row"
-    )}>
-      <div className={cn(
-        "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
-        isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
-      )}>
+    <div className={containerClasses}>
+      <div className={bubbleClasses}>
         <MessageContent
           text={message.text}
           transliteration={message.transliteration}
@@ -57,6 +61,7 @@ export function MessageBubble({
           isUser={isUser}
           pronunciationScore={message.pronunciation_score}
           onShowScore={() => onShowScore?.(message)}
+          className={isUser ? "text-white" : ""}
         />
 
         {message.audio_url && (
