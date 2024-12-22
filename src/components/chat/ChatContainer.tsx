@@ -5,7 +5,7 @@ import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
 import { useMessageSubscription } from "./hooks/useMessageSubscription";
 import type { Message } from "@/hooks/useConversation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,9 +25,10 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch messages using React Query
-  const { data: messages = [], setData: setMessages } = useQuery({
+  const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
@@ -82,12 +83,12 @@ export function ChatContainer({
   });
 
   const handleNewMessage = useCallback((newMessage: Message) => {
-    setMessages((prevMessages) => {
+    queryClient.setQueryData(['chat-messages', conversationId], (oldData: Message[] = []) => {
       // Check if message already exists
-      const exists = prevMessages.some(msg => msg.id === newMessage.id);
+      const exists = oldData.some(msg => msg.id === newMessage.id);
       if (exists) {
         console.log('Message already exists, skipping:', newMessage.id);
-        return prevMessages;
+        return oldData;
       }
       
       // Check if message needs TTS
@@ -96,9 +97,9 @@ export function ChatContainer({
         generateTTSForMessage(newMessage);
       }
       
-      return [...prevMessages, newMessage];
+      return [...oldData, newMessage];
     });
-  }, [generateTTSForMessage, setMessages]);
+  }, [generateTTSForMessage, queryClient, conversationId]);
 
   // Set up stable subscription
   useMessageSubscription(conversationId, handleNewMessage);
