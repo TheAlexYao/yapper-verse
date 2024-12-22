@@ -1,13 +1,77 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
 import { useTTSHandler } from "./useTTSHandler";
 
+// Queue class to handle TTS generation
+class TTSQueue {
+  private queue: Message[] = [];
+  private processing = false;
+  private processingMessages = new Set<string>();
+
+  constructor(private generateTTS: (msg: Message) => Promise<void>) {}
+
+  add(message: Message) {
+    if (this.processingMessages.has(message.id)) {
+      console.log('Message already in processing queue:', message.id);
+      return;
+    }
+    
+    this.processingMessages.add(message.id);
+    this.queue.push(message);
+    this.processNext();
+  }
+
+  private async processNext() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const message = this.queue.shift()!;
+
+    try {
+      await this.generateTTS(message);
+    } catch (error) {
+      console.error('Error generating TTS:', error);
+    } finally {
+      this.processingMessages.delete(message.id);
+      this.processing = false;
+      this.processNext();
+    }
+  }
+
+  clear() {
+    this.queue = [];
+    this.processingMessages.clear();
+    this.processing = false;
+  }
+}
+
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+  const ttsQueueRef = useRef<TTSQueue | null>(null);
+
+  // Initialize TTS queue
+  useEffect(() => {
+    if (!conversationId) return;
+    
+    ttsQueueRef.current = new TTSQueue(generateTTSForMessage);
+    
+    return () => {
+      ttsQueueRef.current?.clear();
+      ttsQueueRef.current = null;
+    };
+  }, [conversationId, generateTTSForMessage]);
+
+  // Queue TTS generation for a message
+  const queueTTSGeneration = useCallback((message: Message) => {
+    if (!message.isUser && !message.audio_url && ttsQueueRef.current) {
+      console.log('Queueing TTS generation for message:', message.id);
+      ttsQueueRef.current.add(message);
+    }
+  }, []);
 
   // Effect for setting up the subscription
   useEffect(() => {
@@ -51,6 +115,10 @@ export function useMessageSubscription(conversationId: string | null) {
               console.log('Message already exists, skipping:', formattedMessage.id);
               return prevMessages;
             }
+            
+            // Queue TTS generation if needed
+            queueTTSGeneration(formattedMessage);
+            
             console.log('Adding new message to state:', formattedMessage);
             return [...prevMessages, formattedMessage];
           });
@@ -70,14 +138,13 @@ export function useMessageSubscription(conversationId: string | null) {
         }
       });
 
-    // Cleanup function
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
       channel.unsubscribe();
     };
-  }, [conversationId, toast]);
+  }, [conversationId, toast, queueTTSGeneration]);
 
-  // Effect for fetching initial messages and generating TTS
+  // Effect for fetching initial messages
   useEffect(() => {
     if (!conversationId) return;
 
@@ -115,18 +182,15 @@ export function useMessageSubscription(conversationId: string | null) {
         console.log('Setting initial messages:', formattedMessages);
         setMessages(formattedMessages);
 
-        // Generate TTS for AI messages without audio
+        // Queue TTS generation for messages without audio
         formattedMessages.forEach(msg => {
-          if (!msg.isUser && !msg.audio_url) {
-            console.log('Generating TTS for message without audio:', msg.id);
-            generateTTSForMessage(msg);
-          }
+          queueTTSGeneration(msg);
         });
       }
     };
 
     fetchInitialMessages();
-  }, [conversationId, toast, generateTTSForMessage]);
+  }, [conversationId, toast, queueTTSGeneration]);
 
   return { messages, setMessages };
 }
