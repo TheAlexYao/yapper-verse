@@ -132,6 +132,13 @@ export function useMessageSubscription(conversationId: string | null) {
             console.log('Successfully subscribed to conversation:', conversationId);
             isSettingUp.current = false;
           }
+
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.log('Subscription closed or errored:', status);
+            // Attempt to reconnect
+            console.log('Attempting to reconnect subscription');
+            setupSubscription();
+          }
         });
     }
 
