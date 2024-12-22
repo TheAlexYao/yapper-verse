@@ -9,6 +9,48 @@ export function useMessageSubscription(conversationId: string | null) {
   const { toast } = useToast();
   const { generateTTS } = useTTS();
 
+  const generateAudioForMessage = async (content: string, messageId: string) => {
+    try {
+      // Create text hash for checking cache
+      const encoder = new TextEncoder();
+      const data = encoder.encode(content);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Check if audio already exists in cache
+      const { data: cacheEntry } = await supabase
+        .from('tts_cache')
+        .select('audio_url')
+        .eq('text_hash', textHash)
+        .maybeSingle();
+
+      if (cacheEntry?.audio_url) {
+        console.log('Found cached audio for message:', messageId);
+        // Update message with cached audio URL
+        await supabase
+          .from('guided_conversation_messages')
+          .update({ audio_url: cacheEntry.audio_url })
+          .eq('id', messageId);
+        return cacheEntry.audio_url;
+      }
+
+      // Generate new audio if not in cache
+      console.log('Generating new audio for message:', messageId);
+      const audioUrl = await generateTTS(content);
+      if (audioUrl) {
+        await supabase
+          .from('guided_conversation_messages')
+          .update({ audio_url: audioUrl })
+          .eq('id', messageId);
+      }
+      return audioUrl;
+    } catch (error) {
+      console.error('Error handling audio for message:', error);
+      return null;
+    }
+  };
+
   // Effect for setting up the subscription
   useEffect(() => {
     if (!conversationId) {
@@ -35,18 +77,7 @@ export function useMessageSubscription(conversationId: string | null) {
           // Generate TTS for AI messages
           let audioUrl = newMessage.audio_url;
           if (!newMessage.is_user && !audioUrl) {
-            try {
-              audioUrl = await generateTTS(newMessage.content);
-              if (audioUrl) {
-                // Update the message with the generated audio URL
-                await supabase
-                  .from('guided_conversation_messages')
-                  .update({ audio_url: audioUrl })
-                  .eq('id', newMessage.id);
-              }
-            } catch (error) {
-              console.error('Error generating TTS for AI message:', error);
-            }
+            audioUrl = await generateAudioForMessage(newMessage.content, newMessage.id);
           }
 
           const formattedMessage: Message = {
@@ -63,7 +94,6 @@ export function useMessageSubscription(conversationId: string | null) {
           };
 
           setMessages(prevMessages => {
-            // Check if message already exists
             const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
             if (exists) {
               console.log('Message already exists, skipping:', formattedMessage.id);
@@ -117,22 +147,11 @@ export function useMessageSubscription(conversationId: string | null) {
       }
 
       if (messages) {
-        // Generate TTS for AI messages that don't have audio URLs
+        // Process messages and generate TTS where needed
         const processedMessages = await Promise.all(messages.map(async (msg) => {
           let audioUrl = msg.audio_url;
           if (!msg.is_user && !audioUrl) {
-            try {
-              audioUrl = await generateTTS(msg.content);
-              if (audioUrl) {
-                // Update the message with the generated audio URL
-                await supabase
-                  .from('guided_conversation_messages')
-                  .update({ audio_url: audioUrl })
-                  .eq('id', msg.id);
-              }
-            } catch (error) {
-              console.error('Error generating TTS for AI message:', error);
-            }
+            audioUrl = await generateAudioForMessage(msg.content, msg.id);
           }
 
           return {
