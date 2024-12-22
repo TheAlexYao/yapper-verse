@@ -7,6 +7,7 @@ export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
 
+  // Effect for setting up the subscription
   useEffect(() => {
     if (!conversationId) {
       console.log('No conversation ID provided');
@@ -72,7 +73,49 @@ export function useMessageSubscription(conversationId: string | null) {
       console.log('Cleaning up subscription for conversation:', conversationId);
       channel.unsubscribe();
     };
-  }, [conversationId]); // Only re-run if conversationId changes
+  }, [conversationId, toast]);
+
+  // Effect for fetching initial messages
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const fetchInitialMessages = async () => {
+      const { data: messages, error } = await supabase
+        .from('guided_conversation_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch messages. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (messages) {
+        const formattedMessages = messages.map((msg): Message => ({
+          id: msg.id,
+          conversation_id: msg.conversation_id,
+          text: msg.content,
+          translation: msg.translation,
+          transliteration: msg.transliteration,
+          pronunciation_score: msg.pronunciation_score,
+          pronunciation_data: msg.pronunciation_data,
+          audio_url: msg.audio_url,
+          reference_audio_url: msg.reference_audio_url,
+          isUser: msg.is_user
+        }));
+        console.log('Setting initial messages:', formattedMessages);
+        setMessages(formattedMessages);
+      }
+    };
+
+    fetchInitialMessages();
+  }, [conversationId, toast]);
 
   return { messages, setMessages };
 }

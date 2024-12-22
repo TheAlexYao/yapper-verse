@@ -4,8 +4,6 @@ import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
 import type { Message } from "@/hooks/useConversation";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMessageSubscription } from "./hooks/useMessageSubscription";
 
@@ -26,66 +24,6 @@ export function ChatContainer({
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
   const { messages, setMessages } = useMessageSubscription(conversationId);
-
-  // Fetch messages using React Query
-  useQuery({
-    queryKey: ['chat-messages', conversationId],
-    queryFn: async () => {
-      if (!conversationId) {
-        console.log('No conversation ID provided');
-        return initialMessages;
-      }
-      
-      const { data: messages, error } = await supabase
-        .from('guided_conversation_messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch messages. Please try again.",
-          variant: "destructive",
-        });
-        throw error;
-      }
-
-      console.log('Setting initial messages:', messages);
-
-      const formattedMessages = messages.map((msg): Message => {
-        const message = {
-          id: msg.id,
-          conversation_id: msg.conversation_id,
-          text: msg.content,
-          translation: msg.translation,
-          transliteration: msg.transliteration,
-          pronunciation_score: msg.pronunciation_score,
-          pronunciation_data: msg.pronunciation_data,
-          audio_url: msg.audio_url,
-          reference_audio_url: msg.reference_audio_url,
-          isUser: msg.is_user
-        };
-
-        // Only generate TTS if the message has no audio URLs and is not a user message
-        if (!msg.audio_url && !msg.reference_audio_url && !msg.is_user) {
-          generateTTSForMessage(message);
-        }
-
-        return message;
-      });
-
-      setMessages(formattedMessages);
-      return formattedMessages;
-    },
-    initialData: initialMessages,
-    enabled: !!conversationId,
-    staleTime: 30000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false
-  });
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
