@@ -12,9 +12,25 @@ import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import ScenarioFeedback from "@/pages/ScenarioFeedback";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 // Create a client
 const queryClient = new QueryClient();
+
+// Callback component to handle auth redirects
+const AuthCallback = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Clean URL and redirect
+    const path = window.location.pathname;
+    window.history.replaceState({}, '', '/auth');
+    navigate('/auth', { replace: true });
+  }, [navigate]);
+
+  return null;
+};
 
 function App() {
   return (
@@ -24,6 +40,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route
               path="/onboarding"
               element={
