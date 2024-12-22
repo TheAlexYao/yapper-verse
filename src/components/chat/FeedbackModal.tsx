@@ -10,7 +10,7 @@ interface PronunciationScoreModalProps {
   referenceAudioUrl?: string;
 }
 
-export function PronunciationScoreModal({
+export function FeedbackModal({
   isOpen,
   onClose,
   data,
@@ -31,7 +31,7 @@ export function PronunciationScoreModal({
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Pronunciation Score</DialogTitle>
+          <DialogTitle>Pronunciation Feedback</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-4">
