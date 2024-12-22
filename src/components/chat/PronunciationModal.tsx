@@ -14,6 +14,9 @@ import { Play, Turtle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTTS } from "./hooks/useTTS";
 
+// Change this import
+import { PronunciationScoreModal } from "@/components/chat/pronunciation/PronunciationScoreModal";
+
 interface PronunciationModalProps {
   isOpen: boolean;
   onClose: () => void;
