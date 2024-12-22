@@ -3,12 +3,14 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
+import { useTTSHandler } from "./useTTSHandler";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+  const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+  const isSettingUp = useRef(false);
 
   const mapDatabaseMessageToMessage = (dbMessage: any): Message => ({
     id: dbMessage.id,
@@ -41,6 +43,13 @@ export function useMessageSubscription(conversationId: string | null) {
         const mappedMessages = data.map(mapDatabaseMessageToMessage);
         console.log('Setting initial messages:', mappedMessages);
         setMessages(mappedMessages);
+
+        // Generate TTS for AI messages that don't have audio
+        mappedMessages.forEach(msg => {
+          if (!msg.isUser && !msg.audio_url) {
+            generateTTSForMessage(msg);
+          }
+        });
       } catch (error) {
         console.error('Error loading messages:', error);
         toast({
@@ -52,19 +61,20 @@ export function useMessageSubscription(conversationId: string | null) {
     }
 
     loadMessages();
-  }, [conversationId, toast]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || isSettingUp.current) return;
 
-    function setupSubscription() {
+    async function setupSubscription() {
       if (channelRef.current) {
         console.log('Cleaning up existing subscription');
-        channelRef.current.unsubscribe();
+        await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
+      isSettingUp.current = true;
       console.log('Setting up message subscription for conversation:', conversationId);
       
       channelRef.current = supabase
@@ -94,6 +104,14 @@ export function useMessageSubscription(conversationId: string | null) {
 
             const mappedMessages = data.map(mapDatabaseMessageToMessage);
             setMessages(mappedMessages);
+
+            // If this is a new AI message without audio, generate TTS
+            if (payload.eventType === 'INSERT') {
+              const newMessage = mapDatabaseMessageToMessage(payload.new);
+              if (!newMessage.isUser && !newMessage.audio_url) {
+                generateTTSForMessage(newMessage);
+              }
+            }
           }
         )
         .subscribe((status) => {
@@ -101,24 +119,7 @@ export function useMessageSubscription(conversationId: string | null) {
 
           if (status === 'SUBSCRIBED') {
             console.log('Successfully subscribed to conversation:', conversationId);
-            if (retryTimeoutRef.current) {
-              clearTimeout(retryTimeoutRef.current);
-              retryTimeoutRef.current = undefined;
-            }
-          }
-          
-          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-            console.log('Subscription closed or errored:', status);
-            // Clear any existing retry timeout
-            if (retryTimeoutRef.current) {
-              clearTimeout(retryTimeoutRef.current);
-            }
-            
-            // Set up a new subscription after a delay
-            retryTimeoutRef.current = setTimeout(() => {
-              console.log('Attempting to reconnect subscription');
-              setupSubscription();
-            }, 5000); // 5 second delay before retry
+            isSettingUp.current = false;
           }
         });
     }
@@ -127,17 +128,14 @@ export function useMessageSubscription(conversationId: string | null) {
 
     // Cleanup function
     return () => {
-      console.log('Cleaning up subscription for conversation:', conversationId);
       if (channelRef.current) {
+        console.log('Cleaning up subscription for conversation:', conversationId);
         channelRef.current.unsubscribe();
         channelRef.current = null;
       }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = undefined;
-      }
+      isSettingUp.current = false;
     };
-  }, [conversationId]);
+  }, [conversationId]); // Only depend on conversationId
 
   return { messages };
 }
