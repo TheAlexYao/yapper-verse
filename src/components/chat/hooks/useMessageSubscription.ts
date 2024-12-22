@@ -8,9 +8,10 @@ import { useTTSHandler } from "./useTTSHandler";
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const isSettingUp = useRef(false);
+  const hasInitializedRef = useRef(false);
   const isLoadingMessages = useRef(false);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef(0);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
 
@@ -65,24 +66,24 @@ export function useMessageSubscription(conversationId: string | null) {
     }
   };
 
+  // Calculate exponential backoff delay
+  const getBackoffDelay = () => {
+    const baseDelay = 1000; // 1 second
+    const maxDelay = 30000; // 30 seconds
+    const delay = baseDelay * Math.pow(2, reconnectAttemptsRef.current);
+    return Math.min(delay, maxDelay);
+  };
+
   // Set up realtime subscription with reconnection handling
   const setupSubscription = async () => {
-    if (!conversationId || isSettingUp.current) return;
+    if (!conversationId || channelRef.current) return;
 
-    // Clear any existing reconnection timeout
+    // Clean up any existing reconnection timeout
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
 
-    // Clean up existing subscription
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      await channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
-
-    isSettingUp.current = true;
     console.log('Setting up message subscription for conversation:', conversationId);
     
     channelRef.current = supabase
@@ -134,20 +135,28 @@ export function useMessageSubscription(conversationId: string | null) {
 
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to conversation:', conversationId);
-          isSettingUp.current = false;
+          reconnectAttemptsRef.current = 0;
         }
 
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.log('Subscription closed or errored:', status);
-          isSettingUp.current = false;
           
+          // Clean up the current channel
+          if (channelRef.current) {
+            channelRef.current.unsubscribe();
+            channelRef.current = null;
+          }
+
           // Implement exponential backoff for reconnection
           if (!reconnectTimeoutRef.current) {
-            console.log('Scheduling reconnection attempt...');
+            const delay = getBackoffDelay();
+            console.log(`Scheduling reconnection attempt in ${delay}ms...`);
+            
             reconnectTimeoutRef.current = window.setTimeout(() => {
               console.log('Attempting to reconnect subscription');
+              reconnectAttemptsRef.current++;
               setupSubscription();
-            }, 5000); // Wait 5 seconds before attempting to reconnect
+            }, delay);
           }
         }
       });
@@ -155,11 +164,16 @@ export function useMessageSubscription(conversationId: string | null) {
 
   // Set up subscription and load initial messages
   useEffect(() => {
-    loadMessages();
-    setupSubscription();
+    if (!hasInitializedRef.current && conversationId) {
+      hasInitializedRef.current = true;
+      loadMessages();
+      setupSubscription();
+    }
 
     // Cleanup function
     return () => {
+      hasInitializedRef.current = false;
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -170,7 +184,8 @@ export function useMessageSubscription(conversationId: string | null) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
       }
-      isSettingUp.current = false;
+
+      reconnectAttemptsRef.current = 0;
     };
   }, [conversationId]); // Only depend on conversationId
 
