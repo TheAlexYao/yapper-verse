@@ -9,13 +9,31 @@ export function useTTS() {
 
   const generateTTS = async (text: string, voicePreference: string = 'female', speed: 'normal' | 'slow' = 'normal') => {
     try {
+      // Check authentication first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // Get user profile for language settings
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('target_language')
+        .eq('id', user.id)
         .single();
 
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw new Error('Could not fetch user profile');
+      }
+
       if (!profile?.target_language) {
+        console.error('No target language set in profile');
+        toast({
+          title: "Language Setting Required",
+          description: "Please set your target language in your profile settings.",
+          variant: "destructive",
+        });
         throw new Error('Target language not set in user profile');
       }
 
@@ -48,7 +66,7 @@ export function useTTS() {
           text,
           gender: voicePreference,
           speed,
-          languageCode: profile.target_language // Add the language code here
+          languageCode: profile.target_language
         }
       });
 
@@ -71,7 +89,7 @@ export function useTTS() {
       console.error('TTS generation error:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate audio. Please try again.",
         variant: "destructive",
       });
       return null;
