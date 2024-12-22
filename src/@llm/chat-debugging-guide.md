@@ -2,107 +2,107 @@
 
 ## Current Issues
 
-### 1. Missing Audio TTS for AI Responses
-The audio players have disappeared from AI responses in the chat interface.
+### 1. TTS Generation Failing with HTML Response
+The text-to-speech generation is failing with an error: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+
+**Files to Check:**
+- `supabase/functions/text-to-speech/index.ts`
+  - Issue: Function returning HTML instead of JSON
+  - Look for: Response headers and error handling
+
+**Logs:**
+```typescript
+Cache miss, generating TTS...
+TTS generation error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+Generated audio URL: null
+```
+
+### 2. Invalid UUID in Message Fetching
+Messages query failing due to null conversation ID being passed.
+
+**Error:**
+```
+GET https://jgxvzzyfjpntsbhxfcjv.supabase.co/rest/v1/guided_conversation_messages?select=*&conversation_id=eq.null&order=created_at.asc 400 (Bad Request)
+```
 
 **Files to Check:**
 - `src/components/chat/ChatContainer.tsx`
-  - Issue: TTS generation might not be properly triggered for new messages
-  - Look for: `generateTTSForMessage` function implementation
+  - Issue: Null conversation ID being passed to query
+  - Look for: Initial conversation ID handling
 
-- `src/components/chat/MessageBubble.tsx`
-  - Issue: Audio URL might not be properly passed to AudioButton
-  - Look for: `audio_url` prop handling
-
-- `src/components/chat/message/AudioButton.tsx`
-  - Issue: Button might not be rendering due to missing audio URL
-  - Look for: Conditional rendering logic
-
-### 2. AI Responses Require Page Refresh
-New AI responses are not appearing in real-time and require a page refresh to be visible.
+### 3. Audio URLs Not Being Stored
+Generated audio URLs are coming back as null and not being stored in the database.
 
 **Files to Check:**
-- `src/components/chat/ChatContainer.tsx`
-  - Issue: Real-time subscription might not be properly handling new messages
-  - Look for: `channelRef` setup and message handling
-
-- `src/components/chat/ChatMessagesSection.tsx`
-  - Issue: Messages might not be updating in the UI
-  - Look for: Message rendering and state updates
-
-- `src/hooks/useConversation.ts`
-  - Issue: Message state management might be incorrect
-  - Look for: Message array updates and state handling
+- `src/components/chat/hooks/useTTS.ts`
+  - Issue: TTS generation not returning valid URLs
+  - Look for: Error handling in generateTTS function
 
 ## Data Flow Analysis
 
-1. **Message Generation Flow:**
+1. **TTS Generation Flow:**
    ```
-   User sends message 
-   → Backend generates AI response 
-   → Supabase inserts new message 
-   → Real-time subscription triggers 
-   → UI updates
+   Cache miss detected
+   → Edge function called
+   → HTML returned instead of JSON
+   → Parse error occurs
+   → Null URL stored
    ```
 
-2. **TTS Generation Flow:**
+2. **Message Fetching Flow:**
    ```
-   New AI message received 
-   → TTS generation triggered 
-   → Audio URL stored 
-   → Message updated with audio URL 
-   → Audio player renders
+   Initial load
+   → Null conversation ID
+   → 400 Bad Request
+   → Query fails
    ```
 
 ## Debugging Steps
 
-1. **Verify Supabase Subscription:**
+1. **Check Edge Function Response:**
    ```typescript
-   // Add these logs in ChatContainer.tsx
-   console.log('Setting up subscription for:', conversationId);
-   console.log('Received message payload:', payload);
-   console.log('Formatted message:', formattedMessage);
+   // Add these logs in text-to-speech function
+   console.log('Request headers:', req.headers);
+   console.log('Response being sent:', response);
    ```
 
-2. **Check TTS Generation:**
+2. **Verify Conversation ID:**
    ```typescript
-   // Add these logs in generateTTSForMessage
-   console.log('Starting TTS generation for:', message.text);
-   console.log('Generated audio URL:', audioUrl);
+   // Add these logs in ChatContainer
+   console.log('Initial conversation ID:', conversationId);
+   console.log('Query params:', { select: '*', conversation_id: conversationId });
    ```
 
-3. **Verify Message State Updates:**
+3. **Monitor TTS Generation:**
    ```typescript
-   // Add these logs in setLocalMessages
-   console.log('Previous messages:', prev);
-   console.log('New messages array:', [...prev, formattedMessage]);
+   // Add these logs in useTTS
+   console.log('Starting TTS generation for:', text);
+   console.log('Edge function response:', response);
    ```
 
 ## Next Steps
 
-1. Add comprehensive logging to track message flow
-2. Verify Supabase subscription is properly set up
-3. Ensure TTS generation is triggered for new AI messages
-4. Confirm message state updates trigger UI re-renders
-5. Test audio URL handling in MessageBubble component
+1. Fix edge function to return proper JSON responses
+2. Add validation for conversation ID before queries
+3. Implement proper error handling in TTS generation
+4. Add response type checking in useTTS hook
 
 ## Common Issues and Solutions
 
-1. **Missing Audio Players:**
-   - Verify audio_url is included in message object
-   - Check AudioButton conditional rendering
-   - Ensure TTS generation completes successfully
+1. **HTML Instead of JSON:**
+   - Verify CORS headers are set correctly
+   - Ensure content-type is application/json
+   - Check error response formatting
 
-2. **Delayed Message Updates:**
-   - Verify Supabase subscription is active
-   - Check message deduplication logic
-   - Ensure state updates trigger re-renders
+2. **Null Conversation ID:**
+   - Add null checks before queries
+   - Provide default conversation ID
+   - Handle loading states properly
 
 ## Testing Checklist
 
-- [ ] Supabase subscription receives new messages
-- [ ] TTS generates audio URLs successfully
-- [ ] Messages appear in real-time
-- [ ] Audio players render correctly
-- [ ] No duplicate messages appear
-- [ ] State updates trigger UI refresh
+- [ ] Edge function returns valid JSON
+- [ ] Conversation ID is valid before queries
+- [ ] TTS generation completes successfully
+- [ ] Audio URLs are stored correctly
+- [ ] Error states are handled gracefully
