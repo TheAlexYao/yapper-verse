@@ -28,6 +28,8 @@ export function useMessageSubscription(
           (payload) => {
             console.log('Received new message:', payload);
             const newMessage = payload.new;
+            
+            // Format message before sending to handler
             const formattedMessage: Message = {
               id: newMessage.id,
               conversation_id: newMessage.conversation_id,
@@ -41,11 +43,15 @@ export function useMessageSubscription(
               isUser: newMessage.is_user
             };
             
+            // Send formatted message to handler
             onNewMessage(formattedMessage);
           }
         )
         .subscribe((status) => {
           console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to conversation:', conversationId);
+          }
         });
 
       channelRef.current = channel;

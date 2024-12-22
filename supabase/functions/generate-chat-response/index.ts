@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+/**
+ * CORS headers configuration for cross-origin requests
+ */
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -13,8 +16,10 @@ serve(async (req) => {
   }
 
   try {
+    // Extract required parameters from request body
     const { conversationId, lastMessageContent } = await req.json();
     
+    // Validate required parameters
     if (!conversationId || !lastMessageContent) {
       console.error('Missing required parameters');
       throw new Error('Missing required parameters');
@@ -23,12 +28,12 @@ serve(async (req) => {
     console.log('Processing request for conversation:', conversationId);
     console.log('Last message content:', lastMessageContent);
 
-    // Initialize Supabase client
+    // Initialize Supabase client with service role for full database access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get conversation details with related data
+    // Fetch conversation with all related data using joins
     const { data: conversation, error: convError } = await supabase
       .from('guided_conversations')
       .select(`
@@ -41,11 +46,13 @@ serve(async (req) => {
       .eq('id', conversationId)
       .single();
 
+    // Handle conversation fetch errors
     if (convError || !conversation) {
       console.error('Error fetching conversation:', convError);
       throw new Error('Conversation not found');
     }
 
+    // Log retrieved conversation data for debugging
     console.log('Retrieved conversation data:', {
       characterName: conversation.character?.name,
       scenarioTitle: conversation.scenario?.title,
@@ -53,12 +60,13 @@ serve(async (req) => {
       targetLanguage: conversation.target_language?.code
     });
 
-    // Call OpenAI API directly using fetch
+    // Get OpenAI API key from environment
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Call OpenAI API to generate response
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -86,9 +94,11 @@ serve(async (req) => {
       }),
     });
 
+    // Parse OpenAI response
     const openAIData = await openAIResponse.json();
     const aiResponse = openAIData.choices?.[0]?.message?.content;
 
+    // Validate AI response
     if (!aiResponse) {
       console.error('No response generated from OpenAI:', openAIData);
       throw new Error('Failed to generate AI response');
@@ -96,7 +106,7 @@ serve(async (req) => {
 
     console.log('Generated AI response:', aiResponse);
 
-    // Insert AI message
+    // Insert AI message into the database
     const { error: insertError } = await supabase
       .from('guided_conversation_messages')
       .insert({
@@ -105,17 +115,20 @@ serve(async (req) => {
         is_user: false,
       });
 
+    // Handle message insertion errors
     if (insertError) {
       console.error('Error inserting AI message:', insertError);
       throw insertError;
     }
 
+    // Return success response
     return new Response(
       JSON.stringify({ success: true, message: aiResponse }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    // Log and handle any errors that occur during processing
     console.error('Error in generate-chat-response function:', error);
     
     return new Response(
