@@ -14,7 +14,9 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Index - Session state:', session ? 'Authenticated' : 'Not authenticated');
     if (session) {
+      console.log('Index - Redirecting to dashboard');
       navigate("/dashboard");
     }
   }, [session, navigate]);

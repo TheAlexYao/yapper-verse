@@ -58,7 +58,7 @@ const Auth = () => {
             }
           }
         } catch (error: any) {
-          console.error('Error in checkProfile:', error);
+          console.error('Error in handleSession:', error);
           toast({
             title: "Error",
             description: "There was a problem setting up your profile. Please try again.",
@@ -98,7 +98,7 @@ const Auth = () => {
               },
             }}
             providers={["google"]}
-            redirectTo={window.location.origin + "/auth"}
+            redirectTo={`${window.location.origin}/auth`}
             view="sign_in"
             showLinks={false}
             onlyThirdPartyProviders={true}
