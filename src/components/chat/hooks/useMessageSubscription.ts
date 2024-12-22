@@ -13,6 +13,7 @@ export function useMessageSubscription(conversationId: string | null) {
   const maxReconnectAttempts = 5;
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+  const isCleaningUpRef = useRef(false);
 
   // Transform database message to Message type
   const transformMessage = useCallback((msg: any): Message => ({
@@ -67,32 +68,44 @@ export function useMessageSubscription(conversationId: string | null) {
 
   // Calculate exponential backoff delay with jitter
   const getBackoffDelay = useCallback(() => {
-    const baseDelay = 1000; // 1 second
-    const maxDelay = 30000; // 30 seconds
+    const baseDelay = 1000;
+    const maxDelay = 30000;
     const exponentialDelay = baseDelay * Math.pow(2, reconnectAttemptsRef.current);
-    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+    const jitter = Math.random() * 1000;
     return Math.min(exponentialDelay + jitter, maxDelay);
+  }, []);
+
+  // Cleanup function to handle subscription cleanup
+  const cleanupSubscription = useCallback(async () => {
+    if (isCleaningUpRef.current) return;
+    
+    isCleaningUpRef.current = true;
+    
+    try {
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+
+      if (channelRef.current) {
+        await channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+    } finally {
+      isCleaningUpRef.current = false;
+    }
   }, []);
 
   // Memoize the setupSubscription function
   const setupSubscription = useCallback(async () => {
     if (!conversationId) return;
 
-    // Clean up any existing subscription
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      await channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
-
-    // Clean up any existing reconnection timeout
-    if (reconnectTimeoutRef.current) {
-      window.clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
+    // Clean up existing subscription
+    await cleanupSubscription();
 
     try {
-      // Set up realtime subscription
+      console.log('Setting up message subscription for conversation:', conversationId);
+      
       channelRef.current = supabase
         .channel(`messages:${conversationId}`)
         .on(
@@ -112,16 +125,12 @@ export function useMessageSubscription(conversationId: string | null) {
           console.log('Subscription status:', status);
 
           if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to messages');
+            console.log('Successfully subscribed to conversation:', conversationId);
             reconnectAttemptsRef.current = 0;
           } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
             console.log('Subscription closed or errored:', status);
             
-            // Clean up the current channel
-            if (channelRef.current) {
-              await channelRef.current.unsubscribe();
-              channelRef.current = null;
-            }
+            if (isCleaningUpRef.current) return;
 
             // Implement exponential backoff for reconnection
             if (reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -146,26 +155,20 @@ export function useMessageSubscription(conversationId: string | null) {
     } catch (error) {
       console.error('Error setting up subscription:', error);
     }
-  }, [conversationId, fetchMessages, getBackoffDelay, toast]);
+  }, [conversationId, fetchMessages, getBackoffDelay, toast, cleanupSubscription]);
 
   // Set up subscription when conversationId changes
   useEffect(() => {
+    if (!conversationId) return;
+    
     fetchMessages();
     setupSubscription();
 
     // Cleanup function
     return () => {
-      if (reconnectTimeoutRef.current) {
-        window.clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
+      cleanupSubscription();
     };
-  }, [conversationId, fetchMessages, setupSubscription]);
+  }, [conversationId, fetchMessages, setupSubscription, cleanupSubscription]);
 
   return { messages };
 }
