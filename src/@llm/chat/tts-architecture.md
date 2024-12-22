@@ -125,6 +125,87 @@ PronunciationScoreModal
 3. Reset playing state
 4. Allow retry
 
+## Known Issues and Debugging
+
+### Common Issues
+
+1. **HTML Response Instead of JSON**
+   - **Symptom**: `SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON`
+   - **Cause**: Edge function returning HTML error page instead of JSON
+   - **Check**:
+     - Edge function CORS headers
+     - Response content-type headers
+     - Edge function error handling
+
+2. **Audio URLs Not Generated**
+   - **Symptom**: Generated audio URLs are null
+   - **Cause**: TTS generation failing silently
+   - **Check**:
+     - Edge function logs
+     - Profile voice preferences
+     - Storage bucket permissions
+     - Cache table permissions
+
+3. **Cache Misses**
+   - **Symptom**: Frequent "Cache miss, generating TTS..." messages
+   - **Cause**: Cache lookup failing or cache not being populated
+   - **Check**:
+     - Cache table RLS policies
+     - Text hash generation
+     - Cache insertion queries
+
+### Debugging Steps
+
+1. **Check Edge Function Logs**
+   ```bash
+   # Look for:
+   - Request payload format
+   - CORS headers
+   - Response status codes
+   - Error stack traces
+   ```
+
+2. **Verify Audio Storage**
+   ```bash
+   # Check:
+   - File existence in bucket
+   - File permissions
+   - URL format
+   - Public accessibility
+   ```
+
+3. **Database Queries**
+   ```sql
+   -- Check cache entries:
+   SELECT * FROM tts_cache 
+   WHERE text_hash = '[hash]';
+   
+   -- Check message audio:
+   SELECT id, audio_url 
+   FROM guided_conversation_messages 
+   WHERE conversation_id = '[id]';
+   ```
+
+### Testing Checklist
+
+1. **TTS Generation**
+   - [ ] Edge function returns valid JSON
+   - [ ] Audio file is created in storage
+   - [ ] Cache entry is created
+   - [ ] URL is stored in message
+
+2. **Audio Playback**
+   - [ ] Audio URL is accessible
+   - [ ] Audio plays in browser
+   - [ ] Playback controls work
+   - [ ] Error handling triggers
+
+3. **Cache Operation**
+   - [ ] Cache hits return correct URL
+   - [ ] Cache misses trigger generation
+   - [ ] Cache updates work
+   - [ ] Hash generation is consistent
+
 ## Key Implementation Notes
 
 1. **Caching Strategy**:
@@ -143,3 +224,9 @@ PronunciationScoreModal
    - Proper prop drilling
    - State isolation
    - Error boundaries
+
+4. **Error Recovery**:
+   - Graceful degradation
+   - User feedback
+   - Automatic retries
+   - Fallback options
