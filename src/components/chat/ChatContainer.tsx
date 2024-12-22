@@ -8,14 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useMessageSubscription } from "./hooks/useMessageSubscription";
 
 interface ChatContainerProps {
-  messages: Message[];
   onMessageSend: (message: Message) => void;
   onPlayTTS: (text: string) => void;
   conversationId: string;
 }
 
 export function ChatContainer({ 
-  messages: initialMessages, 
   onMessageSend, 
   onPlayTTS, 
   conversationId 
@@ -23,7 +21,7 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
-  const { messages, setMessages } = useMessageSubscription(conversationId);
+  const { messages } = useMessageSubscription(conversationId);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
