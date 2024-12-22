@@ -43,14 +43,7 @@ export function OverallScores({ scores }: OverallScoresProps) {
                 {score.value.toFixed(1)}%
               </span>
             </div>
-            <Progress 
-              value={score.value} 
-              className="h-2"
-              className={cn(
-                "h-2 rounded-full overflow-hidden bg-accent/10",
-                "[&>div]:transition-all [&>div]:duration-500"
-              )}
-            >
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-accent/10">
               <div
                 className={cn(
                   "h-full transition-all duration-500",
@@ -58,7 +51,7 @@ export function OverallScores({ scores }: OverallScoresProps) {
                 )}
                 style={{ width: `${score.value}%` }}
               />
-            </Progress>
+            </div>
           </div>
         ))}
       </div>
