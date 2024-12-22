@@ -55,6 +55,7 @@ export function ChatContainer({
         pronunciation_score: msg.pronunciation_score,
         pronunciation_data: msg.pronunciation_data,
         audio_url: msg.audio_url,
+        reference_audio_url: msg.reference_audio_url,
         isUser: msg.is_user
       }));
     },
@@ -84,7 +85,7 @@ export function ChatContainer({
     }
   };
 
-  // Generate TTS for new AI messages
+  // Generate TTS for AI messages only
   const generateTTSForMessage = useCallback(async (message: Message) => {
     // Skip if already processing
     if (processingTTS.has(message.id)) {
@@ -92,12 +93,17 @@ export function ChatContainer({
       return;
     }
 
-    // Skip if message already has an audio URL
-    if (!message.text || message.isUser || message.audio_url) {
+    // For AI messages: generate and store as audio_url
+    // For user messages: generate and store as reference_audio_url
+    const hasRequiredAudio = message.isUser ? 
+      message.reference_audio_url : 
+      message.audio_url;
+
+    // Skip if message already has the required audio URL
+    if (!message.text || hasRequiredAudio) {
       console.log('Skipping TTS generation:', { 
         hasText: !!message.text, 
-        isUser: message.isUser, 
-        hasAudio: !!message.audio_url 
+        hasRequiredAudio
       });
       return;
     }
@@ -110,16 +116,21 @@ export function ChatContainer({
       console.log('Generated audio URL:', audioUrl);
       
       if (audioUrl) {
+        // Update the appropriate audio URL field based on message type
+        const updateData = message.isUser ? 
+          { reference_audio_url: audioUrl } : 
+          { audio_url: audioUrl };
+
         await supabase
           .from('guided_conversation_messages')
-          .update({ audio_url: audioUrl })
+          .update(updateData)
           .eq('id', message.id);
 
         console.log('Updated message with audio URL:', message.id);
 
         queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) =>
           old.map(msg =>
-            msg.id === message.id ? { ...msg, audio_url: audioUrl } : msg
+            msg.id === message.id ? { ...msg, ...updateData } : msg
           )
         );
       }
@@ -136,9 +147,14 @@ export function ChatContainer({
 
   useEffect(() => {
     const generateTTSForNewMessages = async () => {
-      const messagesNeedingTTS = messages.filter(
-        msg => !msg.isUser && !msg.audio_url && !processingTTS.has(msg.id)
-      );
+      const messagesNeedingTTS = messages.filter(msg => {
+        // For AI messages, check if they need audio_url
+        if (!msg.isUser) {
+          return !msg.audio_url && !processingTTS.has(msg.id);
+        }
+        // For user messages, check if they need reference_audio_url
+        return !msg.reference_audio_url && !processingTTS.has(msg.id);
+      });
       
       for (const message of messagesNeedingTTS) {
         await generateTTSForMessage(message);
