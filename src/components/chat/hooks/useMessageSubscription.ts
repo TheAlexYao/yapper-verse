@@ -10,7 +10,7 @@ export function useMessageSubscription(conversationId: string | null) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
-  const isSettingUp = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const mapDatabaseMessageToMessage = (dbMessage: any): Message => ({
     id: dbMessage.id,
@@ -26,56 +26,56 @@ export function useMessageSubscription(conversationId: string | null) {
   });
 
   // Load initial messages
-  useEffect(() => {
-    async function loadMessages() {
-      if (!conversationId) return;
+  const loadMessages = async () => {
+    if (!conversationId || isLoadingRef.current) return;
 
-      try {
-        console.log('Loading initial messages for conversation:', conversationId);
-        const { data, error } = await supabase
-          .from('guided_conversation_messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true });
+    try {
+      isLoadingRef.current = true;
+      console.log('Loading initial messages for conversation:', conversationId);
+      
+      const { data, error } = await supabase
+        .from('guided_conversation_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        const mappedMessages = data.map(mapDatabaseMessageToMessage);
-        console.log('Setting initial messages:', mappedMessages);
-        setMessages(mappedMessages);
+      const mappedMessages = data.map(mapDatabaseMessageToMessage);
+      console.log('Setting initial messages:', mappedMessages);
+      setMessages(mappedMessages);
 
-        // Generate TTS for AI messages that don't have audio
-        mappedMessages.forEach(msg => {
-          if (!msg.isUser && !msg.audio_url) {
-            console.log('Generating TTS for message without audio:', msg.id);
-            generateTTSForMessage(msg);
-          }
-        });
-      } catch (error) {
-        console.error('Error loading messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load messages. Please try refreshing the page.",
-          variant: "destructive",
-        });
-      }
+      // Generate TTS for AI messages that don't have audio
+      mappedMessages.forEach(msg => {
+        if (!msg.isUser && !msg.audio_url) {
+          console.log('Generating TTS for message without audio:', msg.id);
+          generateTTSForMessage(msg);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages. Please try refreshing the page.",
+        variant: "destructive",
+      });
+    } finally {
+      isLoadingRef.current = false;
     }
-
-    loadMessages();
-  }, [conversationId, toast, generateTTSForMessage]);
+  };
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!conversationId || isSettingUp.current) return;
+    if (!conversationId) return;
 
-    async function setupSubscription() {
+    const setupSubscription = async () => {
+      // Clean up existing subscription
       if (channelRef.current) {
         console.log('Cleaning up existing subscription');
         await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
-      isSettingUp.current = true;
       console.log('Setting up message subscription for conversation:', conversationId);
       
       channelRef.current = supabase
@@ -91,25 +91,12 @@ export function useMessageSubscription(conversationId: string | null) {
           async (payload) => {
             console.log('Received message update:', payload);
             
-            // Refresh all messages to ensure consistency
-            const { data, error } = await supabase
-              .from('guided_conversation_messages')
-              .select('*')
-              .eq('conversation_id', conversationId)
-              .order('created_at', { ascending: true });
-
-            if (error) {
-              console.error('Error refreshing messages:', error);
-              return;
-            }
-
-            const mappedMessages = data.map(mapDatabaseMessageToMessage);
-            setMessages(mappedMessages);
+            // Refresh messages to ensure consistency
+            await loadMessages();
 
             // If this is a new AI message without audio, generate TTS
             if (payload.eventType === 'INSERT') {
               const newMessage = mapDatabaseMessageToMessage(payload.new);
-              console.log('New message received:', newMessage);
               if (!newMessage.isUser && !newMessage.audio_url) {
                 console.log('Generating TTS for new AI message:', newMessage.id);
                 generateTTSForMessage(newMessage);
@@ -119,26 +106,25 @@ export function useMessageSubscription(conversationId: string | null) {
         )
         .subscribe((status) => {
           console.log('Subscription status:', status);
-
           if (status === 'SUBSCRIBED') {
             console.log('Successfully subscribed to conversation:', conversationId);
-            isSettingUp.current = false;
+            // Load initial messages after successful subscription
+            loadMessages();
           }
         });
-    }
+    };
 
     setupSubscription();
 
     // Cleanup function
     return () => {
       if (channelRef.current) {
-        console.log('Cleaning up subscription for conversation:', conversationId);
+        console.log('Cleaning up subscription');
         channelRef.current.unsubscribe();
         channelRef.current = null;
       }
-      isSettingUp.current = false;
     };
-  }, [conversationId, generateTTSForMessage]); // Add generateTTSForMessage to dependencies
+  }, [conversationId]); // Only depend on conversationId
 
   return { messages };
 }
