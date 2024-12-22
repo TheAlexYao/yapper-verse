@@ -13,7 +13,11 @@ const Auth = () => {
   const isDevelopment = import.meta.env.DEV;
 
   useEffect(() => {
+    console.log('Auth component mounted');
+    console.log('Initial session state:', session);
+
     const handleSession = async () => {
+      console.log('handleSession called');
       if (session) {
         try {
           console.log('Auth flow - Session detected:', session.user.id);
@@ -29,6 +33,8 @@ const Auth = () => {
             console.error('Error checking profile:', error);
             throw error;
           }
+
+          console.log('Auth flow - Profile check result:', profile);
 
           if (!profile) {
             console.log('Auth flow - No profile found, creating new profile');
@@ -49,7 +55,7 @@ const Auth = () => {
             console.log('Auth flow - Profile created, redirecting to onboarding...');
             navigate("/onboarding");
           } else {
-            console.log('Auth flow - Existing profile found');
+            console.log('Auth flow - Existing profile found:', profile);
             if (!profile.onboarding_completed) {
               console.log('Auth flow - Onboarding incomplete, redirecting to onboarding...');
               navigate("/onboarding");
@@ -66,6 +72,8 @@ const Auth = () => {
             variant: "destructive",
           });
         }
+      } else {
+        console.log('Auth flow - No session detected');
       }
     };
 
@@ -73,7 +81,11 @@ const Auth = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
+      console.log('Auth state changed - Event:', event);
+      console.log('Auth state changed - Session:', session ? 'Present' : 'None');
+      if (session) {
+        console.log('Auth state changed - User ID:', session.user.id);
+      }
       handleSession();
     });
 
@@ -81,7 +93,10 @@ const Auth = () => {
     handleSession();
 
     // Cleanup subscription
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('Auth component unmounting, cleaning up subscription');
+      subscription.unsubscribe();
+    };
   }, [session, navigate, supabase, toast]);
 
   // Determine the redirect URL based on environment
