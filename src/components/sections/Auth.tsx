@@ -69,7 +69,19 @@ const Auth = () => {
       }
     };
 
+    // Add auth state change listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      handleSession();
+    });
+
+    // Initial session check
     handleSession();
+
+    // Cleanup subscription
+    return () => subscription.unsubscribe();
   }, [session, navigate, supabase, toast]);
 
   // Determine the redirect URL based on environment
