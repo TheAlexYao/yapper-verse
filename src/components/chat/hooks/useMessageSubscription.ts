@@ -1,19 +1,32 @@
 import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
+import { useToast } from "@/hooks/use-toast";
 
 export function useMessageSubscription(
   conversationId: string | null,
   onNewMessage: (message: Message) => void
 ) {
   const channelRef = useRef<any>(null);
-  // Update the type to NodeJS.Timeout
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
-  const maxRetries = 3;
-  const retryDelay = 2000;
+  const retryCountRef = useRef(0);
+  const { toast } = useToast();
+  const maxRetries = 5;
+  const baseRetryDelay = 1000; // Start with 1 second
+
+  const getRetryDelay = () => {
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+    return Math.min(baseRetryDelay * Math.pow(2, retryCountRef.current), 16000);
+  };
 
   const setupSubscription = useCallback(() => {
     if (!conversationId) return;
+
+    // Don't setup a new subscription if we already have one
+    if (channelRef.current?.subscription?.state === 'SUBSCRIBED') {
+      console.log('Subscription already active');
+      return;
+    }
 
     console.log('Setting up stable subscription for conversation:', conversationId);
 
@@ -56,8 +69,11 @@ export function useMessageSubscription(
       )
       .subscribe((status) => {
         console.log('Subscription status:', status);
+        
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to conversation:', conversationId);
+          retryCountRef.current = 0; // Reset retry count on successful subscription
+          
           // Clear retry timeout if subscription is successful
           if (retryTimeoutRef.current) {
             clearTimeout(retryTimeoutRef.current);
@@ -65,17 +81,27 @@ export function useMessageSubscription(
           }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.log('Subscription closed or errored, attempting reconnect...');
-          // Attempt to reconnect with exponential backoff
-          if (maxRetries > 0) {
+          
+          // Only attempt to reconnect if we haven't exceeded max retries
+          if (retryCountRef.current < maxRetries) {
+            const delay = getRetryDelay();
+            retryCountRef.current++;
+            
             retryTimeoutRef.current = setTimeout(() => {
               setupSubscription();
-            }, retryDelay);
+            }, delay);
+          } else {
+            toast({
+              title: "Connection Error",
+              description: "Failed to maintain connection. Please refresh the page.",
+              variant: "destructive",
+            });
           }
         }
       });
 
     channelRef.current = channel;
-  }, [conversationId, onNewMessage, maxRetries]);
+  }, [conversationId, onNewMessage, toast]);
 
   useEffect(() => {
     setupSubscription();
@@ -90,6 +116,7 @@ export function useMessageSubscription(
         clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = undefined;
       }
+      retryCountRef.current = 0; // Reset retry count on cleanup
     };
   }, [setupSubscription]);
 }
