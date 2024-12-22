@@ -3,7 +3,6 @@ import { MessageContent } from "./message/MessageContent";
 import { AudioButton } from "./message/AudioButton";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/hooks/useConversation";
-import { useToast } from "@/hooks/use-toast";
 
 interface MessageBubbleProps {
   isUser?: boolean;
@@ -12,77 +11,44 @@ interface MessageBubbleProps {
   onShowScore?: (message: Message) => void;
 }
 
-export function MessageBubble({ 
-  isUser = false, 
-  message, 
-  onPlayAudio, 
-  onShowScore 
-}: MessageBubbleProps) {
+export function MessageBubble({ isUser = false, message, onPlayAudio, onShowScore }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const { toast } = useToast();
 
   const handlePlayAudio = async () => {
-    if (isPlaying || !message.audio_url || !onPlayAudio) {
-      console.log('Cannot play audio:', { 
-        isPlaying, 
-        hasAudioUrl: !!message.audio_url,
-        hasPlayHandler: !!onPlayAudio 
-      });
-      return;
-    }
+    if (isPlaying || !message.audio_url || !onPlayAudio) return;
     
+    setIsPlaying(true);
     try {
-      console.log('Playing audio from URL:', message.audio_url);
-      setIsPlaying(true);
       await onPlayAudio(message.audio_url);
     } catch (error) {
       console.error('Error playing audio:', error);
-      toast({
-        title: "Error",
-        description: "Failed to play audio. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsPlaying(false);
     }
   };
 
-  const containerClasses = cn(
-    "flex gap-2",
-    isUser ? "flex-row-reverse" : "flex-row"
-  );
-
-  const bubbleClasses = cn(
-    "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
-    isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
-  );
-
-  // Log message state for debugging
-  console.log('Message bubble render:', {
-    messageId: message.id,
-    hasAudioUrl: !!message.audio_url,
-    audioUrl: message.audio_url,
-    isUser,
-    isPlaying
-  });
-
   return (
-    <div className={containerClasses}>
-      <div className={bubbleClasses}>
+    <div className={cn(
+      "flex gap-2",
+      isUser ? "flex-row-reverse" : "flex-row"
+    )}>
+      <div className={cn(
+        "flex flex-col gap-2 max-w-[80%] rounded-2xl p-4",
+        isUser ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] text-white" : "bg-accent"
+      )}>
         <MessageContent
           text={message.text}
           transliteration={message.transliteration}
           translation={message.translation}
-          isUser={isUser}
+          isUser={message.isUser}
           pronunciationScore={message.pronunciation_score}
           onShowScore={() => onShowScore?.(message)}
-          className={isUser ? "text-white" : ""}
         />
 
         {message.audio_url && (
           <AudioButton
             onPlay={handlePlayAudio}
-            isUser={isUser}
+            isUser={message.isUser}
             isPlaying={isPlaying}
             disabled={!message.audio_url}
           />

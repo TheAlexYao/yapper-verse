@@ -6,10 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 interface AudioRecorderProps {
   onRecordingComplete: (blob: Blob | null) => void;
   isProcessing: boolean;
-  disabled?: boolean;
 }
 
-export function AudioRecorder({ onRecordingComplete, isProcessing, disabled }: AudioRecorderProps) {
+export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -151,7 +150,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing, disabled }: A
         <Button
           variant={isRecording ? "destructive" : "default"}
           onClick={handleRecord}
-          disabled={isProcessing || disabled}
+          disabled={isProcessing}
           className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
         >
           <Mic className="mr-2 h-4 w-4" />

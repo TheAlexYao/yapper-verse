@@ -1,64 +1,50 @@
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface MessageContentProps {
   text: string;
-  transliteration?: string | null;
-  translation?: string | null;
-  isUser?: boolean;
-  pronunciationScore?: number | null;
+  transliteration?: string;
+  translation?: string;
+  isUser: boolean;
+  pronunciationScore?: number;
   onShowScore?: () => void;
-  className?: string;
 }
 
-export function MessageContent({
-  text,
-  transliteration,
-  translation,
-  isUser = false,
+export function MessageContent({ 
+  text, 
+  transliteration, 
+  translation, 
+  isUser,
   pronunciationScore,
-  onShowScore,
-  className,
+  onShowScore
 }: MessageContentProps) {
   return (
-    <div className={cn("space-y-2", className)}>
-      <p className={cn(
-        "text-base leading-relaxed",
-        isUser ? "text-white" : "text-foreground"
-      )}>
+    <div className="space-y-1.5 overflow-hidden">
+      <p className="text-base font-medium break-words leading-relaxed">
         {text}
       </p>
-
       {transliteration && (
         <p className={cn(
-          "text-sm",
-          isUser ? "text-white/80" : "text-muted-foreground"
+          "text-sm italic break-words",
+          isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
         )}>
           {transliteration}
         </p>
       )}
-
       {translation && (
         <p className={cn(
-          "text-sm italic",
-          isUser ? "text-white/80" : "text-muted-foreground"
+          "text-sm break-words",
+          isUser ? "text-[#E5DEFF]" : "text-muted-foreground"
         )}>
           {translation}
         </p>
       )}
-
-      {pronunciationScore !== null && pronunciationScore !== undefined && (
-        <Button
-          variant="ghost"
-          size="sm"
+      {isUser && typeof pronunciationScore === 'number' && (
+        <button
           onClick={onShowScore}
-          className={cn(
-            "px-2 h-7 text-xs",
-            isUser ? "text-white hover:text-white/90" : "text-muted-foreground hover:text-foreground"
-          )}
+          className="text-xs px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors mt-2"
         >
-          Score: {pronunciationScore}%
-        </Button>
+          Pronunciation Score: {pronunciationScore}%
+        </button>
       )}
     </div>
   );

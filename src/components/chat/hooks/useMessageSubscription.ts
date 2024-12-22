@@ -1,40 +1,79 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
-import { useTTSHandler } from "./useTTSHandler";
-import { TTSQueue } from "./tts/TTSQueue";
-import { useMessageChannel } from "./messages/useMessageChannel";
-import { formatDatabaseMessage } from "./messages/messageFormatters";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const { generateTTSForMessage } = useTTSHandler(conversationId || '');
-  const ttsQueueRef = useRef<TTSQueue | null>(null);
   const { toast } = useToast();
 
-  // Initialize TTS queue
+  // Effect for setting up the subscription
   useEffect(() => {
-    if (!conversationId) return;
-    
-    ttsQueueRef.current = new TTSQueue(generateTTSForMessage);
-    
-    return () => {
-      ttsQueueRef.current?.clear();
-      ttsQueueRef.current = null;
-    };
-  }, [conversationId, generateTTSForMessage]);
-
-  // Queue TTS generation for a message
-  const queueTTSGeneration = useCallback((message: Message) => {
-    if (!message.isUser && !message.audio_url && ttsQueueRef.current) {
-      console.log('Queueing TTS generation for message:', message.id);
-      ttsQueueRef.current.add(message);
+    if (!conversationId) {
+      console.log('No conversation ID provided');
+      return;
     }
-  }, []);
 
-  // Set up message subscription
-  useMessageChannel(conversationId, setMessages, queueTTSGeneration);
+    console.log('Setting up message subscription for conversation:', conversationId);
+    
+    const channel = supabase
+      .channel(`conversation:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Received new message:', payload);
+          const newMessage = payload.new;
+          const formattedMessage: Message = {
+            id: newMessage.id,
+            conversation_id: newMessage.conversation_id,
+            text: newMessage.content,
+            translation: newMessage.translation,
+            transliteration: newMessage.transliteration,
+            pronunciation_score: newMessage.pronunciation_score,
+            pronunciation_data: newMessage.pronunciation_data,
+            audio_url: newMessage.audio_url,
+            reference_audio_url: newMessage.reference_audio_url,
+            isUser: newMessage.is_user
+          };
+
+          setMessages(prevMessages => {
+            // Check if message already exists
+            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
+            if (exists) {
+              console.log('Message already exists, skipping:', formattedMessage.id);
+              return prevMessages;
+            }
+            console.log('Adding new message to state:', formattedMessage);
+            return [...prevMessages, formattedMessage];
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to conversation:', conversationId);
+        }
+        if (status === 'CLOSED') {
+          toast({
+            title: "Connection closed",
+            description: "Reconnecting to chat...",
+            variant: "default",
+          });
+        }
+      });
+
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up subscription for conversation:', conversationId);
+      channel.unsubscribe();
+    };
+  }, [conversationId, toast]);
 
   // Effect for fetching initial messages
   useEffect(() => {
@@ -58,16 +97,25 @@ export function useMessageSubscription(conversationId: string | null) {
       }
 
       if (messages) {
-        const formattedMessages = messages.map(formatDatabaseMessage);
+        const formattedMessages = messages.map((msg): Message => ({
+          id: msg.id,
+          conversation_id: msg.conversation_id,
+          text: msg.content,
+          translation: msg.translation,
+          transliteration: msg.transliteration,
+          pronunciation_score: msg.pronunciation_score,
+          pronunciation_data: msg.pronunciation_data,
+          audio_url: msg.audio_url,
+          reference_audio_url: msg.reference_audio_url,
+          isUser: msg.is_user
+        }));
         console.log('Setting initial messages:', formattedMessages);
         setMessages(formattedMessages);
-
-        formattedMessages.forEach(queueTTSGeneration);
       }
     };
 
     fetchInitialMessages();
-  }, [conversationId, toast, queueTTSGeneration]);
+  }, [conversationId, toast]);
 
   return { messages, setMessages };
 }
