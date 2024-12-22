@@ -8,14 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { AudioRecorder } from "./pronunciation/AudioRecorder";
-import { TextDisplay } from "./pronunciation/TextDisplay";
+import { AudioRecorder } from "./AudioRecorder";
+import { TextDisplay } from "./TextDisplay";
 import { Play, Turtle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useTTS } from "./hooks/useTTS";
-
-// Change this import
-import { PronunciationScoreModal } from "@/components/chat/pronunciation/PronunciationScoreModal";
+import { useTTS } from "../hooks/useTTS";
 
 interface PronunciationModalProps {
   isOpen: boolean;
