@@ -23,14 +23,14 @@ export function WordAnalysis({ words }: WordAnalysisProps) {
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
-        <AudioWaveform className="h-5 w-5 text-primary" />
-        Word Analysis
+        <AudioWaveform className="h-5 w-5 text-[#7843e6]" />
+        Word-by-Word Analysis
       </h3>
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-accent scrollbar-track-accent/5">
+      <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#7843e6]/20 scrollbar-track-[#7843e6]/5">
         {words.map((word, index) => (
           <div
             key={`${word.Word}-${index}`}
-            className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-accent/5 to-primary/5 border border-accent/20 hover:bg-accent/10 transition-colors"
+            className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-[#9b87f5]/5 to-[#7843e6]/5 border border-[#9b87f5]/20 hover:from-[#9b87f5]/10 hover:to-[#7843e6]/10 transition-colors"
           >
             <span className="font-medium">{word.Word}</span>
             <span
