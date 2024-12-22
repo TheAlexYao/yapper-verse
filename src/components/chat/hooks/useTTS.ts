@@ -33,35 +33,28 @@ export function useTTS() {
 
       console.log('Cache miss, generating TTS...');
 
-      const response = await fetch('/functions/v1/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
           text,
           gender: voicePreference,
           speed
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Failed to generate speech');
+      if (error) {
+        console.error('TTS generation error:', error);
+        throw error;
       }
 
-      const { audioUrl } = await response.json();
-      
-      if (!audioUrl) {
+      if (!data?.audioUrl) {
         throw new Error('No audio URL returned from TTS service');
       }
 
-      console.log('Generated new audio URL:', audioUrl);
+      console.log('Generated new audio URL:', data.audioUrl);
 
       // Update memory cache
-      memoryCache.set(textHash, audioUrl);
-      return audioUrl;
+      memoryCache.set(textHash, data.audioUrl);
+      return data.audioUrl;
 
     } catch (error) {
       console.error('TTS generation error:', error);

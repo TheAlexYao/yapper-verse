@@ -15,18 +15,25 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing TTS request...');
     const { text, gender = 'female', speed = 'normal' } = await req.json();
 
     if (!text) {
+      console.error('Missing required text parameter');
       return new Response(
         JSON.stringify({ error: 'Text is required' }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    console.log('Processing TTS request:', { text, gender, speed });
+    console.log('TTS request parameters:', { text, gender, speed });
 
-    // Create hash using native crypto API
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Create hash for caching
     const textToHash = `${text}-${gender}-${speed}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(textToHash);
@@ -34,12 +41,8 @@ serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Check cache first
+    console.log('Checking TTS cache for hash:', textHash);
     const { data: cacheEntry, error: cacheError } = await supabase
       .from('tts_cache')
       .select('audio_url')
@@ -106,6 +109,7 @@ serve(async (req) => {
     `;
 
     // Generate audio
+    console.log('Generating audio with voice:', voiceName);
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
     const result = await new Promise<sdk.SpeechSynthesisResult>((resolve, reject) => {
       synthesizer.speakSsmlAsync(
@@ -123,6 +127,7 @@ serve(async (req) => {
     const timestamp = new Date().getTime();
     const filename = `${timestamp}-${textHash}.wav`;
 
+    console.log('Uploading audio file:', filename);
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from('tts_cache')
@@ -143,6 +148,7 @@ serve(async (req) => {
       .getPublicUrl(filename);
 
     // Cache the result
+    console.log('Caching audio URL:', publicUrl);
     await supabase
       .from('tts_cache')
       .upsert({
@@ -152,8 +158,6 @@ serve(async (req) => {
         voice_gender: gender,
         audio_url: publicUrl
       });
-
-    console.log('Successfully generated and cached TTS');
 
     return new Response(
       JSON.stringify({ audioUrl: publicUrl }),
