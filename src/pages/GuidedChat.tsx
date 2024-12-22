@@ -1,19 +1,16 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatContainer } from "@/components/chat/ChatContainer";
-import { useConversationSetup } from "@/components/chat/hooks/useConversationSetup";
-import { useMessageHandling } from "@/components/chat/hooks/useMessageHandling";
-import { supabase } from "@/integrations/supabase/client";
-import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
+import { useMessageHandling } from "@/components/chat/hooks/useMessageHandling";
+import { useConversationSetup } from "@/components/chat/hooks/useConversationSetup";
 import type { Message } from "@/hooks/useConversation";
 
-export default function GuidedChat() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { scenario, character } = location.state || {};
-  const user = useUser();
+interface GuidedChatProps {
+  character: any;
+  scenario: any;
+}
+
+export function GuidedChat({ character, scenario }: GuidedChatProps) {
   const { toast } = useToast();
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
 
@@ -35,45 +32,21 @@ export default function GuidedChat() {
   };
 
   const handlePlayTTS = async (text: string) => {
-    if (isPlayingTTS) return;
+    if (isPlayingTTS) {
+      console.log('TTS already playing, skipping');
+      return;
+    }
 
     try {
       setIsPlayingTTS(true);
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('target_language, voice_preference')
-        .eq('id', user?.id)
-        .single();
-
-      if (!profile?.target_language) {
-        throw new Error('Target language not set');
-      }
-
-      const response = await fetch('/functions/v1/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          text,
-          languageCode: profile.target_language,
-          gender: profile.voice_preference || 'female'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate speech');
-      }
-
-      const { audioUrl } = await response.json();
+      const audioUrl = await generateTTS(text);
       const audio = new Audio(audioUrl);
       await audio.play();
     } catch (error) {
-      console.error('TTS error:', error);
+      console.error('Error playing TTS:', error);
       toast({
         title: "Error",
-        description: "Failed to play audio",
+        description: "Failed to play audio. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -81,23 +54,20 @@ export default function GuidedChat() {
     }
   };
 
-  if (!scenario || !character) {
-    navigate("/scenarios");
-    return null;
+  if (!conversationId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900" />
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      <ChatHeader
-        scenario={scenario}
-        character={character}
-        onBack={() => navigate("/character", { state: { scenario } })}
-      />
-
+    <div className="h-screen overflow-hidden">
       <ChatContainer
         onMessageSend={handleMessageUpdate}
         onPlayTTS={handlePlayTTS}
-        conversationId={conversationId!}
+        conversationId={conversationId}
       />
     </div>
   );
