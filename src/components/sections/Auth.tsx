@@ -26,9 +26,10 @@ const Auth = () => {
           console.log('Auth flow - Access token:', session.access_token ? 'Present' : 'Missing');
           console.log('Auth flow - Full session:', JSON.stringify(session, null, 2));
           
-          // Remove hash if present in URL
-          if (window.location.hash) {
-            window.history.replaceState(null, '', window.location.pathname);
+          // Remove hash and query params if present in URL
+          if (window.location.hash || window.location.search) {
+            const path = window.location.pathname;
+            window.history.replaceState({}, '', path);
           }
 
           const { data: profile, error } = await supabase
