@@ -85,7 +85,7 @@ export function useTTSHandler(conversationId: string) {
       });
 
       const audioUrl = await generateTTS(
-        message.text,
+        message.text, 
         profile.voice_preference || 'female',
         'normal'
       );
