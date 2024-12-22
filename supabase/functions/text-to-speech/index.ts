@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as sdk from "https://esm.sh/microsoft-cognitiveservices-speech-sdk";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHash } from "https://deno.land/std@0.168.0/hash/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,8 +24,13 @@ serve(async (req) => {
       );
     }
 
-    // Create hash for caching
-    const textHash = createHash('md5').update(`${text}-${gender}-${speed}`).toString();
+    // Create hash using native crypto API
+    const textToHash = `${text}-${gender}-${speed}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(textToHash);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
