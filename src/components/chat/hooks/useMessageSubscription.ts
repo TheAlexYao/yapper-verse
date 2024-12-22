@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
+import { useTTSHandler } from "./useTTSHandler";
 
 export function useMessageSubscription(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
+  const { generateTTSForMessage } = useTTSHandler(conversationId || '');
 
   // Effect for setting up the subscription
   useEffect(() => {
@@ -75,7 +77,7 @@ export function useMessageSubscription(conversationId: string | null) {
     };
   }, [conversationId, toast]);
 
-  // Effect for fetching initial messages
+  // Effect for fetching initial messages and generating TTS
   useEffect(() => {
     if (!conversationId) return;
 
@@ -109,13 +111,22 @@ export function useMessageSubscription(conversationId: string | null) {
           reference_audio_url: msg.reference_audio_url,
           isUser: msg.is_user
         }));
+        
         console.log('Setting initial messages:', formattedMessages);
         setMessages(formattedMessages);
+
+        // Generate TTS for AI messages without audio
+        formattedMessages.forEach(msg => {
+          if (!msg.isUser && !msg.audio_url) {
+            console.log('Generating TTS for message without audio:', msg.id);
+            generateTTSForMessage(msg);
+          }
+        });
       }
     };
 
     fetchInitialMessages();
-  }, [conversationId, toast]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
   return { messages, setMessages };
 }
