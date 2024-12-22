@@ -110,12 +110,12 @@ const Auth = () => {
     };
   }, [session, navigate, supabase, toast]);
 
-  // Determine the redirect URL based on environment
+  // Determine the base URL based on environment
   const baseUrl = isDevelopment 
     ? 'http://localhost:5173'
     : 'https://preview--yapper-verse.lovable.app';
   
-  const redirectUrl = `${baseUrl}/dashboard`;
+  const redirectUrl = `${baseUrl}/auth/callback`;
   console.log('Auth component - Using redirect URL:', redirectUrl);
 
   return (
