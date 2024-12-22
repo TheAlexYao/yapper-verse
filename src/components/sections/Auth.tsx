@@ -22,6 +22,7 @@ const Auth = () => {
         try {
           console.log('Auth flow - Session detected:', session.user.id);
           console.log('Auth flow - User metadata:', session.user.user_metadata);
+          console.log('Auth flow - Provider:', session.user.app_metadata.provider);
           
           const { data: profile, error } = await supabase
             .from('profiles')
@@ -77,7 +78,7 @@ const Auth = () => {
       }
     };
 
-    // Add auth state change listener
+    // Add auth state change listener with enhanced logging
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -85,6 +86,8 @@ const Auth = () => {
       console.log('Auth state changed - Session:', session ? 'Present' : 'None');
       if (session) {
         console.log('Auth state changed - User ID:', session.user.id);
+        console.log('Auth state changed - Provider:', session.user.app_metadata.provider);
+        console.log('Auth state changed - Full metadata:', session.user);
       }
       handleSession();
     });
