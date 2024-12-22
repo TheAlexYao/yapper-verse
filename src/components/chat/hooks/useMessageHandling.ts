@@ -2,9 +2,11 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
+import { useTTS } from "./useTTS";
 
 export function useMessageHandling(conversationId: string | null) {
   const { toast } = useToast();
+  const { generateTTS } = useTTS();
 
   const handleMessageSend = useCallback(async (message: Message) => {
     if (!conversationId) {
@@ -47,7 +49,7 @@ export function useMessageHandling(conversationId: string | null) {
 
       console.log('Message inserted successfully, generating AI response');
 
-      // Then generate AI response
+      // Generate AI response
       const { error: fnError } = await supabase.functions.invoke('generate-chat-response', {
         body: {
           conversationId,
