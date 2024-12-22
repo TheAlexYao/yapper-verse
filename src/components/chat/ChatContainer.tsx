@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
+import { useMessageSubscription } from "./hooks/useMessageSubscription";
 import type { Message } from "@/hooks/useConversation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,11 +25,9 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
-  const channelRef = useRef<any>(null);
-  const isMountedRef = useRef(false);
 
   // Fetch messages using React Query
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], setData: setMessages } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
@@ -53,7 +52,6 @@ export function ChatContainer({
         throw error;
       }
 
-      // Process messages and check for TTS needs
       const formattedMessages = messages.map((msg): Message => {
         const message = {
           id: msg.id,
@@ -68,7 +66,6 @@ export function ChatContainer({
           isUser: msg.is_user
         };
 
-        // Check if message needs TTS
         if (!msg.audio_url && !msg.reference_audio_url) {
           console.log('Message needs TTS generation:', msg.id);
           generateTTSForMessage(message);
@@ -84,77 +81,27 @@ export function ChatContainer({
     enabled: !!conversationId,
   });
 
-  // Handle component mounting/unmounting
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Set up real-time subscription with cleanup
-  useEffect(() => {
-    if (!conversationId || !isMountedRef.current) return;
-
-    // Clean up existing subscription if any
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      channelRef.current.unsubscribe();
-      channelRef.current = null;
-    }
-
-    console.log('Setting up subscription for conversation:', conversationId);
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          if (!isMountedRef.current) return;
-          
-          console.log('New message received:', payload);
-          const msg = payload.new;
-          
-          // Check if message needs TTS
-          if (msg && !msg.audio_url && !msg.reference_audio_url) {
-            console.log('Generating TTS for new message:', msg.id);
-            generateTTSForMessage({
-              id: msg.id,
-              conversation_id: msg.conversation_id,
-              text: msg.content,
-              translation: msg.translation,
-              transliteration: msg.transliteration,
-              pronunciation_score: msg.pronunciation_score,
-              pronunciation_data: msg.pronunciation_data,
-              audio_url: msg.audio_url,
-              reference_audio_url: msg.reference_audio_url,
-              isUser: msg.is_user
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (!isMountedRef.current) return;
-        console.log('Subscription status:', status);
-      });
-
-    // Store channel reference
-    channelRef.current = channel;
-
-    // Cleanup subscription on unmount or conversationId change
-    return () => {
-      console.log('Cleaning up subscription for conversation:', conversationId);
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
+  const handleNewMessage = useCallback((newMessage: Message) => {
+    setMessages((prevMessages) => {
+      // Check if message already exists
+      const exists = prevMessages.some(msg => msg.id === newMessage.id);
+      if (exists) {
+        console.log('Message already exists, skipping:', newMessage.id);
+        return prevMessages;
       }
-    };
-  }, [conversationId, generateTTSForMessage]);
+      
+      // Check if message needs TTS
+      if (!newMessage.audio_url && !newMessage.reference_audio_url) {
+        console.log('New message needs TTS generation:', newMessage.id);
+        generateTTSForMessage(newMessage);
+      }
+      
+      return [...prevMessages, newMessage];
+    });
+  }, [generateTTSForMessage, setMessages]);
+
+  // Set up stable subscription
+  useMessageSubscription(conversationId, handleNewMessage);
 
   const handlePlayTTS = async (audioUrl: string) => {
     if (!audioUrl) {
