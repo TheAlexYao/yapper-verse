@@ -47,12 +47,15 @@ const Auth = () => {
             }
             console.log('Auth flow - Profile created, redirecting to onboarding...');
             navigate("/onboarding");
-          } else if (!profile.onboarding_completed) {
-            console.log('Auth flow - Existing profile found, onboarding incomplete. Redirecting to onboarding...');
-            navigate("/onboarding");
           } else {
-            console.log('Auth flow - Profile complete, redirecting to dashboard...');
-            navigate("/dashboard");
+            console.log('Auth flow - Existing profile found');
+            if (!profile.onboarding_completed) {
+              console.log('Auth flow - Onboarding incomplete, redirecting to onboarding...');
+              navigate("/onboarding");
+            } else {
+              console.log('Auth flow - Profile complete, redirecting to dashboard...');
+              navigate("/dashboard");
+            }
           }
         } catch (error: any) {
           console.error('Error in checkProfile:', error);
