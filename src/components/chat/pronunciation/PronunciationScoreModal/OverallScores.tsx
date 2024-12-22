@@ -1,5 +1,6 @@
 import { Progress } from "@/components/ui/progress";
 import { Target } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface OverallScoresProps {
   scores: {
@@ -18,9 +19,9 @@ export function OverallScores({ scores }: OverallScoresProps) {
   };
 
   const getProgressColor = (score: number) => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 75) return "bg-yellow-500";
-    return "bg-red-500";
+    if (score >= 90) return "bg-gradient-to-r from-green-500 to-green-600";
+    if (score >= 75) return "bg-gradient-to-r from-yellow-500 to-yellow-600";
+    return "bg-gradient-to-r from-red-500 to-red-600";
   };
 
   return (
@@ -38,15 +39,26 @@ export function OverallScores({ scores }: OverallScoresProps) {
           <div key={score.label} className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>{score.label}</span>
-              <span className={`font-medium ${getScoreColor(score.value)}`}>
+              <span className={cn("font-medium", getScoreColor(score.value))}>
                 {score.value.toFixed(1)}%
               </span>
             </div>
             <Progress 
               value={score.value} 
               className="h-2"
-              indicatorClassName={getProgressColor(score.value)}
-            />
+              className={cn(
+                "h-2 rounded-full overflow-hidden bg-accent/10",
+                "[&>div]:transition-all [&>div]:duration-500"
+              )}
+            >
+              <div
+                className={cn(
+                  "h-full transition-all duration-500",
+                  getProgressColor(score.value)
+                )}
+                style={{ width: `${score.value}%` }}
+              />
+            </Progress>
           </div>
         ))}
       </div>
