@@ -93,7 +93,7 @@ export function ChatContainer({
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
-    const subscription = setupMessageSubscription(conversationId, (newMessages) => {
+    const subscription = setupMessageSubscription(conversationId, (newMessages: Message[]) => {
       console.log('Received new messages from subscription:', newMessages);
       setLocalMessages(prevMessages => {
         const updatedMessages = [...prevMessages, ...newMessages];
