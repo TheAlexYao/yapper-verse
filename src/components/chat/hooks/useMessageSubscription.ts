@@ -14,7 +14,21 @@ export function useMessageSubscription(conversationId: string | null) {
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
 
-  // Memoize the fetchMessages function to prevent unnecessary re-renders
+  // Transform database message to Message type
+  const transformMessage = useCallback((msg: any): Message => ({
+    id: msg.id,
+    conversation_id: msg.conversation_id,
+    text: msg.content,
+    translation: msg.translation,
+    transliteration: msg.transliteration,
+    isUser: msg.is_user,
+    audio_url: msg.audio_url,
+    pronunciation_score: msg.pronunciation_score,
+    pronunciation_data: msg.pronunciation_data,
+    reference_audio_url: msg.reference_audio_url,
+  }), []);
+
+  // Memoize the fetchMessages function
   const fetchMessages = useCallback(async () => {
     if (!conversationId || isLoadingMessages.current) return;
 
@@ -33,19 +47,9 @@ export function useMessageSubscription(conversationId: string | null) {
         return;
       }
 
-      // Transform the messages to match the Message type
-      const transformedMessages: Message[] = messagesData.map(msg => ({
-        id: msg.id,
-        text: msg.content,
-        translation: msg.translation,
-        transliteration: msg.transliteration,
-        isUser: msg.is_user,
-        audio_url: msg.audio_url,
-        pronunciation_score: msg.pronunciation_score,
-        pronunciation_data: msg.pronunciation_data,
-        reference_audio_url: msg.reference_audio_url,
-      }));
-
+      // Transform the messages
+      const transformedMessages = messagesData.map(transformMessage);
+      
       setMessages(transformedMessages);
 
       // Generate TTS for AI messages that don't have audio
@@ -59,7 +63,7 @@ export function useMessageSubscription(conversationId: string | null) {
     } finally {
       isLoadingMessages.current = false;
     }
-  }, [conversationId, generateTTSForMessage]);
+  }, [conversationId, generateTTSForMessage, transformMessage]);
 
   // Calculate exponential backoff delay with jitter
   const getBackoffDelay = useCallback(() => {
@@ -99,10 +103,8 @@ export function useMessageSubscription(conversationId: string | null) {
             table: 'guided_conversation_messages',
             filter: `conversation_id=eq.${conversationId}`,
           },
-          async (payload) => {
-            console.log('Received message update:', payload);
-
-            // Fetch all messages again to ensure consistency
+          async () => {
+            console.log('Received message update');
             await fetchMessages();
           }
         )
@@ -163,7 +165,7 @@ export function useMessageSubscription(conversationId: string | null) {
         channelRef.current = null;
       }
     };
-  }, [conversationId, fetchMessages, setupSubscription]); // Remove messages from dependencies
+  }, [conversationId, fetchMessages, setupSubscription]);
 
   return { messages };
 }
