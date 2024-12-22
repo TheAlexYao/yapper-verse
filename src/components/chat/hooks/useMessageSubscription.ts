@@ -12,6 +12,7 @@ export function useMessageSubscription(conversationId: string | null) {
   const isLoadingMessages = useRef(false);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 5;
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
 
@@ -66,17 +67,25 @@ export function useMessageSubscription(conversationId: string | null) {
     }
   };
 
-  // Calculate exponential backoff delay
+  // Calculate exponential backoff delay with jitter
   const getBackoffDelay = () => {
     const baseDelay = 1000; // 1 second
     const maxDelay = 30000; // 30 seconds
-    const delay = baseDelay * Math.pow(2, reconnectAttemptsRef.current);
-    return Math.min(delay, maxDelay);
+    const exponentialDelay = baseDelay * Math.pow(2, reconnectAttemptsRef.current);
+    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+    return Math.min(exponentialDelay + jitter, maxDelay);
   };
 
   // Set up realtime subscription with reconnection handling
   const setupSubscription = async () => {
-    if (!conversationId || channelRef.current) return;
+    if (!conversationId) return;
+
+    // Clean up any existing subscription
+    if (channelRef.current) {
+      console.log('Cleaning up existing subscription');
+      await channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
 
     // Clean up any existing reconnection timeout
     if (reconnectTimeoutRef.current) {
@@ -130,7 +139,7 @@ export function useMessageSubscription(conversationId: string | null) {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe(async (status) => {
         console.log('Subscription status:', status);
 
         if (status === 'SUBSCRIBED') {
@@ -143,20 +152,27 @@ export function useMessageSubscription(conversationId: string | null) {
           
           // Clean up the current channel
           if (channelRef.current) {
-            channelRef.current.unsubscribe();
+            await channelRef.current.unsubscribe();
             channelRef.current = null;
           }
 
           // Implement exponential backoff for reconnection
-          if (!reconnectTimeoutRef.current) {
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
             const delay = getBackoffDelay();
-            console.log(`Scheduling reconnection attempt in ${delay}ms...`);
+            console.log(`Scheduling reconnection attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts} in ${delay}ms...`);
             
-            reconnectTimeoutRef.current = window.setTimeout(() => {
+            reconnectTimeoutRef.current = window.setTimeout(async () => {
               console.log('Attempting to reconnect subscription');
               reconnectAttemptsRef.current++;
-              setupSubscription();
+              await setupSubscription();
             }, delay);
+          } else {
+            console.log('Max reconnection attempts reached');
+            toast({
+              title: "Connection Error",
+              description: "Failed to maintain connection. Please refresh the page.",
+              variant: "destructive",
+            });
           }
         }
       });
