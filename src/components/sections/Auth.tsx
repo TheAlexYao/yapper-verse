@@ -12,6 +12,26 @@ const Auth = () => {
   const { toast } = useToast();
   const isDevelopment = import.meta.env.DEV;
 
+  // Clean URL on mount and whenever location changes
+  useEffect(() => {
+    const cleanUrl = () => {
+      if (window.location.hash || window.location.search) {
+        const path = window.location.pathname;
+        window.history.replaceState({}, '', path);
+      }
+    };
+
+    // Clean immediately on mount
+    cleanUrl();
+
+    // Add listener for popstate events
+    window.addEventListener('popstate', cleanUrl);
+
+    return () => {
+      window.removeEventListener('popstate', cleanUrl);
+    };
+  }, []);
+
   useEffect(() => {
     console.log('Auth component mounted');
     console.log('Initial session state:', session);
@@ -25,8 +45,8 @@ const Auth = () => {
           console.log('Auth flow - Provider:', session.user.app_metadata.provider);
           console.log('Auth flow - Access token:', session.access_token ? 'Present' : 'Missing');
           console.log('Auth flow - Full session:', JSON.stringify(session, null, 2));
-          
-          // Remove hash and query params if present in URL
+
+          // Clean URL after successful authentication
           if (window.location.hash || window.location.search) {
             const path = window.location.pathname;
             window.history.replaceState({}, '', path);
