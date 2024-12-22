@@ -2,107 +2,120 @@
 
 ## Current Issues
 
-### 1. TTS Generation Failing with HTML Response
-The text-to-speech generation is failing with an error: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+### 1. Duplicate TTS Generation
+The system is repeatedly generating new audio for the same messages, even when audio URLs already exist.
 
-**Files to Check:**
-- `supabase/functions/text-to-speech/index.ts`
-  - Issue: Function returning HTML instead of JSON
-  - Look for: Response headers and error handling
+**Symptoms:**
+- Multiple "Cache miss, generating TTS..." logs for the same message
+- Repeated PATCH requests to update message audio URLs
+- 400 Bad Request errors on some PATCH requests
 
-**Logs:**
-```typescript
-Cache miss, generating TTS...
-TTS generation error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
-Generated audio URL: null
+**Root Causes:**
+1. Multiple triggers for TTS generation:
+   - Initial message load
+   - Message subscription updates
+   - Query refetch intervals
+2. Missing reference_audio_url column in database schema
+3. Race conditions in audio URL updates
+
+**Database Context:**
+```sql
+-- Messages Table Structure
+guided_conversation_messages
+  - audio_url (for AI messages)
+  - reference_audio_url (for user messages)
 ```
 
-### 2. Invalid UUID in Message Fetching
-Messages query failing due to null conversation ID being passed.
+**Relevant Tables:**
+1. `guided_conversation_messages`: Stores message content and audio URLs
+2. `tts_cache`: Caches generated audio files
+3. `profiles`: Contains user voice preferences
 
-**Error:**
+### 2. Audio URL Storage Issues
+Messages are failing to update with new audio URLs.
+
+**Error Pattern:**
 ```
-GET https://jgxvzzyfjpntsbhxfcjv.supabase.co/rest/v1/guided_conversation_messages?select=*&conversation_id=eq.null&order=created_at.asc 400 (Bad Request)
+PATCH https://[project].supabase.co/rest/v1/guided_conversation_messages 
+400 (Bad Request)
 ```
 
-**Files to Check:**
-- `src/components/chat/ChatContainer.tsx`
-  - Issue: Null conversation ID being passed to query
-  - Look for: Initial conversation ID handling
+**Database Checks:**
+1. Verify RLS policies:
+```sql
+SELECT * FROM pg_policies 
+WHERE tablename = 'guided_conversation_messages';
+```
 
-### 3. Audio URLs Not Being Stored
-Generated audio URLs are coming back as null and not being stored in the database.
-
-**Files to Check:**
-- `src/components/chat/hooks/useTTS.ts`
-  - Issue: TTS generation not returning valid URLs
-  - Look for: Error handling in generateTTS function
-
-## Data Flow Analysis
-
-1. **TTS Generation Flow:**
-   ```
-   Cache miss detected
-   → Edge function called
-   → HTML returned instead of JSON
-   → Parse error occurs
-   → Null URL stored
-   ```
-
-2. **Message Fetching Flow:**
-   ```
-   Initial load
-   → Null conversation ID
-   → 400 Bad Request
-   → Query fails
-   ```
+2. Check message permissions:
+```sql
+SELECT grantee, privilege_type 
+FROM information_schema.role_table_grants 
+WHERE table_name = 'guided_conversation_messages';
+```
 
 ## Debugging Steps
 
-1. **Check Edge Function Response:**
-   ```typescript
-   // Add these logs in text-to-speech function
-   console.log('Request headers:', req.headers);
-   console.log('Response being sent:', response);
-   ```
+1. **Check Message Processing Flow:**
+```typescript
+// Add these logs in ChatContainer
+console.log('Message state:', {
+  id: message.id,
+  hasAudioUrl: !!message.audio_url,
+  hasReferenceAudio: !!message.reference_audio_url,
+  isUser: message.isUser
+});
+```
 
-2. **Verify Conversation ID:**
-   ```typescript
-   // Add these logs in ChatContainer
-   console.log('Initial conversation ID:', conversationId);
-   console.log('Query params:', { select: '*', conversation_id: conversationId });
-   ```
+2. **Monitor Cache Operations:**
+```typescript
+// Add to useTTS hook
+console.log('Cache check:', {
+  text: text,
+  existingUrl: cacheEntry?.audio_url,
+  cacheHit: !!cacheEntry
+});
+```
 
-3. **Monitor TTS Generation:**
-   ```typescript
-   // Add these logs in useTTS
-   console.log('Starting TTS generation for:', text);
-   console.log('Edge function response:', response);
-   ```
+3. **Track Database Updates:**
+```typescript
+// Add to message update function
+console.log('Update attempt:', {
+  messageId: message.id,
+  updateData: updateData,
+  currentAudioUrl: message.audio_url
+});
+```
 
-## Next Steps
+## Solutions
 
-1. Fix edge function to return proper JSON responses
-2. Add validation for conversation ID before queries
-3. Implement proper error handling in TTS generation
-4. Add response type checking in useTTS hook
+1. **Prevent Duplicate Generation:**
+   - Implement proper audio URL checking
+   - Add processing state tracking
+   - Use optimistic updates
 
-## Common Issues and Solutions
+2. **Fix Database Updates:**
+   - Verify column existence
+   - Check RLS policies
+   - Implement proper error handling
 
-1. **HTML Instead of JSON:**
-   - Verify CORS headers are set correctly
-   - Ensure content-type is application/json
-   - Check error response formatting
-
-2. **Null Conversation ID:**
-   - Add null checks before queries
-   - Provide default conversation ID
-   - Handle loading states properly
+3. **Improve Caching:**
+   - Add memory cache layer
+   - Implement proper cache invalidation
+   - Add cache status tracking
 
 ## Testing Checklist
 
-- [ ] Edge function returns valid JSON
-- [ ] Conversation ID is valid before queries
-- [ ] TTS generation completes successfully
-- [ ] Audio URLs are stored correctly
-- [ ] Error states are handled gracefully
+- [ ] Audio URLs are generated only once per message
+- [ ] Cache hits prevent regeneration
+- [ ] Database updates succeed
+- [ ] User messages have reference_audio_url
+- [ ] AI messages have audio_url
+- [ ] No 400 errors on PATCH requests
+
+## Next Steps
+
+1. Add proper column for reference_audio_url if missing
+2. Implement proper cache checking
+3. Add error handling for database updates
+4. Fix RLS policies if needed
