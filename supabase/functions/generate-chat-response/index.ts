@@ -13,17 +13,36 @@ serve(async (req) => {
   }
 
   try {
-    const { conversationId, lastMessageContent } = await req.json();
+    const { conversationId, lastMessageContent, isInitialMessage = false } = await req.json();
     
     if (!conversationId) {
-      throw new Error('Missing conversation ID');
+      console.error('Missing conversation ID');
+      return new Response(
+        JSON.stringify({ error: 'Missing conversation ID' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Processing request for conversation:', conversationId);
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase configuration');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch conversation context
@@ -39,9 +58,38 @@ serve(async (req) => {
       .eq('id', conversationId)
       .single();
 
-    if (convError || !conversation) {
+    if (convError) {
       console.error('Error fetching conversation:', convError);
-      throw new Error('Conversation not found');
+      return new Response(
+        JSON.stringify({ error: 'Conversation not found', details: convError }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (!conversation) {
+      console.error('Conversation not found:', conversationId);
+      return new Response(
+        JSON.stringify({ error: 'Conversation not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const openAIKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIKey) {
+      console.error('Missing OpenAI API key');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Call OpenAI API with timeout
@@ -49,10 +97,30 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
+      const systemPrompt = isInitialMessage 
+        ? `You are ${conversation.character.name}, starting a conversation to help someone learn ${conversation.target_language.name}.
+           Give a friendly greeting and introduction in ${conversation.target_language.code}.
+           Cultural context: ${conversation.scenario.cultural_notes}
+           Primary goal: ${conversation.scenario.primary_goal}
+           Your personality: ${conversation.character.language_style?.join(', ')}
+           Format: Return a JSON object with 'text', 'transliteration', and 'translation' fields.`
+        : `You are ${conversation.character.name}, helping someone learn ${conversation.target_language.name}.
+           Respond in ${conversation.target_language.code} and provide:
+           1. Response in target language
+           2. Transliteration (if applicable)
+           3. English translation
+           Keep responses natural and conversational.
+           Cultural context: ${conversation.scenario.cultural_notes}
+           Primary goal: ${conversation.scenario.primary_goal}
+           Your personality: ${conversation.character.language_style?.join(', ')}
+           Format: Return a JSON object with 'text', 'transliteration', and 'translation' fields.`;
+
+      console.log('Calling OpenAI with system prompt:', systemPrompt);
+
       const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Authorization': `Bearer ${openAIKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -60,20 +128,11 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are ${conversation.character.name}, helping someone learn ${conversation.target_language.name}.
-                       Respond in ${conversation.target_language.code} and provide:
-                       1. Response in target language
-                       2. Transliteration (if applicable)
-                       3. English translation
-                       Keep responses natural and conversational.
-                       Cultural context: ${conversation.scenario.cultural_notes}
-                       Primary goal: ${conversation.scenario.primary_goal}
-                       Your personality: ${conversation.character.language_style?.join(', ')}
-                       Format: Return a JSON object with 'text', 'transliteration', and 'translation' fields.`
+              content: systemPrompt
             },
             {
               role: "user",
-              content: lastMessageContent
+              content: lastMessageContent || "Start the conversation"
             }
           ],
           response_format: { type: "json_object" }
@@ -84,10 +143,17 @@ serve(async (req) => {
       clearTimeout(timeoutId);
 
       if (!openAIResponse.ok) {
+        console.error('OpenAI API error:', await openAIResponse.text());
         throw new Error(`OpenAI API error: ${openAIResponse.status}`);
       }
 
       const aiData = await openAIResponse.json();
+      console.log('OpenAI response:', aiData);
+
+      if (!aiData.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
       const response = JSON.parse(aiData.choices[0].message.content);
 
       // Insert AI message into database
@@ -102,6 +168,7 @@ serve(async (req) => {
         });
 
       if (insertError) {
+        console.error('Error inserting message:', insertError);
         throw insertError;
       }
 
@@ -112,7 +179,14 @@ serve(async (req) => {
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw new Error('OpenAI API request timed out');
+        console.error('OpenAI API request timed out');
+        return new Response(
+          JSON.stringify({ error: 'Request timed out' }),
+          { 
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
       throw error;
     } finally {
@@ -122,7 +196,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-chat-response:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack 
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
