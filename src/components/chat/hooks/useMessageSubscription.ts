@@ -10,19 +10,17 @@ export function useMessageSubscription(conversationId: string | null) {
   const { generateTTS } = useTTS();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasInitializedRef = useRef(false);
-  const isSubscribedRef = useRef(false);
-  const cleanupInProgressRef = useRef(false);
+  const retryAttemptsRef = useRef(0);
+  const MAX_RETRY_ATTEMPTS = 3;
 
   const generateAudioForMessage = async (content: string, messageId: string) => {
     try {
-      // Create text hash for checking cache
       const encoder = new TextEncoder();
       const data = encoder.encode(content);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const textHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // Check if audio already exists in cache
       const { data: cacheEntry } = await supabase
         .from('tts_cache')
         .select('audio_url')
@@ -61,18 +59,9 @@ export function useMessageSubscription(conversationId: string | null) {
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true });
 
-        if (error) {
-          console.error('Error fetching messages:', error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch messages. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
+        if (error) throw error;
 
         if (messages) {
-          // Process messages and generate TTS where needed
           const processedMessages = await Promise.all(messages.map(async (msg) => {
             let audioUrl = msg.audio_url;
             if (!msg.is_user && !audioUrl) {
@@ -112,84 +101,96 @@ export function useMessageSubscription(conversationId: string | null) {
 
   // Effect for setting up the subscription
   useEffect(() => {
-    if (!conversationId || isSubscribedRef.current || cleanupInProgressRef.current) return;
+    if (!conversationId || !hasInitializedRef.current || channelRef.current) return;
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        async (payload) => {
-          console.log('Received new message:', payload);
-          const newMessage = payload.new;
+    const setupSubscription = () => {
+      const channel = supabase
+        .channel(`conversation:${conversationId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'guided_conversation_messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          async (payload) => {
+            console.log('Received new message:', payload);
+            const newMessage = payload.new;
 
-          // Generate TTS for AI messages
-          let audioUrl = newMessage.audio_url;
-          if (!newMessage.is_user && !audioUrl) {
-            audioUrl = await generateAudioForMessage(newMessage.content, newMessage.id);
-          }
-
-          const formattedMessage: Message = {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            text: newMessage.content,
-            translation: newMessage.translation,
-            transliteration: newMessage.transliteration,
-            pronunciation_score: newMessage.pronunciation_score,
-            pronunciation_data: newMessage.pronunciation_data,
-            audio_url: audioUrl,
-            reference_audio_url: newMessage.reference_audio_url,
-            isUser: newMessage.is_user
-          };
-
-          setMessages(prevMessages => {
-            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
-            if (exists) {
-              console.log('Message already exists, skipping:', formattedMessage.id);
-              return prevMessages;
+            let audioUrl = newMessage.audio_url;
+            if (!newMessage.is_user && !audioUrl) {
+              audioUrl = await generateAudioForMessage(newMessage.content, newMessage.id);
             }
-            return [...prevMessages, formattedMessage];
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-          console.log('Successfully subscribed to conversation:', conversationId);
-        }
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.log('Subscription closed or errored:', status);
-          isSubscribedRef.current = false;
-          if (!cleanupInProgressRef.current) {
-            toast({
-              title: "Connection issue",
-              description: "Reconnecting to chat...",
-              variant: "default",
+
+            const formattedMessage: Message = {
+              id: newMessage.id,
+              conversation_id: newMessage.conversation_id,
+              text: newMessage.content,
+              translation: newMessage.translation,
+              transliteration: newMessage.transliteration,
+              pronunciation_score: newMessage.pronunciation_score,
+              pronunciation_data: newMessage.pronunciation_data,
+              audio_url: audioUrl,
+              reference_audio_url: newMessage.reference_audio_url,
+              isUser: newMessage.is_user
+            };
+
+            setMessages(prevMessages => {
+              const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
+              if (exists) return prevMessages;
+              return [...prevMessages, formattedMessage];
             });
           }
-        }
-      });
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            channelRef.current = channel;
+            retryAttemptsRef.current = 0;
+            console.log('Successfully subscribed to conversation:', conversationId);
+          }
+          
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.log('Subscription closed or errored:', status);
+            
+            // Only retry if we haven't exceeded max attempts
+            if (retryAttemptsRef.current < MAX_RETRY_ATTEMPTS) {
+              retryAttemptsRef.current++;
+              console.log(`Retrying subscription (attempt ${retryAttemptsRef.current}/${MAX_RETRY_ATTEMPTS})`);
+              
+              // Clean up existing subscription
+              if (channelRef.current) {
+                channelRef.current.unsubscribe();
+                channelRef.current = null;
+              }
+              
+              // Retry after a short delay
+              setTimeout(setupSubscription, 1000 * retryAttemptsRef.current);
+            } else if (!channelRef.current) {
+              toast({
+                title: "Connection issue",
+                description: "Unable to connect to chat. Please refresh the page.",
+                variant: "destructive",
+              });
+            }
+          }
+        });
+    };
 
-    channelRef.current = channel;
+    setupSubscription();
 
     // Cleanup function
     return () => {
       console.log('Cleaning up subscription for conversation:', conversationId);
-      cleanupInProgressRef.current = true;
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
-        isSubscribedRef.current = false;
       }
-      cleanupInProgressRef.current = false;
+      retryAttemptsRef.current = 0;
     };
   }, [conversationId, toast, generateTTS]);
 
