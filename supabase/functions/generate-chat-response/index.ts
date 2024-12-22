@@ -69,17 +69,6 @@ serve(async (req) => {
       );
     }
 
-    if (!conversation) {
-      console.error('Conversation not found:', conversationId);
-      return new Response(
-        JSON.stringify({ error: 'Conversation not found' }),
-        { 
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     const openAIKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIKey) {
       console.error('Missing OpenAI API key');
@@ -143,8 +132,9 @@ serve(async (req) => {
       clearTimeout(timeoutId);
 
       if (!openAIResponse.ok) {
-        console.error('OpenAI API error:', await openAIResponse.text());
-        throw new Error(`OpenAI API error: ${openAIResponse.status}`);
+        const errorText = await openAIResponse.text();
+        console.error('OpenAI API error response:', errorText);
+        throw new Error(`OpenAI API error: ${openAIResponse.status}\nDetails: ${errorText}`);
       }
 
       const aiData = await openAIResponse.json();
