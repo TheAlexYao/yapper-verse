@@ -87,41 +87,50 @@ export function useMessageSubscription(conversationId: string | null) {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'guided_conversation_messages',
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          console.log('Received new message:', payload);
-          const newMessage = payload.new;
-          const formattedMessage: Message = {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            text: newMessage.content,
-            translation: newMessage.translation,
-            transliteration: newMessage.transliteration,
-            pronunciation_score: newMessage.pronunciation_score,
-            pronunciation_data: newMessage.pronunciation_data,
-            audio_url: newMessage.audio_url,
-            reference_audio_url: newMessage.reference_audio_url,
-            isUser: newMessage.is_user
-          };
+          console.log('Received message event:', payload);
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newMessage = payload.new;
+            const formattedMessage: Message = {
+              id: newMessage.id,
+              conversation_id: newMessage.conversation_id,
+              text: newMessage.content,
+              translation: newMessage.translation,
+              transliteration: newMessage.transliteration,
+              pronunciation_score: newMessage.pronunciation_score,
+              pronunciation_data: newMessage.pronunciation_data,
+              audio_url: newMessage.audio_url,
+              reference_audio_url: newMessage.reference_audio_url,
+              isUser: newMessage.is_user
+            };
 
-          setMessages(prevMessages => {
-            // Check if message already exists
-            const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
-            if (exists) {
-              console.log('Message already exists, skipping:', formattedMessage.id);
-              return prevMessages;
-            }
-            
-            // Queue TTS generation if needed
-            queueTTSGeneration(formattedMessage);
-            
-            console.log('Adding new message to state:', formattedMessage);
-            return [...prevMessages, formattedMessage];
-          });
+            setMessages(prevMessages => {
+              // For updates, replace the existing message
+              if (payload.eventType === 'UPDATE') {
+                return prevMessages.map(msg => 
+                  msg.id === formattedMessage.id ? formattedMessage : msg
+                );
+              }
+              
+              // For new messages, check if it already exists
+              const exists = prevMessages.some(msg => msg.id === formattedMessage.id);
+              if (exists) {
+                console.log('Message already exists, skipping:', formattedMessage.id);
+                return prevMessages;
+              }
+              
+              // Queue TTS generation if needed
+              queueTTSGeneration(formattedMessage);
+              
+              console.log('Adding new message to state:', formattedMessage);
+              return [...prevMessages, formattedMessage];
+            });
+          }
         }
       )
       .subscribe((status) => {
