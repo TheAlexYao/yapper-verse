@@ -99,12 +99,15 @@ export function ChatContainer({
 
     try {
       const audioUrl = await generateTTS(message.text);
+      console.log('Generated audio URL:', audioUrl);
       
       if (audioUrl) {
         await supabase
           .from('guided_conversation_messages')
           .update({ audio_url: audioUrl })
           .eq('id', message.id);
+
+        console.log('Updated message with audio URL:', message.id);
 
         queryClient.setQueryData(['chat-messages', conversationId], (old: Message[] = []) =>
           old.map(msg =>
@@ -144,7 +147,11 @@ export function ChatContainer({
     }
     
     try {
-      const audio = new Audio(decodeURIComponent(audioUrl));
+      // Remove any double encoding that might have occurred
+      const cleanUrl = audioUrl.startsWith('http') ? audioUrl : decodeURIComponent(audioUrl);
+      console.log('Playing audio from URL:', cleanUrl);
+      
+      const audio = new Audio(cleanUrl);
       await audio.play();
     } catch (error) {
       console.error('Error playing audio:', error);

@@ -26,7 +26,7 @@ export function useTTS() {
         .maybeSingle();
 
       if (cacheData?.audio_url) {
-        console.log('Database cache hit, using cached audio URL');
+        console.log('Database cache hit, using cached audio URL:', cacheData.audio_url);
         memoryCache.set(textHash, cacheData.audio_url);
         return cacheData.audio_url;
       }
@@ -56,6 +56,8 @@ export function useTTS() {
       if (!audioUrl) {
         throw new Error('No audio URL returned from TTS service');
       }
+
+      console.log('Generated new audio URL:', audioUrl);
 
       // Update memory cache
       memoryCache.set(textHash, audioUrl);
