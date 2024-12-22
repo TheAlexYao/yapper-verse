@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +16,7 @@ serve(async (req) => {
     const { conversationId, lastMessageContent } = await req.json();
     
     if (!conversationId || !lastMessageContent) {
+      console.error('Missing required parameters');
       throw new Error('Missing required parameters');
     }
 
@@ -53,36 +53,44 @@ serve(async (req) => {
       targetLanguage: conversation.target_language?.code
     });
 
-    // Initialize OpenAI
-    const configuration = new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    });
-    const openai = new OpenAIApi(configuration);
+    // Call OpenAI API directly using fetch
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
 
-    // Generate response
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are ${conversation.character.name}, a character in a language learning scenario about ${conversation.scenario.title}. 
-                   You should respond in ${conversation.target_language.code} with natural, conversational language.
-                   Keep responses concise and focused on the scenario.
-                   Cultural context: ${conversation.scenario.cultural_notes}
-                   Primary goal: ${conversation.scenario.primary_goal}
-                   Your personality: ${conversation.character.language_style?.join(', ')}
-                   Location: ${conversation.scenario.location_details}`
-        },
-        {
-          role: "user",
-          content: lastMessageContent
-        }
-      ],
+    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: "system",
+            content: `You are ${conversation.character.name}, a character in a language learning scenario about ${conversation.scenario.title}. 
+                     You should respond in ${conversation.target_language.code} with natural, conversational language.
+                     Keep responses concise and focused on the scenario.
+                     Cultural context: ${conversation.scenario.cultural_notes}
+                     Primary goal: ${conversation.scenario.primary_goal}
+                     Your personality: ${conversation.character.language_style?.join(', ')}
+                     Location: ${conversation.scenario.location_details}`
+          },
+          {
+            role: "user",
+            content: lastMessageContent
+          }
+        ],
+      }),
     });
 
-    const aiResponse = completion.data.choices[0]?.message?.content;
+    const openAIData = await openAIResponse.json();
+    const aiResponse = openAIData.choices?.[0]?.message?.content;
+
     if (!aiResponse) {
-      console.error('No response generated from OpenAI');
+      console.error('No response generated from OpenAI:', openAIData);
       throw new Error('Failed to generate AI response');
     }
 
