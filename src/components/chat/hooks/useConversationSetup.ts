@@ -6,7 +6,6 @@ import { useMessageSubscription } from "./useMessageSubscription";
 import { 
   fetchExistingConversation, 
   createNewConversation,
-  fetchConversationMessages 
 } from "./conversation/useConversationQuery";
 
 export function useConversationSetup(character: any, scenario: any) {
@@ -99,11 +98,6 @@ export function useConversationSetup(character: any, scenario: any) {
         }
 
         setConversationId(newConversationId);
-
-        // Fetch initial messages
-        const initialMessages = await fetchConversationMessages(newConversationId);
-        console.log('Setting initial messages:', initialMessages);
-        setMessages(initialMessages);
 
       } catch (error) {
         console.error('Error setting up conversation:', error);
