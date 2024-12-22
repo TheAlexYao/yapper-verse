@@ -5,11 +5,13 @@ import { useTTS } from './useTTS';
 import { useTTSState } from './useTTSState';
 import type { Message } from '@/hooks/useConversation';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@supabase/auth-helpers-react';
 
 export function useTTSHandler(conversationId: string) {
   const { generateTTS } = useTTS();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const user = useUser();
   const { isGeneratingTTS, startTTSGeneration, finishTTSGeneration } = useTTSState();
 
   const generateTTSForMessage = useCallback(async (message: Message) => {
@@ -26,7 +28,7 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
-    // Check if already has required audio
+    // Skip if already has required audio
     const hasRequiredAudio = message.isUser ? 
       message.reference_audio_url : 
       message.audio_url;
@@ -46,18 +48,35 @@ export function useTTSHandler(conversationId: string) {
       return;
     }
 
+    if (!user) {
+      console.error('No authenticated user found');
+      toast({
+        title: "Error",
+        description: "You must be logged in to generate audio",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log('Starting TTS generation process for message:', message.id);
     startTTSGeneration(message.id);
 
     try {
       // Get user's profile to determine voice preference
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
+        .eq('id', user.id)
         .single();
 
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw new Error('Could not fetch user profile');
+      }
+
       if (!profile?.target_language) {
-        throw new Error('Target language not set');
+        console.error('No target language set in profile');
+        throw new Error('Target language not set in your profile');
       }
 
       console.log('Generating audio with profile settings:', {
@@ -71,8 +90,6 @@ export function useTTSHandler(conversationId: string) {
         'normal'
       );
 
-      console.log('Generated audio URL:', audioUrl);
-      
       if (!audioUrl) {
         throw new Error('Failed to generate audio URL');
       }
@@ -110,13 +127,13 @@ export function useTTSHandler(conversationId: string) {
       console.error('Error generating TTS:', error);
       toast({
         title: "Error",
-        description: "Failed to generate audio. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate audio. Please try again.",
         variant: "destructive",
       });
     } finally {
       finishTTSGeneration(message.id);
     }
-  }, [generateTTS, conversationId, queryClient, toast, isGeneratingTTS, startTTSGeneration, finishTTSGeneration]);
+  }, [generateTTS, conversationId, queryClient, toast, isGeneratingTTS, startTTSGeneration, finishTTSGeneration, user]);
 
   return {
     generateTTSForMessage
