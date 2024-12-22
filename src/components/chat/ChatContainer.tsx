@@ -25,6 +25,8 @@ export function ChatContainer({
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
 
+  console.log('Current messages in ChatContainer:', initialMessages);
+
   // Fetch messages using React Query with optimized caching
   const { data: messages = initialMessages } = useQuery({
     queryKey: ['chat-messages', conversationId],
@@ -49,6 +51,8 @@ export function ChatContainer({
         });
         throw error;
       }
+
+      console.log('Setting initial messages:', messages);
 
       const formattedMessages = messages.map((msg): Message => {
         const message = {
