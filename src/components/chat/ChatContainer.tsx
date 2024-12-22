@@ -4,7 +4,7 @@ import { ChatBottomSection } from "./ChatBottomSection";
 import { PronunciationScoreModal } from "./PronunciationScoreModal";
 import { useTTSHandler } from "./hooks/useTTSHandler";
 import type { Message } from "@/hooks/useConversation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,15 +24,14 @@ export function ChatContainer({
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Fetch messages using React Query with optimized caching
-  const { data: messages = [] } = useQuery({
+  const { data: messages = initialMessages } = useQuery({
     queryKey: ['chat-messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
         console.log('No conversation ID provided');
-        return [];
+        return initialMessages;
       }
       
       const { data: messages, error } = await supabase
@@ -73,6 +72,7 @@ export function ChatContainer({
         return message;
       });
 
+      console.log('Fetched and formatted messages:', formattedMessages);
       return formattedMessages;
     },
     initialData: initialMessages,
@@ -107,6 +107,8 @@ export function ChatContainer({
       });
     }
   };
+
+  console.log('Current messages in ChatContainer:', messages);
 
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
