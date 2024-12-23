@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTTS } from './useTTS';
@@ -7,6 +6,18 @@ import type { Message } from '@/hooks/useConversation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@supabase/auth-helpers-react';
 
+/**
+ * Hook to handle Text-to-Speech (TTS) generation for messages
+ * 
+ * Features:
+ * - Generates TTS for both AI and user messages
+ * - Handles caching of generated audio
+ * - Updates message records with audio URLs
+ * - Manages processing state
+ * 
+ * @param conversationId - The ID of the conversation context
+ * @returns {Object} Methods to handle TTS generation
+ */
 export function useTTSHandler(conversationId: string) {
   const { generateTTS } = useTTS();
   const queryClient = useQueryClient();
@@ -14,7 +25,19 @@ export function useTTSHandler(conversationId: string) {
   const user = useUser();
   const { isGeneratingTTS, startTTSGeneration, finishTTSGeneration } = useTTSState();
 
-  const generateTTSForMessage = useCallback(async (message: Message) => {
+  /**
+   * Generates TTS for a given message and updates the database
+   * 
+   * Process:
+   * 1. Checks if TTS is needed
+   * 2. Gets user's voice preference
+   * 3. Generates audio
+   * 4. Updates message record
+   * 5. Updates UI
+   * 
+   * @param message - The message to generate TTS for
+   */
+  const generateTTSForMessage = async (message: Message) => {
     // Skip if no text or message ID
     if (!message.text || !message.id) {
       console.log('Skipping TTS generation: no text content or message ID');
@@ -126,7 +149,7 @@ export function useTTSHandler(conversationId: string) {
     } finally {
       finishTTSGeneration(message.id);
     }
-  }, [generateTTS, conversationId, queryClient, toast, isGeneratingTTS, startTTSGeneration, finishTTSGeneration, user]);
+  };
 
   return {
     generateTTSForMessage

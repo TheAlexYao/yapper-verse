@@ -1,20 +1,38 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTTSHandler } from './useTTSHandler';
 import type { Message } from '@/hooks/useConversation';
 
-// Create a stable reference for active subscriptions
+/**
+ * Global map to track active subscriptions across component instances
+ * This prevents duplicate subscriptions for the same conversation
+ * Key: conversationId, Value: Supabase subscription channel
+ */
 const activeSubscriptions = new Map<string, ReturnType<typeof supabase.channel>>();
 
+/**
+ * Hook to manage conversation messages with real-time updates and TTS generation
+ * 
+ * Features:
+ * - Loads initial messages for a conversation
+ * - Sets up real-time subscription for new messages
+ * - Handles TTS generation for new messages
+ * - Manages subscription cleanup
+ * 
+ * @param conversationId - The ID of the conversation to load/subscribe to
+ * @returns {Object} messages - Array of messages in the conversation
+ */
 export function useConversationMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+  
+  // Refs to manage processing state and prevent duplicate operations
   const processingMessagesRef = useRef<Set<string>>(new Set());
   const isLoadingRef = useRef(false);
 
-  // Load initial messages
+  // Load initial messages and handle TTS generation
   useEffect(() => {
     if (!conversationId || isLoadingRef.current) return;
 
@@ -49,6 +67,7 @@ export function useConversationMessages(conversationId: string | null) {
         
         // Process TTS for messages that need it
         formattedMessages.forEach(msg => {
+          // Skip if already processing or has required audio
           if (processingMessagesRef.current.has(msg.id)) return;
           if ((!msg.audio_url && !msg.isUser) || (!msg.reference_audio_url && msg.isUser)) {
             processingMessagesRef.current.add(msg.id);
@@ -84,6 +103,7 @@ export function useConversationMessages(conversationId: string | null) {
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
+    // Create new subscription
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -95,6 +115,7 @@ export function useConversationMessages(conversationId: string | null) {
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
+          // Handle new message
           const newMessage: Message = {
             id: payload.new.id,
             conversation_id: payload.new.conversation_id,
@@ -110,6 +131,7 @@ export function useConversationMessages(conversationId: string | null) {
 
           setMessages(prev => [...prev, newMessage]);
           
+          // Generate TTS if needed
           if (processingMessagesRef.current.has(newMessage.id)) return;
           if ((!newMessage.audio_url && !newMessage.isUser) || (!newMessage.reference_audio_url && newMessage.isUser)) {
             processingMessagesRef.current.add(newMessage.id);
@@ -123,8 +145,10 @@ export function useConversationMessages(conversationId: string | null) {
         console.log('Subscription status:', status);
       });
 
+    // Store subscription in global map
     activeSubscriptions.set(conversationId, channel);
 
+    // Cleanup function
     return () => {
       console.log('Cleaning up message subscription');
       if (activeSubscriptions.has(conversationId)) {
