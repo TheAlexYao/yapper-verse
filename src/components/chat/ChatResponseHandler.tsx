@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
@@ -25,7 +25,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const { toast } = useToast();
 
   // Load initial AI message ID
-  useState(() => {
+  useEffect(() => {
     if (!conversationId) return;
     
     const loadLastAiMessage = async () => {
@@ -80,7 +80,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   });
 
   // Update lastAiMessageId when new AI messages arrive
-  useState(() => {
+  useEffect(() => {
     if (!conversationId) return;
 
     const channel = supabase
