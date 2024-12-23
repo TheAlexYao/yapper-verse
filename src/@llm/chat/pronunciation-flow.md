@@ -47,3 +47,27 @@ The pronunciation check system allows users to:
 ## Data Flow
 1. Frontend -> Edge Function -> Azure -> Storage
 2. Results -> Database -> Frontend Display
+
+## Known Issues
+
+### 1. Audio Quality Feedback
+Current behavior:
+- No UI feedback when audio quality is insufficient
+- Error silently caught in edge function
+- User left wondering why assessment failed
+
+Needed improvements:
+- Add clear UI feedback for low quality audio
+- Implement proper error handling in usePronunciationHandler
+- Show toast notification with helpful message
+
+### 2. Modal Timing
+Current behavior:
+- Modal stays open during AI response generation
+- User can't see their message until AI responds
+- Creates perception of slow response
+
+Needed improvements:
+- Close modal immediately after user message sent
+- Show user message in chat right away
+- Load AI response asynchronously

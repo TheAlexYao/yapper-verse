@@ -83,3 +83,14 @@
    - React Query for server state
    - Real-time subscriptions for updates
    - Local state for UI interactions
+
+## Known Issues
+1. Audio Quality Feedback:
+   - When audio quality is insufficient for assessment, no UI feedback is shown
+   - Error occurs in handlePronunciationComplete: "No assessment data received"
+   - Location: usePronunciationHandler.ts
+
+2. Modal Behavior:
+   - Modal stays open while waiting for AI response
+   - Should close immediately after user message is sent
+   - Location: ChatResponseHandler.tsx, usePronunciationHandler.ts
