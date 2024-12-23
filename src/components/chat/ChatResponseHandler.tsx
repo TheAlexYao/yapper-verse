@@ -21,6 +21,7 @@ export function ChatResponseHandler({
   const {
     selectedResponse,
     isProcessing,
+    setIsProcessing,
     handleResponseSelect,
     resetState
   } = useResponseState();
@@ -29,7 +30,6 @@ export function ChatResponseHandler({
   const user = useUser();
   const { toast } = useToast();
 
-  // Use the new response generation hook
   const { 
     data: responses = [], 
     isLoading: isLoadingResponses 
@@ -38,6 +38,7 @@ export function ChatResponseHandler({
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
     onMessageSend: async (message: Message) => {
+      console.log('ChatResponseHandler - Message send triggered');
       resetState();
       await onMessageSend(message);
     },
@@ -46,6 +47,8 @@ export function ChatResponseHandler({
   });
 
   const handleResponseClick = async (response: any) => {
+    console.log('handleResponseClick - Starting with response:', response);
+    
     if (isGeneratingTTS) {
       toast({
         title: "Please wait",
@@ -56,6 +59,8 @@ export function ChatResponseHandler({
     }
     
     try {
+      setIsProcessing(true); // Set processing state while preparing audio
+      
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
@@ -89,6 +94,9 @@ export function ChatResponseHandler({
         description: "Failed to prepare pronunciation practice. Please try again.",
         variant: "destructive",
       });
+      resetState();
+    } finally {
+      setIsProcessing(false); // Reset processing state after preparation
     }
   };
 
