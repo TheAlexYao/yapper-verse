@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
@@ -24,14 +24,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Wrapped in useCallback to maintain reference stability
-  const invalidateResponses = useCallback(() => {
-    console.log('Invalidating responses for:', { conversationId, userId: user?.id, lastAiMessageId });
-    queryClient.invalidateQueries({
-      queryKey: ['responses', conversationId, user?.id, lastAiMessageId]
-    });
-  }, [queryClient, conversationId, user?.id, lastAiMessageId]);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Load initial AI message ID
   useEffect(() => {
@@ -61,8 +54,15 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   useEffect(() => {
     if (!conversationId) return;
 
-    console.log('Setting up message subscription for conversation:', conversationId);
+    // Clean up existing subscription if any
+    if (channelRef.current) {
+      console.log('Cleaning up existing subscription');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
+    console.log('Setting up message subscription for conversation:', conversationId);
+    
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -75,12 +75,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         },
         (payload) => {
           console.log('New AI message received:', payload.new);
-          // Update lastAiMessageId and force a refresh in a single batch
           setLastAiMessageId(payload.new.id);
-          // Use queueMicrotask to ensure the refresh happens after state update
-          queueMicrotask(() => {
-            console.log('Forcing response refresh for new message:', payload.new.id);
-            invalidateResponses();
+          queryClient.invalidateQueries({
+            queryKey: ['responses', conversationId, user?.id, payload.new.id]
           });
         }
       )
@@ -88,16 +85,21 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         console.log('Subscription status:', status);
       });
 
+    channelRef.current = channel;
+
     return () => {
-      console.log('Cleaning up message subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        console.log('Cleaning up message subscription');
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [conversationId, invalidateResponses]);
+  }, [conversationId, queryClient, user?.id]);
 
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId, user?.id, lastAiMessageId],
     queryFn: async () => {
-      if (!user?.id || !conversationId) return [];
+      if (!user?.id || !conversationId || !lastAiMessageId) return [];
 
       try {
         console.log('Fetching responses after AI message:', lastAiMessageId);
