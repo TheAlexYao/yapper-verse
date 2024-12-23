@@ -1,21 +1,16 @@
 import { MessageBubble } from "./MessageBubble";
-import { MessageSkeleton } from "./message/MessageSkeleton";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatMessagesProps {
   messages: Message[];
   onPlayAudio?: (audioUrl: string) => void;
   onShowScore?: (message: Message) => void;
-  isProcessing?: boolean;
-  isGeneratingAIResponse?: boolean;
 }
 
 export function ChatMessages({ 
   messages, 
   onPlayAudio, 
-  onShowScore, 
-  isProcessing,
-  isGeneratingAIResponse 
+  onShowScore
 }: ChatMessagesProps) {
   return (
     <div className="flex flex-col gap-4 pb-36 pt-4 px-4">
@@ -28,8 +23,6 @@ export function ChatMessages({
           onShowScore={onShowScore}
         />
       ))}
-      {isProcessing && <MessageSkeleton isUser />}
-      {isGeneratingAIResponse && <MessageSkeleton isUser={false} />}
     </div>
   );
 }

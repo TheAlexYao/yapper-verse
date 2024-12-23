@@ -1,9 +1,10 @@
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
-import { FeedbackModal } from "./FeedbackModal";
-import { useToast } from "@/hooks/use-toast";
+import { ChatResponseHandler } from "./ChatResponseHandler";
+import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import { useConversationMessages } from "./hooks/useConversationMessages";
+import { useToast } from "@/hooks/use-toast";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatContainerProps {
@@ -12,39 +13,21 @@ interface ChatContainerProps {
   conversationId: string;
 }
 
-const MemoizedChatMessagesSection = memo(ChatMessagesSection);
-const MemoizedChatBottomSection = memo(ChatBottomSection);
-
 export function ChatContainer({ 
   onMessageSend, 
   onPlayTTS, 
   conversationId 
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isGeneratingAIResponse, setIsGeneratingAIResponse] = useState(false);
   const { toast } = useToast();
   const { messages } = useConversationMessages(conversationId);
   
-  const handlePlayTTS = useCallback(async (audioUrl: string) => {
-    if (!audioUrl) {
-      console.error('No audio URL provided');
-      toast({
-        title: "Error",
-        description: "No audio available to play.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  const handlePlayTTS = useCallback((audioUrl: string) => {
     try {
-      const cleanUrl = audioUrl.startsWith('http') ? audioUrl : decodeURIComponent(audioUrl);
-      console.log('Playing audio from URL:', cleanUrl);
-      
-      const audio = new Audio(cleanUrl);
-      await audio.play();
+      const audio = new Audio(audioUrl);
+      audio.play();
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('Error playing TTS:', error);
       toast({
         title: "Error",
         description: "Failed to play audio. Please try again.",
@@ -57,45 +40,56 @@ export function ChatContainer({
     setSelectedMessageForScore(message);
   }, []);
 
+  const handleCloseScoreModal = useCallback(() => {
+    setSelectedMessageForScore(null);
+  }, []);
+
   const handleMessageSend = useCallback(async (message: Message) => {
-    setIsProcessing(true);
-    setIsGeneratingAIResponse(true);
     try {
       await onMessageSend(message);
-    } finally {
-      // We set isProcessing to false after a short delay to ensure the skeleton is visible
-      setTimeout(() => setIsProcessing(false), 500);
-      // AI response generation is handled by the subscription in useConversationMessages
-      // We'll set this to false when we receive the AI response
-      setTimeout(() => setIsGeneratingAIResponse(false), 3000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, [onMessageSend]);
+  }, [onMessageSend, toast]);
 
   return (
-    <div className="flex flex-col h-screen bg-background pt-16">
-      <MemoizedChatMessagesSection 
+    <>
+      <ChatMessagesSection 
         messages={messages}
         onPlayAudio={handlePlayTTS}
         onShowScore={handleShowScore}
-        isProcessing={isProcessing}
-        isGeneratingAIResponse={isGeneratingAIResponse}
       />
 
-      <MemoizedChatBottomSection 
+      <ChatBottomSection
         messages={messages}
         conversationId={conversationId}
         onMessageSend={handleMessageSend}
       />
 
+      <ChatResponseHandler
+        onMessageSend={handleMessageSend}
+        conversationId={conversationId}
+      />
+
       {selectedMessageForScore && (
-        <FeedbackModal
+        <PronunciationModal
           isOpen={!!selectedMessageForScore}
-          onClose={() => setSelectedMessageForScore(null)}
-          data={selectedMessageForScore.pronunciation_data || {}}
-          userAudioUrl={selectedMessageForScore.audio_url}
-          referenceAudioUrl={selectedMessageForScore.reference_audio_url}
+          onClose={handleCloseScoreModal}
+          response={{
+            text: selectedMessageForScore.text,
+            translation: selectedMessageForScore.translation || '',
+            audio_url: selectedMessageForScore.audio_url,
+            pronunciationData: selectedMessageForScore.pronunciation_data
+          }}
+          isProcessing={false}
+          onSubmit={() => {}}
         />
       )}
-    </div>
+    </>
   );
 }
