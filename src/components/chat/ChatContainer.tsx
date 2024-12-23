@@ -2,10 +2,9 @@ import { useState, useCallback } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { FeedbackModal } from "./FeedbackModal";
-import { useTTSHandler } from "./hooks/useTTSHandler";
-import type { Message } from "@/hooks/useConversation";
 import { useToast } from "@/hooks/use-toast";
-import { useMessageSubscription } from "./hooks/useMessageSubscription";
+import { useConversationMessages } from "./hooks/useConversationMessages";
+import type { Message } from "@/hooks/useConversation";
 
 interface ChatContainerProps {
   onMessageSend: (message: Message) => void;
@@ -19,13 +18,9 @@ export function ChatContainer({
   conversationId 
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
-  const { generateTTSForMessage } = useTTSHandler(conversationId);
   const { toast } = useToast();
+  const { messages } = useConversationMessages(conversationId);
   
-  // Memoize the message subscription to prevent unnecessary re-renders
-  const { messages } = useMessageSubscription(conversationId);
-
-  // Memoize the audio playback handler
   const handlePlayTTS = useCallback(async (audioUrl: string) => {
     if (!audioUrl) {
       console.error('No audio URL provided');
