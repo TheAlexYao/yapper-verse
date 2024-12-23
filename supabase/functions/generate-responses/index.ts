@@ -57,7 +57,7 @@ serve(async (req) => {
       ? pronunciationScores.reduce((a: number, b: number) => a + b, 0) / pronunciationScores.length
       : null;
 
-    // Process full conversation history
+    // Process conversation history
     const conversationHistory = messages.map((msg: any) => ({
       role: msg.is_user ? 'user' : 'assistant',
       content: msg.content,
@@ -67,9 +67,9 @@ serve(async (req) => {
 
     const isFirstMessage = messages.length === 0;
 
-    // Enhanced system prompt with full context
+    // Enhanced system prompt focused on one-sentence responses
     const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
-in a conversation with ${conversation.character.name}, an airport staff member.
+in a conversation with ${conversation.character.name}.
 
 Conversation Context:
 - Total exchanges: ${messages.length}
@@ -77,9 +77,9 @@ Conversation Context:
 - Learning goals: ${profile.learning_goals?.join(', ')}
 
 Current scenario: ${conversation.scenario.title}
-Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard etiquette'}
 Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
-Location details: ${conversation.scenario.location_details || 'Airport setting'}
+Location details: ${conversation.scenario.location_details || 'General setting'}
 
 Previous exchanges:
 ${conversationHistory.map((msg: any) => 
@@ -87,16 +87,15 @@ ${conversationHistory.map((msg: any) =>
 ).join('\n')}
 
 Generate 3 response options that:
-1. Match the user's current level (based on pronunciation scores and exchange history)
-2. Are culturally appropriate for the scenario
-3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Are from the perspective of a traveler speaking to an airport staff member
-5. Use appropriate formality for speaking with airport staff
-6. Build upon previous exchanges and maintain conversation coherence
+1. Are EXACTLY ONE SENTENCE each - no compound or complex sentences
+2. Are natural and contextually appropriate
+3. Match the user's current level (based on pronunciation scores)
+4. Use appropriate formality for the context
+5. Build upon previous exchanges naturally
 
-${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
+${isFirstMessage ? "This is the first message. Generate three simple one-sentence greetings." : "Continue the conversation naturally with one-sentence responses."}
 
-IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
+IMPORTANT: Generate responses as if you are the learner speaking. Keep responses concise and natural.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
     // Call OpenAI API with enhanced context
@@ -111,8 +110,8 @@ Format: Generate responses in JSON format with 'responses' array containing obje
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: isFirstMessage 
-            ? 'Generate three polite ways to approach and greet the airport staff member.' 
-            : 'Generate three natural response options based on the full conversation context.' 
+            ? 'Generate three simple one-sentence greetings.' 
+            : 'Generate three natural one-sentence responses based on the conversation context.' 
           }
         ],
         response_format: { type: "json_object" },
