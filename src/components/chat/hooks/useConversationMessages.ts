@@ -22,7 +22,7 @@ export function useConversationMessages(conversationId: string | null) {
         if (error) throw error;
 
         if (data) {
-          const transformed = data.map((row) => ({
+          const transformed: Message[] = data.map((row) => ({
             id: row.id,
             conversation_id: row.conversation_id,
             text: row.content,
@@ -48,7 +48,6 @@ export function useConversationMessages(conversationId: string | null) {
 
     loadInitialMessages();
 
-    // Set up real-time subscription
     subscriptionRef.current = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -65,10 +64,9 @@ export function useConversationMessages(conversationId: string | null) {
           if (payload.eventType === 'INSERT') {
             const row = payload.new;
             setMessages((prev) => {
-              // Check if message already exists
               if (prev.some(msg => msg.id === row.id)) return prev;
 
-              return [...prev, {
+              const newMessage: Message = {
                 id: row.id,
                 conversation_id: row.conversation_id,
                 text: row.content,
@@ -79,7 +77,9 @@ export function useConversationMessages(conversationId: string | null) {
                 pronunciation_score: row.pronunciation_score,
                 pronunciation_data: row.pronunciation_data,
                 reference_audio_url: row.reference_audio_url,
-              }];
+              };
+
+              return [...prev, newMessage];
             });
           }
         }
