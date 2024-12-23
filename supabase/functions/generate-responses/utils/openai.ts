@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 export const generateOpenAIPrompt = async (conversation: any, profile: any, messages: any[], isFirstMessage: boolean) => {
   // Calculate average pronunciation score
   const pronunciationScores = messages
@@ -38,9 +31,7 @@ Character's style: ${conversation.character.language_style?.join(', ') || 'Profe
 
 Previous exchanges:
 ${conversationHistory.map((msg: any) => 
-  `${msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}: ${msg.content} (${msg.translation})${
-    msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''
-  }`
+  `${msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}: ${msg.content} (${msg.translation})`
 ).join('\n')}
 
 Generate 3 response options that:
@@ -81,7 +72,7 @@ export const callOpenAI = async (systemPrompt: string, isFirstMessage: boolean) 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
         { 
