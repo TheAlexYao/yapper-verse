@@ -67,6 +67,10 @@ serve(async (req) => {
 
     const isFirstMessage = messages.length === 0;
 
+    function capitalize(word: string): string {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+
     // Enhanced system prompt with full context
     const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
 in a conversation with ${conversation.character.name}, an airport staff member.
@@ -82,8 +86,8 @@ Character you're talking to: ${conversation.character.name} - ${conversation.cha
 Location details: ${conversation.scenario.location_details || 'Airport setting'}
 
 Previous exchanges:
-${conversationHistory.map((msg: any) => 
-  `${msg.role}: ${msg.content} (${msg.translation})${msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''}`
+${conversationHistory.map(msg => 
+  `${capitalize(msg.role)}: ${msg.content} (${msg.translation})${msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''}`
 ).join('\n')}
 
 Generate 3 response options that:
@@ -93,11 +97,12 @@ Generate 3 response options that:
 4. Are from the perspective of a traveler speaking to an airport staff member
 5. Use appropriate formality for speaking with airport staff
 6. Build upon previous exchanges and maintain conversation coherence
+7. Are single sentences to ensure clarity and manageability
 
 ${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
 
 IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
-Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
+Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), 'transliteration' (pronunciation guide), and 'hint' fields.`;
 
     // Call OpenAI API with enhanced context
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -133,13 +138,26 @@ Format: Generate responses in JSON format with 'responses' array containing obje
     console.log('Parsed generated content:', generatedContent);
 
     // Transform responses while preserving existing format
-    const responses = generatedContent.responses.map((response: any) => ({
-      id: crypto.randomUUID(),
-      text: response.text,
-      translation: response.translation,
-      hint: response.hint,
-      characterGender: conversation.character.gender || 'female'
-    }));
+    const responses = generatedContent.responses.map((response: any) => {
+      if (!response.text || !response.translation || !response.transliteration || !response.hint) {
+        throw new Error('Incomplete response fields from OpenAI');
+      }
+
+      // Verify single sentence
+      const sentenceCount = (response.text.match(/[.!?]/g) || []).length;
+      if (sentenceCount !== 1) {
+        throw new Error('Response text is not a single sentence');
+      }
+
+      return {
+        id: crypto.randomUUID(),
+        text: response.text,
+        translation: response.translation,
+        transliteration: response.transliteration,
+        hint: response.hint,
+        characterGender: conversation.character.gender || 'female'
+      };
+    });
 
     return new Response(JSON.stringify({ responses }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
