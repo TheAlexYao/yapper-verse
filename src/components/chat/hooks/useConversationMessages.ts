@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTTSHandler } from './useTTSHandler';
@@ -8,8 +8,21 @@ export function useConversationMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+  const processingMessagesRef = useRef<Set<string>>(new Set());
 
-  // Load initial messages
+  // Memoize the TTS generation handler
+  const handleTTSGeneration = useCallback((message: Message) => {
+    // Skip if already processing or if TTS not needed
+    if (processingMessagesRef.current.has(message.id)) return;
+    if ((!message.audio_url && !message.isUser) || (!message.reference_audio_url && message.isUser)) {
+      processingMessagesRef.current.add(message.id);
+      generateTTSForMessage(message).finally(() => {
+        processingMessagesRef.current.delete(message.id);
+      });
+    }
+  }, [generateTTSForMessage]);
+
+  // Load initial messages - only depends on conversationId
   useEffect(() => {
     if (!conversationId) return;
 
@@ -37,13 +50,7 @@ export function useConversationMessages(conversationId: string | null) {
         }));
 
         setMessages(formattedMessages);
-
-        // Generate TTS only for messages that need it
-        formattedMessages.forEach(msg => {
-          if ((!msg.audio_url && !msg.isUser) || (!msg.reference_audio_url && msg.isUser)) {
-            generateTTSForMessage(msg);
-          }
-        });
+        formattedMessages.forEach(handleTTSGeneration);
       } catch (error) {
         console.error('Error loading messages:', error);
         toast({
@@ -55,9 +62,9 @@ export function useConversationMessages(conversationId: string | null) {
     };
 
     loadMessages();
-  }, [conversationId, toast, generateTTSForMessage]);
+  }, [conversationId, toast, handleTTSGeneration]);
 
-  // Set up real-time subscription once
+  // Set up real-time subscription - only depends on conversationId
   useEffect(() => {
     if (!conversationId) return;
 
@@ -88,12 +95,7 @@ export function useConversationMessages(conversationId: string | null) {
           };
 
           setMessages(prev => [...prev, newMessage]);
-
-          // Generate TTS only if needed
-          if ((!newMessage.audio_url && !newMessage.isUser) || 
-              (!newMessage.reference_audio_url && newMessage.isUser)) {
-            generateTTSForMessage(newMessage);
-          }
+          handleTTSGeneration(newMessage);
         }
       )
       .subscribe();
@@ -102,7 +104,7 @@ export function useConversationMessages(conversationId: string | null) {
       console.log('Cleaning up message subscription');
       supabase.removeChannel(channel);
     };
-  }, [conversationId, generateTTSForMessage]); // Only re-run if these change
+  }, [conversationId, handleTTSGeneration]);
 
   return { messages };
 }
