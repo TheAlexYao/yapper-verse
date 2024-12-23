@@ -39,6 +39,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         .single();
       
       if (data) {
+        console.log('Setting initial last AI message ID:', data.id);
         setLastAiMessageId(data.id);
       }
     };
@@ -57,14 +58,11 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
           body: {
             conversationId,
             userId: user.id,
+            lastMessageId: lastAiMessageId
           },
         });
 
-        if (error) {
-          console.error('Error fetching responses:', error);
-          throw error;
-        }
-
+        if (error) throw error;
         return data.responses || [];
       } catch (error) {
         console.error('Error fetching responses:', error);
@@ -77,6 +75,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       }
     },
     enabled: !!conversationId && !!user?.id,
+    staleTime: 0, // Always refetch when queryKey changes
+    cacheTime: 0, // Don't cache responses
   });
 
   // Update lastAiMessageId when new AI messages arrive
