@@ -18,6 +18,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // BUG: This state might not update immediately when a new AI message arrives
+  // because the subscription might miss messages that arrive before it's set up
   const [lastAiMessageId, setLastAiMessageId] = useState<string | null>(null);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
@@ -29,6 +32,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     if (!conversationId) return;
     
     const loadLastAiMessage = async () => {
+      // BUG: This initial load might race with new messages arriving
+      // We should consider using a more robust way to track message order
       const { data } = await supabase
         .from('guided_conversation_messages')
         .select('id')
@@ -47,6 +52,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     loadLastAiMessage();
   }, [conversationId]);
 
+  // BUG: The useQuery hook might not refresh immediately when lastAiMessageId changes
+  // due to React's batching of state updates
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId, user?.id, lastAiMessageId],
     queryFn: async () => {
@@ -76,13 +83,15 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     },
     enabled: !!conversationId && !!user?.id,
     staleTime: 0, // Always refetch when queryKey changes
-    gcTime: 0, // Don't cache responses (formerly cacheTime)
+    gcTime: 0, // Don't cache responses
   });
 
   // Listen for new AI messages
   useEffect(() => {
     if (!conversationId) return;
 
+    // BUG: The subscription might miss messages that arrive during setup
+    // We should consider using a more robust message tracking mechanism
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -95,7 +104,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         },
         (payload) => {
           console.log('New AI message detected:', payload.new.id);
-          // Update lastAiMessageId to trigger a response refresh
+          // BUG: This state update might not immediately trigger a response refresh
+          // due to React's state batching and the async nature of the subscription
           setLastAiMessageId(payload.new.id);
         }
       )
