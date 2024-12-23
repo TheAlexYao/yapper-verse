@@ -14,22 +14,6 @@ interface ChatResponseHandlerProps {
   conversationId: string;
 }
 
-/**
- * BUG: Recommended responses are not being updated after an AI message is generated
- * 
- * Current behavior:
- * - Responses are fetched only when conversationId or user.id changes
- * - No refetch happens when new AI messages are added
- * 
- * Expected behavior:
- * - Responses should update after each AI message to provide contextually relevant options
- * 
- * Potential fixes:
- * 1. Add messages.length as a dependency to useQuery
- * 2. Manually invalidate the query after receiving an AI response
- * 3. Set up a subscription to guided_conversation_messages table
- */
-
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);

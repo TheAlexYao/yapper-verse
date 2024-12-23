@@ -11,7 +11,7 @@ interface ChatMessagesSectionProps {
 export function ChatMessagesSection({ 
   messages, 
   onPlayAudio, 
-  onShowScore
+  onShowScore 
 }: ChatMessagesSectionProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
