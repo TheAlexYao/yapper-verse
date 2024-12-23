@@ -2,22 +2,22 @@
 
 ## Current State (Last Updated)
 
-### Message Flow
+### Message Flow ✅
 1. Initial load works correctly:
    ```typescript
-   Found existing conversation: 15df7f01-34e6-46b2-b8e3-eeb61dcc45ef
-   Loading initial messages for conversation: 15df7f01-34e6-46b2-b8e3-eeb61dcc45ef
-   Setting up message subscription for conversation: 15df7f01-34e6-46b2-b8e3-eeb61dcc45ef
+   Found existing conversation: [conversation_id]
+   Loading initial messages for conversation: [conversation_id]
+   Setting up message subscription for conversation: [conversation_id]
    ```
 
-2. Subscription management fixed:
+2. Subscription management works:
    ```typescript
-   Subscription already exists for: 15df7f01-34e6-46b2-b8e3-eeb61dcc45ef
-   Setting initial messages: 1
+   Subscription already exists for: [conversation_id]
+   Setting initial messages: [count]
    Subscription status: SUBSCRIBED
    ```
 
-### Audio Generation Flow
+### Audio Generation Flow ✅
 1. TTS Generation works:
    ```typescript
    Generating TTS for: {text: "...", voicePreference: 'male', speed: 'normal'}
@@ -25,59 +25,61 @@
    Successfully generated audio URL: https://...
    ```
 
-2. Message Updates:
+2. Message Updates work:
    ```typescript
-   Updating message with audio URL: {messageId: 'e8f952f2-77ec-404c-9c86-102e78459d5e'}
+   Updating message with audio URL: {messageId: '...'}
    Successfully updated message with audio URL
    ```
 
-## Current Issue: Audio Button Display
+### Real-time Updates ✅
+1. Database Configuration:
+   - REPLICA IDENTITY FULL enabled on guided_conversation_messages
+   - Real-time subscriptions properly configured
+   - Message updates trigger UI refresh
 
-### Problem
-The audio URL is successfully generated and stored, but the UI doesn't update to show the audio button.
-
-### Debug Points
-1. Message Update Flow:
-   - Message update is confirmed in database
-   - Real-time subscription should detect change
-   - UI should re-render with new audio URL
-
-2. Component Chain:
+2. Component Chain works:
    ```
    ChatContainer
    └─ ChatMessagesSection
       └─ ChatMessages
          └─ MessageBubble
-            └─ AudioButton (not showing up)
+            └─ AudioButton
    ```
-
-3. Data Flow Check Points:
-   - Database Update ✅ (confirmed by logs)
-   - Subscription Event ❓ (need to verify)
-   - State Update ❓ (need to verify)
-   - Component Re-render ❓ (need to verify)
-
-### Next Debug Steps
-1. Add subscription event logging
-2. Verify message state updates
-3. Check MessageBubble render triggers
-4. Validate AudioButton conditional rendering
 
 ## Testing Checklist
 - [x] Initial message load works
 - [x] Subscription setup works
 - [x] TTS generation works
 - [x] Database updates work
-- [ ] UI updates with audio button
-- [ ] Audio playback works
+- [x] UI updates with audio button
+- [x] Audio playback works
 
 ## Component Dependencies
 - useConversationMessages (manages subscription)
 - MessageBubble (handles audio button display)
 - AudioButton (actual play button)
 
-## Potential Fix Areas
-1. Subscription event handling in useConversationMessages
-2. Message state updates in ChatContainer
-3. Re-render triggers in MessageBubble
-4. Conditional rendering logic for AudioButton
+## Key Fixes Applied
+1. Added REPLICA IDENTITY FULL to guided_conversation_messages table
+2. Implemented proper UPDATE subscription handling
+3. Fixed state management for real-time updates
+4. Added proper error handling and logging
+
+## Current Architecture
+1. Message Flow:
+   - User sends message
+   - Message stored in database
+   - TTS generated and cached
+   - Audio URL updated in message
+   - Real-time update triggers UI refresh
+
+2. Audio Management:
+   - TTS generation handled by edge function
+   - Audio files stored in Supabase storage
+   - URLs cached for reuse
+   - Playback managed by AudioButton component
+
+3. State Management:
+   - React Query for server state
+   - Real-time subscriptions for updates
+   - Local state for UI interactions
