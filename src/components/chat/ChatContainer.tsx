@@ -21,6 +21,7 @@ export function ChatContainer({
   conversationId 
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { messages } = useConversationMessages(conversationId);
   
@@ -55,18 +56,29 @@ export function ChatContainer({
     setSelectedMessageForScore(message);
   }, []);
 
+  const handleMessageSend = useCallback(async (message: Message) => {
+    setIsProcessing(true);
+    try {
+      await onMessageSend(message);
+    } finally {
+      // We set isProcessing to false after a short delay to ensure the skeleton is visible
+      setTimeout(() => setIsProcessing(false), 500);
+    }
+  }, [onMessageSend]);
+
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <MemoizedChatMessagesSection 
         messages={messages}
         onPlayAudio={handlePlayTTS}
         onShowScore={handleShowScore}
+        isProcessing={isProcessing}
       />
 
       <MemoizedChatBottomSection 
         messages={messages}
         conversationId={conversationId}
-        onMessageSend={onMessageSend}
+        onMessageSend={handleMessageSend}
       />
 
       {selectedMessageForScore && (
