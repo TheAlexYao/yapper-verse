@@ -18,17 +18,15 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
 
   const startRecording = async () => {
     try {
-      // Step 1: Configure audio stream with specific requirements for Azure
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
-          channelCount: 1, // Mono audio required
-          sampleRate: 16000, // 16kHz required by Azure
+          channelCount: 1,
+          sampleRate: 16000,
           echoCancellation: true,
           noiseSuppression: true,
         } 
       });
       
-      // Step 2: Initialize MediaRecorder with PCM format
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=pcm'
       });
@@ -36,25 +34,20 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      // Step 3: Handle incoming audio data
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      // Step 4: Process recorded audio when stopped
       mediaRecorder.onstop = async () => {
-        // Convert WebM to WAV format required by Azure
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const audioContext = new AudioContext({ sampleRate: 16000 });
         
         try {
-          // Convert to proper format for assessment
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
           
-          // Create WAV file with correct specifications
           const wavBuffer = audioBufferToWav(audioBuffer);
           const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
           
@@ -73,7 +66,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
           audioContext.close();
         }
 
-        // Cleanup: Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -92,7 +84,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
-      // The onstop handler will handle the rest
     }
   };
 
@@ -104,11 +95,10 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
     }
   };
 
-  // Helper function to convert AudioBuffer to WAV format
   function audioBufferToWav(buffer: AudioBuffer): ArrayBuffer {
     const numChannels = 1;
     const sampleRate = buffer.sampleRate;
-    const format = 1; // PCM
+    const format = 1;
     const bitDepth = 16;
     
     const dataLength = buffer.length * numChannels * (bitDepth / 8);
@@ -116,7 +106,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
     const arrayBuffer = new ArrayBuffer(bufferLength);
     const view = new DataView(arrayBuffer);
     
-    // WAV header
     writeString(view, 0, 'RIFF');
     view.setUint32(4, 36 + dataLength, true);
     writeString(view, 8, 'WAVE');
@@ -131,7 +120,6 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
     writeString(view, 36, 'data');
     view.setUint32(40, dataLength, true);
     
-    // Write audio data
     const channelData = buffer.getChannelData(0);
     let offset = 44;
     for (let i = 0; i < channelData.length; i++) {
@@ -155,7 +143,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
         <Button
           variant={isRecording ? "destructive" : "default"}
           onClick={handleRecord}
-          disabled={isProcessing}
+          disabled={isProcessing && !isRecording} // Only disable if processing and not currently recording
           className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
         >
           <Mic className="mr-2 h-4 w-4" />
