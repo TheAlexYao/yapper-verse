@@ -5,7 +5,7 @@ import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query"; // Added useQueryClient
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,11 +23,11 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // Added for manual invalidation
+  const queryClient = useQueryClient();
 
   // Wrapped in useCallback to maintain reference stability
   const invalidateResponses = useCallback(() => {
-    // Force a refresh of the responses query
+    console.log('Invalidating responses for:', { conversationId, userId: user?.id, lastAiMessageId });
     queryClient.invalidateQueries({
       queryKey: ['responses', conversationId, user?.id, lastAiMessageId]
     });
@@ -38,26 +38,60 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     if (!conversationId) return;
     
     const loadLastAiMessage = async () => {
-      // Using orderBy with multiple columns ensures consistent ordering
+      console.log('Loading initial AI message for conversation:', conversationId);
       const { data } = await supabase
         .from('guided_conversation_messages')
         .select('id, created_at')
         .eq('conversation_id', conversationId)
         .eq('is_user', false)
         .order('created_at', { ascending: false })
-        .order('id', { ascending: false }) // Secondary sort for stability
         .limit(1)
         .single();
       
       if (data) {
         console.log('Setting initial last AI message ID:', data.id);
         setLastAiMessageId(data.id);
-        // Ensure responses are fresh after setting initial ID
-        invalidateResponses();
       }
     };
 
     loadLastAiMessage();
+  }, [conversationId]);
+
+  // Set up real-time subscription for new AI messages
+  useEffect(() => {
+    if (!conversationId) return;
+
+    console.log('Setting up message subscription for conversation:', conversationId);
+
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId} AND is_user=eq.false`
+        },
+        (payload) => {
+          console.log('New AI message received:', payload.new);
+          // Update lastAiMessageId and force a refresh in a single batch
+          setLastAiMessageId(payload.new.id);
+          // Use queueMicrotask to ensure the refresh happens after state update
+          queueMicrotask(() => {
+            console.log('Forcing response refresh for new message:', payload.new.id);
+            invalidateResponses();
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up message subscription');
+      supabase.removeChannel(channel);
+    };
   }, [conversationId, invalidateResponses]);
 
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
@@ -87,54 +121,8 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         return [];
       }
     },
-    enabled: !!conversationId && !!user?.id,
-    staleTime: 0, // Always refetch when queryKey changes
-    gcTime: 0, // Don't cache responses
+    enabled: !!conversationId && !!user?.id && !!lastAiMessageId,
   });
-
-  // Listen for new AI messages with improved handling
-  useEffect(() => {
-    if (!conversationId) return;
-
-    console.log('Setting up message subscription for conversation:', conversationId);
-
-    // Create a subscription to handle new AI messages
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId} AND is_user=eq.false`
-        },
-        (payload) => {
-          console.log('New AI message detected:', payload.new.id);
-          
-          // Update state and force a refresh in a single batch
-          setLastAiMessageId((prevId) => {
-            // Only update if the new message is more recent
-            if (prevId !== payload.new.id) {
-              // Force an immediate refresh of responses
-              // This runs after the state update is committed
-              queueMicrotask(() => {
-                console.log('Forcing response refresh for new message:', payload.new.id);
-                invalidateResponses();
-              });
-              return payload.new.id;
-            }
-            return prevId;
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up message subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, invalidateResponses]);
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
