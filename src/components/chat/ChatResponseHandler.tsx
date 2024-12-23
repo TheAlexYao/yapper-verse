@@ -76,7 +76,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     },
     enabled: !!conversationId && !!user?.id,
     staleTime: 0, // Always refetch when queryKey changes
-    cacheTime: 0, // Don't cache responses
+    gcTime: 0, // Don't cache responses (formerly cacheTime)
   });
 
   // Update lastAiMessageId when new AI messages arrive
