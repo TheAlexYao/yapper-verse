@@ -24,6 +24,7 @@ export function useConversationMessages(conversationId: string | null) {
         if (data) {
           const transformed = data.map((row) => ({
             id: row.id,
+            conversation_id: row.conversation_id,
             text: row.content,
             translation: row.translation,
             transliteration: row.transliteration,
@@ -69,6 +70,7 @@ export function useConversationMessages(conversationId: string | null) {
 
               return [...prev, {
                 id: row.id,
+                conversation_id: row.conversation_id,
                 text: row.content,
                 translation: row.translation,
                 transliteration: row.transliteration,

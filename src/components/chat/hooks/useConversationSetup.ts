@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useMessageSubscription } from "./useMessageSubscription";
+import { useConversationMessages } from "./useConversationMessages";
 
 export function useConversationSetup(character: any, scenario: any) {
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const { messages } = useMessageSubscription(conversationId);
+  const { messages } = useConversationMessages(conversationId);
   const { toast } = useToast();
 
   // Main setup effect
