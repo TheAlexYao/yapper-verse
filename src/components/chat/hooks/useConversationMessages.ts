@@ -1,22 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTTSHandler } from './useTTSHandler';
 import type { Message } from '@/hooks/useConversation';
+
+// Create a stable reference for active subscriptions
+const activeSubscriptions = new Map<string, ReturnType<typeof supabase.channel>>();
 
 export function useConversationMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
   const processingMessagesRef = useRef<Set<string>>(new Set());
-  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isLoadingRef = useRef(false);
 
   // Load initial messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || isLoadingRef.current) return;
 
     const loadMessages = async () => {
       try {
+        isLoadingRef.current = true;
+        console.log('Loading initial messages for conversation:', conversationId);
+        
         const { data, error } = await supabase
           .from('guided_conversation_messages')
           .select('*')
@@ -38,6 +44,7 @@ export function useConversationMessages(conversationId: string | null) {
           reference_audio_url: msg.reference_audio_url
         }));
 
+        console.log('Setting initial messages:', formattedMessages.length);
         setMessages(formattedMessages);
         
         // Process TTS for messages that need it
@@ -57,21 +64,22 @@ export function useConversationMessages(conversationId: string | null) {
           description: "Failed to load messages. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        isLoadingRef.current = false;
       }
     };
 
     loadMessages();
-  }, [conversationId, toast]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
   // Set up real-time subscription
   useEffect(() => {
     if (!conversationId) return;
 
-    // Clean up existing subscription if any
-    if (subscriptionRef.current) {
-      console.log('Cleaning up existing subscription');
-      supabase.removeChannel(subscriptionRef.current);
-      subscriptionRef.current = null;
+    // Check if subscription already exists
+    if (activeSubscriptions.has(conversationId)) {
+      console.log('Subscription already exists for:', conversationId);
+      return;
     }
 
     console.log('Setting up message subscription for conversation:', conversationId);
@@ -102,7 +110,6 @@ export function useConversationMessages(conversationId: string | null) {
 
           setMessages(prev => [...prev, newMessage]);
           
-          // Process TTS if needed
           if (processingMessagesRef.current.has(newMessage.id)) return;
           if ((!newMessage.audio_url && !newMessage.isUser) || (!newMessage.reference_audio_url && newMessage.isUser)) {
             processingMessagesRef.current.add(newMessage.id);
@@ -112,15 +119,20 @@ export function useConversationMessages(conversationId: string | null) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
-    subscriptionRef.current = channel;
+    activeSubscriptions.set(conversationId, channel);
 
     return () => {
       console.log('Cleaning up message subscription');
-      if (subscriptionRef.current) {
-        supabase.removeChannel(subscriptionRef.current);
-        subscriptionRef.current = null;
+      if (activeSubscriptions.has(conversationId)) {
+        const sub = activeSubscriptions.get(conversationId);
+        if (sub) {
+          supabase.removeChannel(sub);
+          activeSubscriptions.delete(conversationId);
+        }
       }
     };
   }, [conversationId]); // Only depend on conversationId

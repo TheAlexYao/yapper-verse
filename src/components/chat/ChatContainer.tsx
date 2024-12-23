@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { FeedbackModal } from "./FeedbackModal";
@@ -11,6 +11,9 @@ interface ChatContainerProps {
   onPlayTTS: (text: string) => void;
   conversationId: string;
 }
+
+const MemoizedChatMessagesSection = memo(ChatMessagesSection);
+const MemoizedChatBottomSection = memo(ChatBottomSection);
 
 export function ChatContainer({ 
   onMessageSend, 
@@ -48,15 +51,19 @@ export function ChatContainer({
     }
   }, [toast]);
 
+  const handleShowScore = useCallback((message: Message) => {
+    setSelectedMessageForScore(message);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
-      <ChatMessagesSection 
+      <MemoizedChatMessagesSection 
         messages={messages}
         onPlayAudio={handlePlayTTS}
-        onShowScore={setSelectedMessageForScore}
+        onShowScore={handleShowScore}
       />
 
-      <ChatBottomSection 
+      <MemoizedChatBottomSection 
         messages={messages}
         conversationId={conversationId}
         onMessageSend={onMessageSend}
