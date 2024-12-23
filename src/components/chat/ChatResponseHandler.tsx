@@ -15,6 +15,7 @@ interface ChatResponseHandlerProps {
 }
 
 export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
+  // State for managing response selection and modal visibility
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -23,7 +24,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
 
-  // Fetch AI responses
+  // Flow Step 1: Fetch AI responses when conversation loads
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId],
     queryFn: async () => {
@@ -56,10 +57,12 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     enabled: !!conversationId && !!user?.id,
   });
 
+  // Flow Step 4: Handle completion of pronunciation assessment
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
     onMessageSend,
     onComplete: () => {
+      // IMPROVEMENT NEEDED: Modal should close here before waiting for AI response
       setSelectedResponse(null);
       setShowPronunciationModal(false);
       setIsProcessing(false);
@@ -67,6 +70,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
+  // Flow Step 2: Handle response selection and TTS generation
   const handleResponseSelect = async (response: any) => {
     if (isGeneratingTTS) {
       toast({
@@ -78,7 +82,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     }
     
     try {
-      // Step 1: Get user's voice preference from profile
+      // Get user's voice preference
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
@@ -89,7 +93,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Target language not set');
       }
 
-      // Step 2: Generate reference audio for pronunciation comparison
+      // Generate reference audio for pronunciation comparison
       console.log('Generating reference audio for:', response.text);
       const normalAudioUrl = await generateTTS(
         response.text, 
@@ -101,7 +105,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Failed to generate reference audio');
       }
 
-      // Step 3: Store response with generated audio URL and language info
+      // Store response with generated audio URL and open modal
       setSelectedResponse({ 
         ...response, 
         audio_url: normalAudioUrl,
@@ -118,6 +122,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     }
   };
 
+  // Flow Step 3: Handle pronunciation submission
   const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
     if (!selectedResponse) {
       toast({
@@ -131,6 +136,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     setIsProcessing(true);
     try {
       console.log('Starting pronunciation submission with score:', score);
+      // IMPROVEMENT NEEDED: Add UI feedback when audio quality is too low
       await handlePronunciationComplete(score, audioBlob);
       console.log('Pronunciation submission completed successfully');
     } catch (error) {

@@ -72,6 +72,7 @@ export function usePronunciationHandler({
       // Step 5: Extract assessment results with null checks
       const { audioUrl, assessment } = assessmentData || {};
       
+      // IMPROVEMENT NEEDED: Add better error handling for low quality audio
       if (!assessment) {
         throw new Error('No assessment data received');
       }
@@ -95,6 +96,7 @@ export function usePronunciationHandler({
       console.log('Created new message with assessment:', newMessage);
 
       // Step 7: Send message and update UI
+      // IMPROVEMENT NEEDED: Close modal before waiting for AI response
       await onMessageSend(newMessage);
       onComplete();
     } catch (error) {
