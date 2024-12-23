@@ -3,15 +3,19 @@
 ## Generation Process
 
 1. **Context Collection**
-   - Fetch user profile from Supabase
+   - Fetch user profile
    - Get conversation history
    - Load scenario details
    - Gather character information
 
-2. **Prompt Assembly**
-   - Combine all contexts into structured prompt
-   - Include specific instructions for response variety
-   - Set constraints based on user's level
+2. **Trigger Points**
+   ```typescript
+   enum ResponseTrigger {
+     CONVERSATION_START = 'start',
+     USER_SELECTION = 'selection',
+     MANUAL_REFRESH = 'refresh'
+   }
+   ```
 
 3. **Response Processing**
    - Parse OpenAI response
@@ -26,7 +30,7 @@
 interface GenerateResponsesPayload {
   conversationId: string;
   userId: string;
-  lastMessageContent: string;
+  trigger: ResponseTrigger;
 }
 
 interface ProcessedResponse {

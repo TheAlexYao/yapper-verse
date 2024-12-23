@@ -1,52 +1,51 @@
 # Recommended Responses Flow Documentation
 
 ## Overview
-The recommended responses system automatically provides AI-generated response options for users during guided conversations. These responses are refreshed automatically whenever a new AI message is received.
+The recommended responses system provides AI-generated response options for users during guided conversations. These responses are generated at specific trigger points to avoid infinite loops.
 
 ## Flow Steps
 
 1. **Trigger Points**
-   - After each AI message (automatic)
    - Initial conversation start
+   - After user selects a response
+   - Manual refresh (if needed)
    ```mermaid
    graph TD
-      A[New AI Message] --> B[Update lastAiMessageId]
-      B --> C[Invalidate Query Cache]
-      C --> D[Generate New Responses]
-      D --> E[Display Updated Options]
+      A[Conversation Start] --> B[Generate Initial Responses]
+      C[User Selects Response] --> D[Send Message]
+      D --> E[Wait for AI Reply]
+      E --> F[Generate New Responses]
    ```
 
-2. **Real-time Updates**
-   - WebSocket subscription tracks new AI messages
-   - `lastAiMessageId` state updates automatically
-   - Query cache invalidation triggers new response generation
-   - UI updates with new response options
-
-3. **Key Components**
-   - ChatResponseHandler: Manages response state and WebSocket subscription
-   - RecommendedResponses: Displays response options
-   - generate-responses Edge Function: Creates AI responses
-
-4. **State Management**
+2. **State Management**
+   - Responses cached by conversation ID
+   - Cache invalidated only on explicit triggers
+   - No automatic refetching on AI messages
    ```typescript
    // Query configuration
    {
-     queryKey: ['responses', conversationId, userId, lastAiMessageId],
+     queryKey: ['responses', conversationId],
      queryFn: async () => {
        // Generate responses via edge function
        return responses;
      },
-     enabled: !!conversationId && !!userId && !!lastAiMessageId
+     enabled: !!conversationId,
+     staleTime: Infinity // Prevent automatic refetching
    }
    ```
 
-5. **Response Generation**
+3. **Key Components**
+   - ChatResponseHandler: Manages response state
+   - RecommendedResponses: Displays response options
+   - generate-responses Edge Function: Creates AI responses
+
+4. **Response Generation**
    - Fetches latest conversation context
    - Includes user profile data
    - Generates culturally appropriate responses
    - Returns formatted response objects
 
-6. **Error Handling**
+5. **Error Handling**
    - Failed generations show toast notifications
    - Loading states prevent duplicate requests
    - Fallback to empty responses array if needed
@@ -65,31 +64,33 @@ interface Response {
 ```
 
 ### Dependencies
-- Supabase WebSocket subscriptions
+- Supabase for real-time updates
 - React Query for caching
-- Toast notifications
+- Toast notifications for user feedback
 
 ## User Experience
 
-1. User sees AI message arrive
-2. Response options automatically update
-3. Loading state shows while generating
-4. New options appear when ready
-5. User can select from updated responses
+1. User starts conversation
+2. Initial responses generated
+3. User selects response
+4. Message sent to AI
+5. AI replies
+6. New responses generated
+7. Process repeats
 
 ## Performance Considerations
 
-1. **Automatic Updates**
-   - WebSocket subscription tracks new AI messages
-   - `lastAiMessageId` triggers cache invalidation
-   - UI updates automatically
-   - No manual refresh needed
+1. **Controlled Updates**
+   - No automatic refetching
+   - Manual cache invalidation
+   - Explicit trigger points
+   - Prevents infinite loops
 
 2. **Caching Strategy**
-   - Responses cached by query key
-   - Cache includes lastAiMessageId
-   - Invalidated on new AI messages
-   - Prevents unnecessary regeneration
+   - Responses cached by conversation
+   - Cache cleared on specific actions
+   - No automatic invalidation
+   - Manual refresh if needed
 
 3. **Error Recovery**
    - Failed requests show user feedback
