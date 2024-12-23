@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTTSHandler } from './useTTSHandler';
@@ -8,6 +8,34 @@ export function useConversationMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
+
+  // Memoize the message handler to prevent recreation on every render
+  const handleNewMessage = useCallback((payload: any) => {
+    const newMessage: Message = {
+      id: payload.new.id,
+      conversation_id: payload.new.conversation_id,
+      text: payload.new.content,
+      translation: payload.new.translation,
+      transliteration: payload.new.transliteration,
+      isUser: payload.new.is_user,
+      audio_url: payload.new.audio_url,
+      pronunciation_score: payload.new.pronunciation_score,
+      pronunciation_data: payload.new.pronunciation_data,
+      reference_audio_url: payload.new.reference_audio_url
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+
+    // Generate TTS if needed
+    if (!newMessage.audio_url && !newMessage.isUser) {
+      console.log('Generating TTS for new AI message:', newMessage.id);
+      generateTTSForMessage(newMessage);
+    }
+    if (!newMessage.reference_audio_url && newMessage.isUser) {
+      console.log('Generating reference TTS for new user message:', newMessage.id);
+      generateTTSForMessage(newMessage);
+    }
+  }, [generateTTSForMessage]);
 
   // Load initial messages
   useEffect(() => {
@@ -38,7 +66,7 @@ export function useConversationMessages(conversationId: string | null) {
 
         setMessages(formattedMessages);
 
-        // Generate TTS for messages that don't have audio
+        // Generate TTS for messages that need it
         formattedMessages.forEach(msg => {
           if (!msg.audio_url && !msg.isUser) {
             console.log('Generating TTS for message:', msg.id);
@@ -49,7 +77,6 @@ export function useConversationMessages(conversationId: string | null) {
             generateTTSForMessage(msg);
           }
         });
-
       } catch (error) {
         console.error('Error loading messages:', error);
         toast({
@@ -63,13 +90,13 @@ export function useConversationMessages(conversationId: string | null) {
     loadMessages();
   }, [conversationId, toast, generateTTSForMessage]);
 
-  // Subscribe to new messages
+  // Set up real-time subscription
   useEffect(() => {
     if (!conversationId) return;
 
     console.log('Setting up message subscription for conversation:', conversationId);
     
-    const subscription = supabase
+    const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
@@ -79,41 +106,15 @@ export function useConversationMessages(conversationId: string | null) {
           table: 'guided_conversation_messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        async (payload) => {
-          console.log('Received new message:', payload);
-          const newMessage: Message = {
-            id: payload.new.id,
-            conversation_id: payload.new.conversation_id,
-            text: payload.new.content,
-            translation: payload.new.translation,
-            transliteration: payload.new.transliteration,
-            isUser: payload.new.is_user,
-            audio_url: payload.new.audio_url,
-            pronunciation_score: payload.new.pronunciation_score,
-            pronunciation_data: payload.new.pronunciation_data,
-            reference_audio_url: payload.new.reference_audio_url
-          };
-
-          setMessages(prev => [...prev, newMessage]);
-
-          // Generate TTS for new messages
-          if (!newMessage.audio_url && !newMessage.isUser) {
-            console.log('Generating TTS for new AI message:', newMessage.id);
-            generateTTSForMessage(newMessage);
-          }
-          if (!newMessage.reference_audio_url && newMessage.isUser) {
-            console.log('Generating reference TTS for new user message:', newMessage.id);
-            generateTTSForMessage(newMessage);
-          }
-        }
+        handleNewMessage
       )
       .subscribe();
 
     return () => {
       console.log('Cleaning up message subscription');
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [conversationId, generateTTSForMessage]);
+  }, [conversationId, handleNewMessage]); // Only re-run if conversationId or handleNewMessage changes
 
   return { messages };
 }
