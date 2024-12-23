@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useTTSHandler } from './useTTSHandler';
@@ -8,55 +8,12 @@ export function useConversationMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const { toast } = useToast();
   const { generateTTSForMessage } = useTTSHandler(conversationId || '');
-  const processingMessages = useRef(new Set<string>());
-
-  // Memoize the TTS generation to prevent infinite loops
-  const handleTTSGeneration = useCallback((message: Message) => {
-    const messageId = message.id;
-    if (processingMessages.current.has(messageId)) {
-      console.log('Already processing TTS for message:', messageId);
-      return;
-    }
-
-    processingMessages.current.add(messageId);
-    generateTTSForMessage(message).finally(() => {
-      processingMessages.current.delete(messageId);
-    });
-  }, [generateTTSForMessage]);
-
-  // Memoize the message handler to prevent recreation on every render
-  const handleNewMessage = useCallback((payload: any) => {
-    const newMessage: Message = {
-      id: payload.new.id,
-      conversation_id: payload.new.conversation_id,
-      text: payload.new.content,
-      translation: payload.new.translation,
-      transliteration: payload.new.transliteration,
-      isUser: payload.new.is_user,
-      audio_url: payload.new.audio_url,
-      pronunciation_score: payload.new.pronunciation_score,
-      pronunciation_data: payload.new.pronunciation_data,
-      reference_audio_url: payload.new.reference_audio_url
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-
-    // Generate TTS if needed
-    if (!newMessage.audio_url && !newMessage.isUser) {
-      console.log('Generating TTS for new AI message:', newMessage.id);
-      handleTTSGeneration(newMessage);
-    }
-    if (!newMessage.reference_audio_url && newMessage.isUser) {
-      console.log('Generating reference TTS for new user message:', newMessage.id);
-      handleTTSGeneration(newMessage);
-    }
-  }, [handleTTSGeneration]);
 
   // Load initial messages
   useEffect(() => {
-    const loadMessages = async () => {
-      if (!conversationId) return;
+    if (!conversationId) return;
 
+    const loadMessages = async () => {
       try {
         const { data, error } = await supabase
           .from('guided_conversation_messages')
@@ -81,15 +38,10 @@ export function useConversationMessages(conversationId: string | null) {
 
         setMessages(formattedMessages);
 
-        // Generate TTS for messages that need it
+        // Generate TTS only for messages that need it
         formattedMessages.forEach(msg => {
-          if (!msg.audio_url && !msg.isUser) {
-            console.log('Generating TTS for message:', msg.id);
-            handleTTSGeneration(msg);
-          }
-          if (!msg.reference_audio_url && msg.isUser) {
-            console.log('Generating reference TTS for user message:', msg.id);
-            handleTTSGeneration(msg);
+          if ((!msg.audio_url && !msg.isUser) || (!msg.reference_audio_url && msg.isUser)) {
+            generateTTSForMessage(msg);
           }
         });
       } catch (error) {
@@ -103,9 +55,9 @@ export function useConversationMessages(conversationId: string | null) {
     };
 
     loadMessages();
-  }, [conversationId, toast, handleTTSGeneration]);
+  }, [conversationId, toast, generateTTSForMessage]);
 
-  // Set up real-time subscription
+  // Set up real-time subscription once
   useEffect(() => {
     if (!conversationId) return;
 
@@ -121,7 +73,28 @@ export function useConversationMessages(conversationId: string | null) {
           table: 'guided_conversation_messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        handleNewMessage
+        (payload) => {
+          const newMessage: Message = {
+            id: payload.new.id,
+            conversation_id: payload.new.conversation_id,
+            text: payload.new.content,
+            translation: payload.new.translation,
+            transliteration: payload.new.transliteration,
+            isUser: payload.new.is_user,
+            audio_url: payload.new.audio_url,
+            pronunciation_score: payload.new.pronunciation_score,
+            pronunciation_data: payload.new.pronunciation_data,
+            reference_audio_url: payload.new.reference_audio_url
+          };
+
+          setMessages(prev => [...prev, newMessage]);
+
+          // Generate TTS only if needed
+          if ((!newMessage.audio_url && !newMessage.isUser) || 
+              (!newMessage.reference_audio_url && newMessage.isUser)) {
+            generateTTSForMessage(newMessage);
+          }
+        }
       )
       .subscribe();
 
@@ -129,7 +102,7 @@ export function useConversationMessages(conversationId: string | null) {
       console.log('Cleaning up message subscription');
       supabase.removeChannel(channel);
     };
-  }, [conversationId, handleNewMessage]);
+  }, [conversationId, generateTTSForMessage]); // Only re-run if these change
 
   return { messages };
 }
