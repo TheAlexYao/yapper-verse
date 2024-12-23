@@ -1,39 +1,47 @@
 # Recommended Responses Flow Documentation
 
 ## Overview
-The recommended responses system provides AI-generated response options for users during guided conversations. This document outlines the complete flow from generation to display.
+The recommended responses system automatically provides AI-generated response options for users during guided conversations. These responses are refreshed automatically whenever a new AI message is received.
 
 ## Flow Steps
 
 1. **Trigger Points**
+   - After each AI message (automatic)
    - Initial conversation start
-   - After each AI message
-   - Manual refresh (if implemented)
-
-2. **Data Flow**
    ```mermaid
    graph TD
-      A[User Action] --> B[Query Cache Check]
-      B --> C{Cache Valid?}
-      C -->|Yes| D[Display Cached Responses]
-      C -->|No| E[Generate New Responses]
-      E --> F[Edge Function Call]
-      F --> G[Update Cache]
-      G --> D
+      A[New AI Message] --> B[Update lastAiMessageId]
+      B --> C[Invalidate Query Cache]
+      C --> D[Generate New Responses]
+      D --> E[Display Updated Options]
    ```
 
+2. **Real-time Updates**
+   - WebSocket subscription tracks new AI messages
+   - `lastAiMessageId` state updates automatically
+   - Query cache invalidation triggers new response generation
+   - UI updates with new response options
+
 3. **Key Components**
-   - ChatResponseHandler: Manages response state and generation
+   - ChatResponseHandler: Manages response state and WebSocket subscription
    - RecommendedResponses: Displays response options
    - generate-responses Edge Function: Creates AI responses
 
 4. **State Management**
-   - Uses React Query for caching and invalidation
-   - Tracks last AI message ID as dependency
-   - Maintains loading states for UI feedback
+   ```typescript
+   // Query configuration
+   {
+     queryKey: ['responses', conversationId, userId, lastAiMessageId],
+     queryFn: async () => {
+       // Generate responses via edge function
+       return responses;
+     },
+     enabled: !!conversationId && !!userId && !!lastAiMessageId
+   }
+   ```
 
 5. **Response Generation**
-   - Fetches conversation context
+   - Fetches latest conversation context
    - Includes user profile data
    - Generates culturally appropriate responses
    - Returns formatted response objects
@@ -44,18 +52,6 @@ The recommended responses system provides AI-generated response options for user
    - Fallback to empty responses array if needed
 
 ## Technical Implementation
-
-### Query Configuration
-```typescript
-{
-  queryKey: ['responses', conversationId, userId, lastAiMessageId],
-  queryFn: async () => {
-    // Generate responses via edge function
-    return responses;
-  },
-  enabled: !!conversationId && !!userId && !!lastAiMessageId
-}
-```
 
 ### Response Format
 ```typescript
@@ -69,30 +65,31 @@ interface Response {
 ```
 
 ### Dependencies
-- Supabase Edge Functions
-- React Query
+- Supabase WebSocket subscriptions
+- React Query for caching
 - Toast notifications
-- WebSocket subscriptions
 
 ## User Experience
 
-1. User sees loading state while responses generate
-2. Responses appear with text and translation
-3. User can navigate between multiple options
-4. Selection triggers pronunciation modal
-5. Process repeats after each message
+1. User sees AI message arrive
+2. Response options automatically update
+3. Loading state shows while generating
+4. New options appear when ready
+5. User can select from updated responses
 
 ## Performance Considerations
 
-1. **Caching Strategy**
-   - Responses cached by query key
-   - Cache invalidated on new AI messages
-   - Prevents unnecessary regeneration
+1. **Automatic Updates**
+   - WebSocket subscription tracks new AI messages
+   - `lastAiMessageId` triggers cache invalidation
+   - UI updates automatically
+   - No manual refresh needed
 
-2. **Real-time Updates**
-   - WebSocket subscription tracks new messages
-   - Triggers cache invalidation
-   - Updates UI automatically
+2. **Caching Strategy**
+   - Responses cached by query key
+   - Cache includes lastAiMessageId
+   - Invalidated on new AI messages
+   - Prevents unnecessary regeneration
 
 3. **Error Recovery**
    - Failed requests show user feedback
