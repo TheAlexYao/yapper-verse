@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// Track active subscriptions globally
+const activeSubscriptions = new Map<string, ReturnType<typeof supabase.channel>>();
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -24,7 +27,6 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const user = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Load initial AI message ID
   useEffect(() => {
@@ -54,11 +56,9 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   useEffect(() => {
     if (!conversationId) return;
 
-    // Clean up existing subscription if any
-    if (channelRef.current) {
-      console.log('Cleaning up existing subscription');
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+    if (activeSubscriptions.has(conversationId)) {
+      console.log('Subscription already exists for:', conversationId);
+      return;
     }
 
     console.log('Setting up message subscription for conversation:', conversationId);
@@ -85,13 +85,16 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         console.log('Subscription status:', status);
       });
 
-    channelRef.current = channel;
+    activeSubscriptions.set(conversationId, channel);
 
     return () => {
-      if (channelRef.current) {
+      if (activeSubscriptions.has(conversationId)) {
         console.log('Cleaning up message subscription');
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+        const sub = activeSubscriptions.get(conversationId);
+        if (sub) {
+          supabase.removeChannel(sub);
+          activeSubscriptions.delete(conversationId);
+        }
       }
     };
   }, [conversationId, queryClient, user?.id]);
