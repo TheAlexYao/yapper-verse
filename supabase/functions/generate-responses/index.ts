@@ -73,7 +73,7 @@ serve(async (req) => {
 
     // Enhanced system prompt with full context
     const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
-in a conversation with ${conversation.character.name}, an airport staff member.
+in a conversation with ${conversation.character.name}, ${conversation.character.bio || 'a conversation partner'}.
 
 Conversation Context:
 - Total exchanges: ${messages.length}
@@ -81,9 +81,9 @@ Conversation Context:
 - Learning goals: ${profile.learning_goals?.join(', ')}
 
 Current scenario: ${conversation.scenario.title}
-Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard cultural etiquette'}
 Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
-Location details: ${conversation.scenario.location_details || 'Airport setting'}
+Location details: ${conversation.scenario.location_details || 'Scenario setting'}
 
 Previous exchanges:
 ${conversationHistory.map(msg => 
@@ -94,14 +94,14 @@ Generate 3 response options that:
 1. Match the user's current level (based on pronunciation scores and exchange history)
 2. Are culturally appropriate for the scenario
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Are from the perspective of a traveler speaking to an airport staff member
-5. Use appropriate formality for speaking with airport staff
+4. Are from the perspective of someone in the learner's role
+5. Use appropriate formality for the situation
 6. Build upon previous exchanges and maintain conversation coherence
 7. Are single sentences to ensure clarity and manageability
 
-${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
+${isFirstMessage ? `This is the first message. Generate three ways to approach and greet ${conversation.character.name} appropriately for this scenario.` : "Continue the conversation naturally based on the full context provided."}
 
-IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
+IMPORTANT: Generate responses as if you are the learner speaking in this specific scenario. Keep responses appropriate for the setting and context.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), 'transliteration' (pronunciation guide), and 'hint' fields.`;
 
     // Call OpenAI API with enhanced context
@@ -116,7 +116,7 @@ Format: Generate responses in JSON format with 'responses' array containing obje
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: isFirstMessage 
-            ? 'Generate three polite ways to approach and greet the airport staff member.' 
+            ? `Generate three polite ways to approach and greet ${conversation.character.name} in this ${conversation.scenario.title} scenario.` 
             : 'Generate three natural response options based on the full conversation context.' 
           }
         ],
@@ -155,7 +155,7 @@ Format: Generate responses in JSON format with 'responses' array containing obje
         translation: response.translation,
         transliteration: response.transliteration,
         hint: response.hint,
-        characterGender: conversation.character.gender || 'female'
+        characterGender: conversation.character.gender || 'unspecified'
       };
     });
 
