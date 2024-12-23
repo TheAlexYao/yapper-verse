@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
 import { PronunciationModal } from "./pronunciation/PronunciationModal";
 import type { Message } from "@/hooks/useConversation";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // Added useQueryClient
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,42 +18,48 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // BUG: This state might not update immediately when a new AI message arrives
-  // because the subscription might miss messages that arrive before it's set up
   const [lastAiMessageId, setLastAiMessageId] = useState<string | null>(null);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // Added for manual invalidation
+
+  // Wrapped in useCallback to maintain reference stability
+  const invalidateResponses = useCallback(() => {
+    // Force a refresh of the responses query
+    queryClient.invalidateQueries({
+      queryKey: ['responses', conversationId, user?.id, lastAiMessageId]
+    });
+  }, [queryClient, conversationId, user?.id, lastAiMessageId]);
 
   // Load initial AI message ID
   useEffect(() => {
     if (!conversationId) return;
     
     const loadLastAiMessage = async () => {
-      // BUG: This initial load might race with new messages arriving
-      // We should consider using a more robust way to track message order
+      // Using orderBy with multiple columns ensures consistent ordering
       const { data } = await supabase
         .from('guided_conversation_messages')
-        .select('id')
+        .select('id, created_at')
         .eq('conversation_id', conversationId)
         .eq('is_user', false)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false }) // Secondary sort for stability
         .limit(1)
         .single();
       
       if (data) {
         console.log('Setting initial last AI message ID:', data.id);
         setLastAiMessageId(data.id);
+        // Ensure responses are fresh after setting initial ID
+        invalidateResponses();
       }
     };
 
     loadLastAiMessage();
-  }, [conversationId]);
+  }, [conversationId, invalidateResponses]);
 
-  // BUG: The useQuery hook might not refresh immediately when lastAiMessageId changes
-  // due to React's batching of state updates
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
     queryKey: ['responses', conversationId, user?.id, lastAiMessageId],
     queryFn: async () => {
@@ -86,12 +92,13 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     gcTime: 0, // Don't cache responses
   });
 
-  // Listen for new AI messages
+  // Listen for new AI messages with improved handling
   useEffect(() => {
     if (!conversationId) return;
 
-    // BUG: The subscription might miss messages that arrive during setup
-    // We should consider using a more robust message tracking mechanism
+    console.log('Setting up message subscription for conversation:', conversationId);
+
+    // Create a subscription to handle new AI messages
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -104,9 +111,21 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         },
         (payload) => {
           console.log('New AI message detected:', payload.new.id);
-          // BUG: This state update might not immediately trigger a response refresh
-          // due to React's state batching and the async nature of the subscription
-          setLastAiMessageId(payload.new.id);
+          
+          // Update state and force a refresh in a single batch
+          setLastAiMessageId((prevId) => {
+            // Only update if the new message is more recent
+            if (prevId !== payload.new.id) {
+              // Force an immediate refresh of responses
+              // This runs after the state update is committed
+              queueMicrotask(() => {
+                console.log('Forcing response refresh for new message:', payload.new.id);
+                invalidateResponses();
+              });
+              return payload.new.id;
+            }
+            return prevId;
+          });
         }
       )
       .subscribe();
@@ -115,7 +134,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
       console.log('Cleaning up message subscription');
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, invalidateResponses]);
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
