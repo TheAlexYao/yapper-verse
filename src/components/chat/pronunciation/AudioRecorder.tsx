@@ -62,6 +62,8 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
             description: "Failed to process audio recording. Please try again.",
             variant: "destructive",
           });
+          setIsRecording(false);
+          onRecordingComplete(null);
         } finally {
           audioContext.close();
         }
@@ -143,7 +145,7 @@ export function AudioRecorder({ onRecordingComplete, isProcessing }: AudioRecord
         <Button
           variant={isRecording ? "destructive" : "default"}
           onClick={handleRecord}
-          disabled={isProcessing && !isRecording} // Only disable if processing and not currently recording
+          disabled={isProcessing && !isRecording}
           className={`min-w-[140px] ${!isRecording ? "bg-gradient-to-r from-[#38b6ff] to-[#7843e6] hover:opacity-90" : ""}`}
         >
           <Mic className="mr-2 h-4 w-4" />

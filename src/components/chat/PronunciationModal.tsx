@@ -63,14 +63,12 @@ export function PronunciationModal({
 
   const playAudio = async (speed: 'normal' | 'slow') => {
     try {
-      // For normal speed, use the pre-generated audio URL
       if (speed === 'normal' && response.audio_url) {
         const audio = new Audio(response.audio_url);
         await audio.play();
         return;
       }
 
-      // For slow speed or if normal speed audio is missing, generate on demand
       const { data: profile } = await supabase
         .from('profiles')
         .select('target_language, voice_preference')
@@ -81,7 +79,6 @@ export function PronunciationModal({
         throw new Error('Target language not set');
       }
 
-      // Generate audio on-demand for slow speed
       const audioUrl = await generateTTS(response.text, profile.voice_preference || 'female', speed);
       if (audioUrl) {
         const audio = new Audio(audioUrl);
