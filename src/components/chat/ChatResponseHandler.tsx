@@ -18,17 +18,41 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
   const [selectedResponse, setSelectedResponse] = useState<any>(null);
   const [showPronunciationModal, setShowPronunciationModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastAiMessageId, setLastAiMessageId] = useState<string | null>(null);
   
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
 
+  // Load initial AI message ID
+  useState(() => {
+    if (!conversationId) return;
+    
+    const loadLastAiMessage = async () => {
+      const { data } = await supabase
+        .from('guided_conversation_messages')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .eq('is_user', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (data) {
+        setLastAiMessageId(data.id);
+      }
+    };
+
+    loadLastAiMessage();
+  }, [conversationId]);
+
   const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
-    queryKey: ['responses', conversationId],
+    queryKey: ['responses', conversationId, user?.id, lastAiMessageId],
     queryFn: async () => {
       if (!user?.id || !conversationId) return [];
 
       try {
+        console.log('Fetching responses after AI message:', lastAiMessageId);
         const { data, error } = await supabase.functions.invoke('generate-responses', {
           body: {
             conversationId,
@@ -55,14 +79,38 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     enabled: !!conversationId && !!user?.id,
   });
 
+  // Update lastAiMessageId when new AI messages arrive
+  useState(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId} AND is_user=eq.false`
+        },
+        (payload) => {
+          console.log('New AI message detected:', payload.new.id);
+          setLastAiMessageId(payload.new.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
     onMessageSend: async (message: Message) => {
-      // Close modal before sending message
       setShowPronunciationModal(false);
       setIsProcessing(false);
       setSelectedResponse(null);
-      // Send the message
       await onMessageSend(message);
     },
     onComplete: () => {
