@@ -1,151 +1,50 @@
-import { useState, useEffect } from "react";
 import { RecommendedResponses } from "./RecommendedResponses";
-import { PronunciationModal } from "./pronunciation/PronunciationModal";
-import type { Message } from "@/hooks/useConversation";
+import { PronunciationHandler } from "./PronunciationHandler";
+import { useResponseState } from "./hooks/useResponseState";
+import { useResponseGeneration } from "./hooks/useResponseGeneration";
 import { usePronunciationHandler } from "./hooks/usePronunciationHandler";
 import { useTTS } from "./hooks/useTTS";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@supabase/auth-helpers-react";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-// Track active subscriptions globally
-const activeSubscriptions = new Map<string, ReturnType<typeof supabase.channel>>();
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
   conversationId: string;
 }
 
-export function ChatResponseHandler({ onMessageSend, conversationId }: ChatResponseHandlerProps) {
-  const [selectedResponse, setSelectedResponse] = useState<any>(null);
-  const [showPronunciationModal, setShowPronunciationModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [lastAiMessageId, setLastAiMessageId] = useState<string | null>(null);
-  
+export function ChatResponseHandler({ 
+  onMessageSend, 
+  conversationId 
+}: ChatResponseHandlerProps) {
+  const {
+    selectedResponse,
+    isProcessing,
+    handleResponseSelect,
+    resetState
+  } = useResponseState();
+
   const { generateTTS, isGeneratingTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Load initial AI message ID
-  useEffect(() => {
-    if (!conversationId) return;
-    
-    const loadLastAiMessage = async () => {
-      console.log('Loading initial AI message for conversation:', conversationId);
-      const { data } = await supabase
-        .from('guided_conversation_messages')
-        .select('id, created_at')
-        .eq('conversation_id', conversationId)
-        .eq('is_user', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (data) {
-        console.log('Setting initial last AI message ID:', data.id);
-        setLastAiMessageId(data.id);
-      }
-    };
-
-    loadLastAiMessage();
-  }, [conversationId]);
-
-  // Set up real-time subscription for new AI messages
-  useEffect(() => {
-    if (!conversationId) return;
-
-    if (activeSubscriptions.has(conversationId)) {
-      console.log('Subscription already exists for:', conversationId);
-      return;
-    }
-
-    console.log('Setting up message subscription for conversation:', conversationId);
-    
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId} AND is_user=eq.false`
-        },
-        (payload) => {
-          console.log('New AI message received:', payload.new);
-          setLastAiMessageId(payload.new.id);
-          queryClient.invalidateQueries({
-            queryKey: ['responses', conversationId, user?.id, payload.new.id]
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
-
-    activeSubscriptions.set(conversationId, channel);
-
-    return () => {
-      if (activeSubscriptions.has(conversationId)) {
-        console.log('Cleaning up message subscription');
-        const sub = activeSubscriptions.get(conversationId);
-        if (sub) {
-          supabase.removeChannel(sub);
-          activeSubscriptions.delete(conversationId);
-        }
-      }
-    };
-  }, [conversationId, queryClient, user?.id]);
-
-  const { data: responses = [], isLoading: isLoadingResponses } = useQuery({
-    queryKey: ['responses', conversationId, user?.id, lastAiMessageId],
-    queryFn: async () => {
-      if (!user?.id || !conversationId || !lastAiMessageId) return [];
-
-      try {
-        console.log('Fetching responses after AI message:', lastAiMessageId);
-        const { data, error } = await supabase.functions.invoke('generate-responses', {
-          body: {
-            conversationId,
-            userId: user.id,
-            lastMessageId: lastAiMessageId
-          },
-        });
-
-        if (error) throw error;
-        return data.responses || [];
-      } catch (error) {
-        console.error('Error fetching responses:', error);
-        toast({
-          title: "Error",
-          description: "Failed to generate responses. Please try again.",
-          variant: "destructive",
-        });
-        return [];
-      }
-    },
-    enabled: !!conversationId && !!user?.id && !!lastAiMessageId,
-  });
+  // Use the new response generation hook
+  const { 
+    data: responses = [], 
+    isLoading: isLoadingResponses 
+  } = useResponseGeneration(conversationId);
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
     conversationId, 
     onMessageSend: async (message: Message) => {
-      setShowPronunciationModal(false);
-      setIsProcessing(false);
-      setSelectedResponse(null);
+      resetState();
       await onMessageSend(message);
     },
-    onComplete: () => {
-      setShowPronunciationModal(false);
-      setIsProcessing(false);
-      setSelectedResponse(null);
-    },
+    onComplete: resetState,
     selectedResponse: selectedResponse || { text: '', translation: '' }
   });
 
-  const handleResponseSelect = async (response: any) => {
+  const handleResponseClick = async (response: any) => {
     if (isGeneratingTTS) {
       toast({
         title: "Please wait",
@@ -177,12 +76,11 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         throw new Error('Failed to generate reference audio');
       }
 
-      setSelectedResponse({ 
+      await handleResponseSelect({ 
         ...response, 
         audio_url: normalAudioUrl,
         languageCode: profile.target_language
       });
-      setShowPronunciationModal(true);
     } catch (error) {
       console.error('Error preparing pronunciation practice:', error);
       toast({
@@ -193,53 +91,20 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     }
   };
 
-  const handlePronunciationSubmit = async (score: number, audioBlob?: Blob) => {
-    if (!selectedResponse) {
-      toast({
-        title: "Error",
-        description: "No response selected. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      console.log('Starting pronunciation submission with score:', score);
-      await handlePronunciationComplete(score, audioBlob);
-      console.log('Pronunciation submission completed successfully');
-    } catch (error) {
-      console.error('Error handling pronunciation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process pronunciation. Please try again.",
-        variant: "destructive",
-      });
-      setIsProcessing(false);
-    }
-  };
-
   return (
     <>
       <RecommendedResponses
         responses={responses}
-        onSelectResponse={handleResponseSelect}
+        onSelectResponse={handleResponseClick}
         isLoading={isLoadingResponses || isGeneratingTTS}
       />
 
-      {selectedResponse && showPronunciationModal && (
-        <PronunciationModal
-          isOpen={showPronunciationModal}
-          onClose={() => {
-            setShowPronunciationModal(false);
-            setIsProcessing(false);
-            setSelectedResponse(null);
-          }}
-          response={selectedResponse}
-          onSubmit={handlePronunciationSubmit}
-          isProcessing={isProcessing}
-        />
-      )}
+      <PronunciationHandler
+        selectedResponse={selectedResponse}
+        isProcessing={isProcessing}
+        onClose={resetState}
+        onSubmit={handlePronunciationComplete}
+      />
     </>
   );
 }
