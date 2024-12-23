@@ -19,7 +19,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get conversation with related data
+    // Get full conversation context
     const { data: conversation, error: conversationError } = await supabase
       .from('guided_conversations')
       .select(`
@@ -36,7 +36,7 @@ serve(async (req) => {
       throw new Error('Failed to fetch conversation data');
     }
 
-    // Get user profile for language context
+    // Get user profile and progress
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -47,38 +47,59 @@ serve(async (req) => {
       throw new Error('User profile not found');
     }
 
-    // Get the last few messages for context
-    const recentMessages = conversation.messages
-      .slice(-5)
-      .map((msg: any) => ({
-        role: msg.is_user ? 'user' : 'assistant',
-        content: msg.content,
-        translation: msg.translation
-      }));
+    // Calculate conversation metrics
+    const messages = conversation.messages;
+    const pronunciationScores = messages
+      .filter((msg: any) => msg.pronunciation_score)
+      .map((msg: any) => msg.pronunciation_score);
+    
+    const averagePronunciationScore = pronunciationScores.length > 0
+      ? pronunciationScores.reduce((a: number, b: number) => a + b, 0) / pronunciationScores.length
+      : null;
 
-    const isFirstMessage = conversation.messages.length === 0;
+    // Process full conversation history
+    const conversationHistory = messages.map((msg: any) => ({
+      role: msg.is_user ? 'user' : 'assistant',
+      content: msg.content,
+      translation: msg.translation,
+      pronunciationScore: msg.pronunciation_score
+    }));
 
-    // Prepare the system prompt
+    const isFirstMessage = messages.length === 0;
+
+    // Enhanced system prompt with full context
     const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
 in a conversation with ${conversation.character.name}, an airport staff member.
+
+Conversation Context:
+- Total exchanges: ${messages.length}
+- Average pronunciation score: ${averagePronunciationScore || 'N/A'}
+- Learning goals: ${profile.learning_goals?.join(', ')}
 
 Current scenario: ${conversation.scenario.title}
 Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
 Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Location details: ${conversation.scenario.location_details || 'Airport setting'}
+
+Previous exchanges:
+${conversationHistory.map((msg: any) => 
+  `${msg.role}: ${msg.content} (${msg.translation})${msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''}`
+).join('\n')}
 
 Generate 3 response options that:
-1. Match a beginner-intermediate level
-2. Are culturally appropriate
+1. Match the user's current level (based on pronunciation scores and exchange history)
+2. Are culturally appropriate for the scenario
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
 4. Are from the perspective of a traveler speaking to an airport staff member
 5. Use appropriate formality for speaking with airport staff
+6. Build upon previous exchanges and maintain conversation coherence
 
-${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the context."}
+${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
 
 IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
-    // Call OpenAI API
+    // Call OpenAI API with enhanced context
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -89,12 +110,9 @@ Format: Generate responses in JSON format with 'responses' array containing obje
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          ...recentMessages,
-          { 
-            role: 'user', 
-            content: isFirstMessage 
-              ? 'Generate three polite ways to approach and greet the airport staff member.' 
-              : 'Generate three natural response options based on the conversation context.' 
+          { role: 'user', content: isFirstMessage 
+            ? 'Generate three polite ways to approach and greet the airport staff member.' 
+            : 'Generate three natural response options based on the full conversation context.' 
           }
         ],
         response_format: { type: "json_object" },
@@ -114,7 +132,7 @@ Format: Generate responses in JSON format with 'responses' array containing obje
     const generatedContent = JSON.parse(aiData.choices[0].message.content);
     console.log('Parsed generated content:', generatedContent);
 
-    // Transform the responses into the expected format
+    // Transform responses while preserving existing format
     const responses = generatedContent.responses.map((response: any) => ({
       id: crypto.randomUUID(),
       text: response.text,
