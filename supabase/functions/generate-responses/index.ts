@@ -67,39 +67,39 @@ serve(async (req) => {
 
     const isFirstMessage = messages.length === 0;
 
-    // Enhanced system prompt with one-sentence requirement
+    // Enhanced system prompt with full context
     const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
 in a conversation with ${conversation.character.name}, an airport staff member.
 
-IMPORTANT: Generate ONLY single-sentence responses that are natural and appropriate for the context.
+Conversation Context:
+- Total exchanges: ${messages.length}
+- Average pronunciation score: ${averagePronunciationScore || 'N/A'}
+- Learning goals: ${profile.learning_goals?.join(', ')}
 
-Context:
-- Conversation progress: ${messages.length} exchanges
-- User's pronunciation level: ${averagePronunciationScore || 'Not yet assessed'}
-- Learning focus: ${profile.learning_goals?.join(', ')}
-- Setting: ${conversation.scenario.title}
-- Cultural notes: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
-
-Character: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
-Location: ${conversation.scenario.location_details || 'Airport setting'}
-Goal: ${conversation.scenario.primary_goal}
+Current scenario: ${conversation.scenario.title}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Location details: ${conversation.scenario.location_details || 'Airport setting'}
 
 Previous exchanges:
 ${conversationHistory.map((msg: any) => 
-  `${msg.role}: ${msg.content} (${msg.translation})`
+  `${msg.role}: ${msg.content} (${msg.translation})${msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''}`
 ).join('\n')}
 
-Generate 3 single-sentence responses that:
-1. Are concise but natural for the context
-2. Match the user's current level
-3. Help achieve the scenario's goal
-4. Use appropriate formality for an airport setting
+Generate 3 response options that:
+1. Match the user's current level (based on pronunciation scores and exchange history)
+2. Are culturally appropriate for the scenario
+3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
+4. Are from the perspective of a traveler speaking to an airport staff member
+5. Use appropriate formality for speaking with airport staff
+6. Build upon previous exchanges and maintain conversation coherence
 
-${isFirstMessage ? "Generate three concise ways to approach and greet the airport staff member." : "Continue the conversation naturally with one-sentence responses."}
+${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
 
+IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
 Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
 
-    // Call OpenAI API
+    // Call OpenAI API with enhanced context
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -111,8 +111,8 @@ Format: Generate responses in JSON format with 'responses' array containing obje
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: isFirstMessage 
-            ? 'Generate three concise greetings for the airport staff member.' 
-            : 'Generate three natural one-sentence responses based on the conversation context.' 
+            ? 'Generate three polite ways to approach and greet the airport staff member.' 
+            : 'Generate three natural response options based on the full conversation context.' 
           }
         ],
         response_format: { type: "json_object" },
