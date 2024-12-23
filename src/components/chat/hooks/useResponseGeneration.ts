@@ -36,6 +36,6 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
     },
     enabled: !!conversationId && !!user?.id,
     staleTime: Infinity, // Prevent automatic refetching
-    cacheTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 5, // Cache for 5 minutes (replaced cacheTime with gcTime)
   });
 }

@@ -7,6 +7,7 @@ import { useTTS } from "./hooks/useTTS";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Message } from "@/hooks/useConversation";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
