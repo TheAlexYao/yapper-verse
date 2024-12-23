@@ -7,13 +7,15 @@ interface ChatMessagesSectionProps {
   onPlayAudio: (audioUrl: string) => void;
   onShowScore: (message: Message) => void;
   isProcessing?: boolean;
+  isGeneratingAIResponse?: boolean;
 }
 
 export function ChatMessagesSection({ 
   messages, 
   onPlayAudio, 
   onShowScore,
-  isProcessing
+  isProcessing,
+  isGeneratingAIResponse
 }: ChatMessagesSectionProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -23,7 +25,7 @@ export function ChatMessagesSection({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isProcessing]);
+  }, [messages, isProcessing, isGeneratingAIResponse]);
 
   return (
     <div className="flex-1 overflow-y-auto pb-32">
@@ -33,6 +35,7 @@ export function ChatMessagesSection({
           onPlayAudio={onPlayAudio}
           onShowScore={onShowScore}
           isProcessing={isProcessing}
+          isGeneratingAIResponse={isGeneratingAIResponse}
         />
         <div ref={messagesEndRef} />
       </div>

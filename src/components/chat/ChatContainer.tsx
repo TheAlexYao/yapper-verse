@@ -22,6 +22,7 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGeneratingAIResponse, setIsGeneratingAIResponse] = useState(false);
   const { toast } = useToast();
   const { messages } = useConversationMessages(conversationId);
   
@@ -58,11 +59,15 @@ export function ChatContainer({
 
   const handleMessageSend = useCallback(async (message: Message) => {
     setIsProcessing(true);
+    setIsGeneratingAIResponse(true);
     try {
       await onMessageSend(message);
     } finally {
       // We set isProcessing to false after a short delay to ensure the skeleton is visible
       setTimeout(() => setIsProcessing(false), 500);
+      // AI response generation is handled by the subscription in useConversationMessages
+      // We'll set this to false when we receive the AI response
+      setTimeout(() => setIsGeneratingAIResponse(false), 3000);
     }
   }, [onMessageSend]);
 
@@ -73,6 +78,7 @@ export function ChatContainer({
         onPlayAudio={handlePlayTTS}
         onShowScore={handleShowScore}
         isProcessing={isProcessing}
+        isGeneratingAIResponse={isGeneratingAIResponse}
       />
 
       <MemoizedChatBottomSection 

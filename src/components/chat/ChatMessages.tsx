@@ -7,9 +7,16 @@ interface ChatMessagesProps {
   onPlayAudio?: (audioUrl: string) => void;
   onShowScore?: (message: Message) => void;
   isProcessing?: boolean;
+  isGeneratingAIResponse?: boolean;
 }
 
-export function ChatMessages({ messages, onPlayAudio, onShowScore, isProcessing }: ChatMessagesProps) {
+export function ChatMessages({ 
+  messages, 
+  onPlayAudio, 
+  onShowScore, 
+  isProcessing,
+  isGeneratingAIResponse 
+}: ChatMessagesProps) {
   return (
     <div className="flex flex-col gap-4 pb-36 pt-4 px-4">
       {messages.map((message) => (
@@ -22,6 +29,7 @@ export function ChatMessages({ messages, onPlayAudio, onShowScore, isProcessing 
         />
       ))}
       {isProcessing && <MessageSkeleton isUser />}
+      {isGeneratingAIResponse && <MessageSkeleton isUser={false} />}
     </div>
   );
 }
