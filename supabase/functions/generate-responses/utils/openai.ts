@@ -1,4 +1,12 @@
-export const generateOpenAIPrompt = (conversation: any, profile: any, messages: any[], isFirstMessage: boolean) => {
+import { createClient } from '@supabase/supabase-js';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+export const generateOpenAIPrompt = async (conversation: any, profile: any, messages: any[], isFirstMessage: boolean) => {
+  // Calculate average pronunciation score
   const pronunciationScores = messages
     .filter((msg: any) => msg.pronunciation_score)
     .map((msg: any) => msg.pronunciation_score);
@@ -7,6 +15,7 @@ export const generateOpenAIPrompt = (conversation: any, profile: any, messages: 
     ? pronunciationScores.reduce((a: number, b: number) => a + b, 0) / pronunciationScores.length
     : null;
 
+  // Format conversation history
   const conversationHistory = messages.map((msg: any) => ({
     role: msg.is_user ? 'user' : 'assistant',
     content: msg.content,
@@ -14,7 +23,8 @@ export const generateOpenAIPrompt = (conversation: any, profile: any, messages: 
     pronunciationScore: msg.pronunciation_score,
   }));
 
-  return `You are helping a ${profile.native_language} speaker learn ${profile.target_language}.
+  // Build the system prompt
+  const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language}.
 
 Conversation Context:
 - Total exchanges: ${messages.length}
@@ -34,11 +44,11 @@ ${conversationHistory.map((msg: any) =>
 ).join('\n')}
 
 Generate 3 response options that:
-1. Match the user's current level
-2. Are culturally appropriate
+1. Match the user's current level (based on pronunciation scores)
+2. Are culturally appropriate for the scenario
 3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Use appropriate formality
-5. Build upon previous exchanges
+4. Use appropriate formality based on the character's style
+5. Build upon previous exchanges naturally
 6. Are single sentences
 
 IMPORTANT: You must respond with valid JSON in this exact format:
@@ -48,21 +58,30 @@ IMPORTANT: You must respond with valid JSON in this exact format:
       "text": "Response in target language",
       "translation": "Translation in native language",
       "transliteration": "Pronunciation guide",
-      "hint": "Usage hint"
+      "hint": "Usage hint or cultural context"
     }
   ]
 }`;
+
+  return systemPrompt;
 };
 
 export const callOpenAI = async (systemPrompt: string, isFirstMessage: boolean) => {
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key not found');
+  }
+
+  console.log('Sending request to OpenAI with system prompt:', systemPrompt);
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { 
@@ -80,8 +99,10 @@ export const callOpenAI = async (systemPrompt: string, isFirstMessage: boolean) 
   if (!response.ok) {
     const errorData = await response.json();
     console.error('OpenAI API error:', errorData);
-    throw new Error('Failed to generate responses from OpenAI');
+    throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log('Received response from OpenAI:', data);
+  return data;
 };
