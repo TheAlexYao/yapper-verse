@@ -16,7 +16,6 @@ export const generateOpenAIPrompt = async (conversation: any, profile: any, mess
     pronunciationScore: msg.pronunciation_score,
   }));
 
-  // Build the system prompt
   const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language}.
 
 Conversation Context:

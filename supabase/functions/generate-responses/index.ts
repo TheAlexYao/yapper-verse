@@ -19,7 +19,7 @@ serve(async (req) => {
     const messages = conversation.messages;
     const isFirstMessage = messages.length === 0;
 
-    const systemPrompt = generateOpenAIPrompt(conversation, profile, messages, isFirstMessage);
+    const systemPrompt = await generateOpenAIPrompt(conversation, profile, messages, isFirstMessage);
     console.log('Sending request to OpenAI with system prompt');
     
     const aiData = await callOpenAI(systemPrompt, isFirstMessage);
