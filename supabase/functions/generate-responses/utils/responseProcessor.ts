@@ -1,7 +1,8 @@
 export const processOpenAIResponse = (aiData: any) => {
   try {
     const content = aiData.choices[0].message.content;
-    console.log('Parsing content:', content);
+    console.log('Processing OpenAI response content');
+    
     const generatedContent = JSON.parse(content);
 
     if (!generatedContent?.responses || !Array.isArray(generatedContent.responses)) {
@@ -13,12 +14,6 @@ export const processOpenAIResponse = (aiData: any) => {
       if (!response.text || !response.translation || !response.transliteration || !response.hint) {
         console.error(`Invalid response at index ${index}:`, response);
         throw new Error(`Response at index ${index} is missing required fields`);
-      }
-
-      const sentenceCount = (response.text.match(/[.!?]/g) || []).length;
-      if (sentenceCount !== 1) {
-        console.error(`Response at index ${index} has ${sentenceCount} sentences:`, response.text);
-        throw new Error(`Response at index ${index} must be a single sentence`);
       }
 
       return {

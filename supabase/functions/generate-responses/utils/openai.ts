@@ -1,15 +1,7 @@
 export const generateOpenAIPrompt = async (conversation: any, profile: any, messages: any[], isFirstMessage: boolean) => {
-  // Calculate average pronunciation score
-  const pronunciationScores = messages
-    .filter((msg: any) => msg.pronunciation_score)
-    .map((msg: any) => msg.pronunciation_score);
+  console.log('Generating OpenAI prompt');
   
-  const averagePronunciationScore = pronunciationScores.length > 0
-    ? pronunciationScores.reduce((a: number, b: number) => a + b, 0) / pronunciationScores.length
-    : null;
-
-  // Format conversation history
-  const conversationHistory = messages.map((msg: any) => ({
+  const conversationHistory = messages.map(msg => ({
     role: msg.is_user ? 'user' : 'assistant',
     content: msg.content,
     translation: msg.translation,
@@ -20,28 +12,26 @@ export const generateOpenAIPrompt = async (conversation: any, profile: any, mess
 
 Conversation Context:
 - Total exchanges: ${messages.length}
-- Average pronunciation score: ${averagePronunciationScore || 'N/A'}
 - Learning goals: ${profile.learning_goals?.join(', ') || 'None specified'}
 
-Current scenario: ${conversation.scenario.title}
-Cultural context: ${conversation.scenario.cultural_notes || 'Standard cultural etiquette'}
-Character you're talking to: ${conversation.character.name}
-Character's style: ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Current scenario: ${conversation.scenario?.title || 'General conversation'}
+Cultural context: ${conversation.scenario?.cultural_notes || 'Standard cultural etiquette'}
+Character you're talking to: ${conversation.character?.name || 'Assistant'}
 
 Previous exchanges:
-${conversationHistory.map((msg: any) => 
+${conversationHistory.map(msg => 
   `${msg.role.charAt(0).toUpperCase() + msg.role.slice(1)}: ${msg.content} (${msg.translation})`
 ).join('\n')}
 
 Generate 3 response options that:
-1. Match the user's current level (based on pronunciation scores)
+1. Match the user's current level
 2. Are culturally appropriate for the scenario
-3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
-4. Use appropriate formality based on the character's style
+3. Help achieve the conversation goal
+4. Use appropriate formality
 5. Build upon previous exchanges naturally
 6. Are single sentences
 
-IMPORTANT: You must respond with valid JSON in this exact format:
+IMPORTANT: Respond with valid JSON in this format:
 {
   "responses": [
     {
@@ -62,7 +52,7 @@ export const callOpenAI = async (systemPrompt: string, isFirstMessage: boolean) 
     throw new Error('OpenAI API key not found');
   }
 
-  console.log('Sending request to OpenAI with system prompt:', systemPrompt);
+  console.log('Calling OpenAI API');
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -93,6 +83,6 @@ export const callOpenAI = async (systemPrompt: string, isFirstMessage: boolean) 
   }
 
   const data = await response.json();
-  console.log('Received response from OpenAI:', data);
+  console.log('Received OpenAI response');
   return data;
 };

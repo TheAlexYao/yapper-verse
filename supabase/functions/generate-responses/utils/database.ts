@@ -3,10 +3,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 export const getSupabaseClient = () => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+  
   return createClient(supabaseUrl, supabaseKey);
 };
 
 export const fetchConversationData = async (supabase: any, conversationId: string) => {
+  console.log('Fetching conversation data:', conversationId);
+  
   const { data: conversation, error } = await supabase
     .from('guided_conversations')
     .select(`
@@ -27,6 +34,8 @@ export const fetchConversationData = async (supabase: any, conversationId: strin
 };
 
 export const fetchUserProfile = async (supabase: any, userId: string) => {
+  console.log('Fetching user profile:', userId);
+  
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('*')
