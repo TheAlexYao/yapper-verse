@@ -79,7 +79,7 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
     gcTime: 0, // Don't cache responses (formerly cacheTime)
   });
 
-  // Update lastAiMessageId when new AI messages arrive
+  // Listen for new AI messages
   useEffect(() => {
     if (!conversationId) return;
 
@@ -95,12 +95,14 @@ export function ChatResponseHandler({ onMessageSend, conversationId }: ChatRespo
         },
         (payload) => {
           console.log('New AI message detected:', payload.new.id);
+          // Update lastAiMessageId to trigger a response refresh
           setLastAiMessageId(payload.new.id);
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up message subscription');
       supabase.removeChannel(channel);
     };
   }, [conversationId]);
