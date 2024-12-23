@@ -36,8 +36,7 @@ export function ChatResponseHandler({
 
   const { 
     data: responses = [], 
-    isLoading: isLoadingResponses,
-    refetch: refetchResponses
+    isLoading: isLoadingResponses 
   } = useResponseGeneration(conversationId);
 
   const { handlePronunciationComplete } = usePronunciationHandler({ 
@@ -46,8 +45,6 @@ export function ChatResponseHandler({
       console.log('ChatResponseHandler - Message send triggered');
       resetState();
       await onMessageSend(message);
-      // Trigger a refetch of responses after message is sent
-      refetchResponses();
     },
     onComplete: resetState,
     selectedResponse: selectedResponse || { text: '', translation: '' }

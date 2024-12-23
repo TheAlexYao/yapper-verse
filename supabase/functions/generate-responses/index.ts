@@ -1,55 +1,152 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleCors, corsHeaders } from "./utils/cors.ts";
-import { getSupabaseClient, fetchConversationData, fetchUserProfile } from "./utils/database.ts";
-import { generateOpenAIPrompt, callOpenAI } from "./utils/openai.ts";
-import { processOpenAIResponse } from "./utils/responseProcessor.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const { conversationId, userId } = await req.json();
     console.log('Request params:', { conversationId, userId });
 
-    if (!conversationId || !userId) {
-      throw new Error('Missing required parameters: conversationId or userId');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get full conversation context
+    const { data: conversation, error: conversationError } = await supabase
+      .from('guided_conversations')
+      .select(`
+        *,
+        character:characters(*),
+        scenario:scenarios(*),
+        messages:guided_conversation_messages(*)
+      `)
+      .eq('id', conversationId)
+      .single();
+
+    if (conversationError) {
+      console.error('Error fetching conversation:', conversationError);
+      throw new Error('Failed to fetch conversation data');
     }
 
-    const supabase = getSupabaseClient();
+    // Get user profile and progress
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+
+    // Calculate conversation metrics
+    const messages = conversation.messages;
+    const pronunciationScores = messages
+      .filter((msg: any) => msg.pronunciation_score)
+      .map((msg: any) => msg.pronunciation_score);
     
-    // Fetch data in parallel
-    const [conversation, profile] = await Promise.all([
-      fetchConversationData(supabase, conversationId),
-      fetchUserProfile(supabase, userId)
-    ]);
+    const averagePronunciationScore = pronunciationScores.length > 0
+      ? pronunciationScores.reduce((a: number, b: number) => a + b, 0) / pronunciationScores.length
+      : null;
 
-    if (!conversation || !profile) {
-      throw new Error('Failed to fetch required data');
-    }
+    // Process full conversation history
+    const conversationHistory = messages.map((msg: any) => ({
+      role: msg.is_user ? 'user' : 'assistant',
+      content: msg.content,
+      translation: msg.translation,
+      pronunciationScore: msg.pronunciation_score
+    }));
 
-    const messages = conversation.messages || [];
     const isFirstMessage = messages.length === 0;
 
-    const systemPrompt = await generateOpenAIPrompt(conversation, profile, messages, isFirstMessage);
-    console.log('Generated system prompt');
-    
-    const aiData = await callOpenAI(systemPrompt, isFirstMessage);
-    console.log('Received response from OpenAI');
+    // Enhanced system prompt with full context
+    const systemPrompt = `You are helping a ${profile.native_language} speaker learn ${profile.target_language} 
+in a conversation with ${conversation.character.name}, an airport staff member.
 
-    const responses = processOpenAIResponse(aiData);
-    console.log('Successfully processed responses:', responses);
+Conversation Context:
+- Total exchanges: ${messages.length}
+- Average pronunciation score: ${averagePronunciationScore || 'N/A'}
+- Learning goals: ${profile.learning_goals?.join(', ')}
+
+Current scenario: ${conversation.scenario.title}
+Cultural context: ${conversation.scenario.cultural_notes || 'Standard airport etiquette'}
+Character you're talking to: ${conversation.character.name} - ${conversation.character.language_style?.join(', ') || 'Professional and helpful'}
+Location details: ${conversation.scenario.location_details || 'Airport setting'}
+
+Previous exchanges:
+${conversationHistory.map((msg: any) => 
+  `${msg.role}: ${msg.content} (${msg.translation})${msg.pronunciationScore ? ` [Score: ${msg.pronunciationScore}]` : ''}`
+).join('\n')}
+
+Generate 3 response options that:
+1. Match the user's current level (based on pronunciation scores and exchange history)
+2. Are culturally appropriate for the scenario
+3. Help achieve the scenario's primary goal: ${conversation.scenario.primary_goal}
+4. Are from the perspective of a traveler speaking to an airport staff member
+5. Use appropriate formality for speaking with airport staff
+6. Build upon previous exchanges and maintain conversation coherence
+
+${isFirstMessage ? "This is the first message. Generate three ways to approach and greet the airport staff member." : "Continue the conversation naturally based on the full context provided."}
+
+IMPORTANT: Generate responses as if you are the traveler speaking to the airport staff. Keep responses polite and appropriate for the setting.
+Format: Generate responses in JSON format with 'responses' array containing objects with 'text' (target language), 'translation' (native language), and 'hint' fields.`;
+
+    // Call OpenAI API with enhanced context
+    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: isFirstMessage 
+            ? 'Generate three polite ways to approach and greet the airport staff member.' 
+            : 'Generate three natural response options based on the full conversation context.' 
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      }),
+    });
+
+    if (!openAiResponse.ok) {
+      const errorData = await openAiResponse.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error('Failed to generate responses from OpenAI');
+    }
+
+    const aiData = await openAiResponse.json();
+    console.log('OpenAI response:', aiData);
+
+    const generatedContent = JSON.parse(aiData.choices[0].message.content);
+    console.log('Parsed generated content:', generatedContent);
+
+    // Transform responses while preserving existing format
+    const responses = generatedContent.responses.map((response: any) => ({
+      id: crypto.randomUUID(),
+      text: response.text,
+      translation: response.translation,
+      hint: response.hint,
+      characterGender: conversation.character.gender || 'female'
+    }));
 
     return new Response(JSON.stringify({ responses }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in generate-responses function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: error.stack
-    }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
