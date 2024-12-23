@@ -14,6 +14,9 @@ export function PronunciationHandler({
   onClose,
   onSubmit
 }: PronunciationHandlerProps) {
+  console.log('PronunciationHandler - isProcessing:', isProcessing);
+  console.log('PronunciationHandler - selectedResponse:', selectedResponse);
+
   if (!selectedResponse) return null;
 
   return (

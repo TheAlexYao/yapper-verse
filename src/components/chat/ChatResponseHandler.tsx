@@ -21,12 +21,16 @@ export function ChatResponseHandler({
   const {
     selectedResponse,
     isProcessing,
-    setIsProcessing,
+    audioGenerationStatus,
+    startProcessing,
+    stopProcessing,
+    startAudioGeneration,
+    completeAudioGeneration,
     handleResponseSelect,
     resetState
   } = useResponseState();
 
-  const { generateTTS, isGeneratingTTS } = useTTS();
+  const { generateTTS } = useTTS();
   const user = useUser();
   const { toast } = useToast();
 
@@ -49,7 +53,7 @@ export function ChatResponseHandler({
   const handleResponseClick = async (response: any) => {
     console.log('handleResponseClick - Starting with response:', response);
     
-    if (isGeneratingTTS) {
+    if (audioGenerationStatus === 'generating') {
       toast({
         title: "Please wait",
         description: "Audio is still being generated",
@@ -59,7 +63,8 @@ export function ChatResponseHandler({
     }
     
     try {
-      setIsProcessing(true); // Set processing state while preparing audio
+      startProcessing();
+      startAudioGeneration();
       
       const { data: profile } = await supabase
         .from('profiles')
@@ -82,6 +87,8 @@ export function ChatResponseHandler({
         throw new Error('Failed to generate reference audio');
       }
 
+      completeAudioGeneration();
+
       await handleResponseSelect({ 
         ...response, 
         audio_url: normalAudioUrl,
@@ -96,7 +103,7 @@ export function ChatResponseHandler({
       });
       resetState();
     } finally {
-      setIsProcessing(false); // Reset processing state after preparation
+      stopProcessing();
     }
   };
 
@@ -105,7 +112,7 @@ export function ChatResponseHandler({
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseClick}
-        isLoading={isLoadingResponses || isGeneratingTTS}
+        isLoading={isLoadingResponses || audioGenerationStatus === 'generating'}
       />
 
       <PronunciationHandler
