@@ -31,10 +31,11 @@ export function useConversationMessages(conversationId: string | null) {
   // Refs to manage processing state and prevent duplicate operations
   const processingMessagesRef = useRef<Set<string>>(new Set());
   const isLoadingRef = useRef(false);
+  const hasLoadedInitialMessages = useRef(false);
 
   // Load initial messages and handle TTS generation
   useEffect(() => {
-    if (!conversationId || isLoadingRef.current) return;
+    if (!conversationId || isLoadingRef.current || hasLoadedInitialMessages.current) return;
 
     const loadMessages = async () => {
       try {
@@ -64,10 +65,10 @@ export function useConversationMessages(conversationId: string | null) {
 
         console.log('Setting initial messages:', formattedMessages.length);
         setMessages(formattedMessages);
+        hasLoadedInitialMessages.current = true;
         
         // Process TTS for messages that need it
         formattedMessages.forEach(msg => {
-          // Skip if already processing or has required audio
           if (processingMessagesRef.current.has(msg.id)) return;
           if ((!msg.audio_url && !msg.isUser) || (!msg.reference_audio_url && msg.isUser)) {
             processingMessagesRef.current.add(msg.id);
@@ -89,7 +90,7 @@ export function useConversationMessages(conversationId: string | null) {
     };
 
     loadMessages();
-  }, [conversationId, toast, generateTTSForMessage]);
+  }, [conversationId]); // Remove toast and generateTTSForMessage from deps to prevent re-runs
 
   // Set up real-time subscription
   useEffect(() => {
