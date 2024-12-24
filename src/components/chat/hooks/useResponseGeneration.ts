@@ -9,11 +9,10 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Set up real-time subscription to detect new messages and trigger response updates
+  // Set up real-time subscription to detect new AI messages only
   useEffect(() => {
     if (!conversationId) return;
 
-    // Create a Supabase real-time channel to listen for new messages
     const channel = supabase
       .channel('response-updates')
       .on(
@@ -22,12 +21,10 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
           event: 'INSERT',
           schema: 'public',
           table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId}`,
+          filter: `conversation_id=eq.${conversationId} AND is_user=eq.false`,
         },
         async (payload) => {
-          console.log('New message detected, refetching responses');
-          // Force an immediate refetch of responses when a new message is detected
-          // Using exact: true ensures we only refetch this specific query
+          console.log('New AI message detected, refetching responses');
           await queryClient.refetchQueries({
             queryKey: ['responses', conversationId, user?.id, trigger],
             exact: true
@@ -36,7 +33,6 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
       )
       .subscribe();
 
-    // Cleanup subscription when component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
@@ -50,7 +46,6 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
 
       try {
         console.log('Fetching responses for conversation:', conversationId);
-        // Call edge function to generate new responses
         const { data, error } = await supabase.functions.invoke('generate-responses', {
           body: {
             conversationId,
@@ -71,10 +66,10 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
         return [];
       }
     },
-    enabled: !!conversationId && !!user?.id, // Only run query when we have required data
-    staleTime: 0, // Always consider the data stale to ensure fresh responses
+    enabled: !!conversationId && !!user?.id,
+    staleTime: Infinity, // Never consider data stale automatically
     gcTime: 1000 * 60 * 5, // Keep unused data in cache for 5 minutes
-    refetchOnMount: true, // Get fresh data whenever component mounts
-    refetchOnWindowFocus: false // Prevent unnecessary refetches when window regains focus
+    refetchOnMount: false, // Don't refetch when component mounts
+    refetchOnWindowFocus: false // Don't refetch when window regains focus
   });
 }
