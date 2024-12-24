@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from '@tanstack/react-query';
 import { useConversationCompletion } from "./hooks/useConversationCompletion";
 import type { Message } from "@/hooks/useConversation";
+import { useState } from "react";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -22,6 +23,7 @@ export function ChatResponseHandler({
 }: ChatResponseHandlerProps) {
   const queryClient = useQueryClient();
   const { isCompleted } = useConversationCompletion(conversationId);
+  const [isProcessingUserMessage, setIsProcessingUserMessage] = useState(false);
   
   const {
     selectedResponse,
@@ -48,8 +50,16 @@ export function ChatResponseHandler({
     conversationId, 
     onMessageSend: async (message: Message) => {
       console.log('ChatResponseHandler - Message send triggered');
+      setIsProcessingUserMessage(true);
+      try {
+        await onMessageSend(message);
+      } finally {
+        // Reset processing state after a short delay to allow for smooth UI transition
+        setTimeout(() => {
+          setIsProcessingUserMessage(false);
+        }, 500);
+      }
       resetState();
-      await onMessageSend(message);
     },
     onComplete: resetState,
     selectedResponse: selectedResponse || { text: '', translation: '' }
@@ -135,7 +145,7 @@ export function ChatResponseHandler({
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseClick}
-        isLoading={isLoadingResponses || audioGenerationStatus === 'generating'}
+        isLoading={isLoadingResponses || audioGenerationStatus === 'generating' || isProcessingUserMessage}
       />
 
       <PronunciationHandler
