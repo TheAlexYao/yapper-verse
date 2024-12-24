@@ -15,7 +15,9 @@ const Auth = () => {
   // Clean URL on mount and whenever location changes
   useEffect(() => {
     const cleanUrl = () => {
-      if (window.location.hash || window.location.search) {
+      // Only clean if we're not in the middle of auth
+      if (!window.location.hash.includes('access_token') && (window.location.hash || window.location.search)) {
+        console.log('Auth flow - Cleaning URL');
         const path = window.location.pathname;
         window.history.replaceState({}, '', path);
       }
@@ -45,12 +47,6 @@ const Auth = () => {
           console.log('Auth flow - Provider:', session.user.app_metadata.provider);
           console.log('Auth flow - Access token:', session.access_token ? 'Present' : 'Missing');
           console.log('Auth flow - Full session:', JSON.stringify(session, null, 2));
-
-          // Clean URL after successful authentication
-          if (window.location.hash || window.location.search) {
-            const path = window.location.pathname;
-            window.history.replaceState({}, '', path);
-          }
 
           const { data: profile, error } = await supabase
             .from('profiles')
