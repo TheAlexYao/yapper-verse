@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Trophy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface CompletionModalProps {
   isOpen: boolean;
@@ -10,9 +11,23 @@ interface CompletionModalProps {
     stylePoints: number;
     sentencesUsed: number;
   };
+  conversationId: string;
 }
 
-export function CompletionModal({ isOpen, onClose, metrics }: CompletionModalProps) {
+export function CompletionModal({ isOpen, onClose, metrics, conversationId }: CompletionModalProps) {
+  const navigate = useNavigate();
+
+  const handleContinue = () => {
+    onClose();
+    navigate(`/feedback`, {
+      state: {
+        conversationId,
+        metrics,
+        completedAt: new Date().toLocaleString()
+      }
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] bg-card">
@@ -42,8 +57,8 @@ export function CompletionModal({ isOpen, onClose, metrics }: CompletionModalPro
           </div>
           
           <div className="flex justify-end">
-            <Button onClick={onClose}>
-              Continue Practice
+            <Button onClick={handleContinue}>
+              View Feedback
             </Button>
           </div>
         </div>

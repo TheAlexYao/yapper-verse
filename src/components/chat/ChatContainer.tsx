@@ -32,7 +32,7 @@ export function ChatContainer({
   const { toast } = useToast();
   const { messages } = useConversationMessages(conversationId);
   const { showModal, setShowModal, getMetrics } = useConversationCompletion(conversationId);
-  
+
   const handlePlayTTS = useCallback(async (audioUrl: string) => {
     if (!audioUrl) {
       console.error('No audio URL provided');
@@ -104,6 +104,7 @@ export function ChatContainer({
         isOpen={showModal}
         onClose={handleCloseCompletionModal}
         metrics={completionMetrics}
+        conversationId={conversationId}
       />
     </div>
   );
