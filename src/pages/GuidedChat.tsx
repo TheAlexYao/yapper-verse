@@ -5,6 +5,7 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 import { useToast } from "@/hooks/use-toast";
 import { useMessageHandling } from "@/components/chat/hooks/useMessageHandling";
 import { useConversationSetup } from "@/components/chat/hooks/useConversationSetup";
+import { useConversationCompletion } from "@/components/chat/hooks/useConversationCompletion";
 import { useTTS } from "@/components/chat/hooks/useTTS";
 import type { Message } from "@/hooks/useConversation";
 
@@ -18,6 +19,12 @@ export default function GuidedChat() {
 
   const { conversationId } = useConversationSetup(character, scenario);
   const { handleMessageSend } = useMessageHandling(conversationId);
+  const { showModal, getMetrics, isCompleted } = useConversationCompletion(conversationId);
+  const [completionMetrics, setCompletionMetrics] = useState({ 
+    pronunciationScore: 0, 
+    stylePoints: 0, 
+    sentencesUsed: 0 
+  });
 
   const handleMessageUpdate = async (message: Message) => {
     console.log('Handling message update in GuidedChat:', message);
@@ -75,6 +82,9 @@ export default function GuidedChat() {
         scenario={scenario}
         character={character}
         onBack={() => navigate("/character", { state: { scenario } })}
+        isCompleted={isCompleted}
+        conversationId={conversationId}
+        metrics={completionMetrics}
       />
 
       <ChatContainer
