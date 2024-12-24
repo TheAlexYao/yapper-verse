@@ -7,9 +7,9 @@ import { useTTS } from "./hooks/useTTS";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from '@tanstack/react-query';
 import { useConversationCompletion } from "./hooks/useConversationCompletion";
 import type { Message } from "@/hooks/useConversation";
-import { useState } from "react";
 
 interface ChatResponseHandlerProps {
   onMessageSend: (message: Message) => void;
@@ -20,8 +20,8 @@ export function ChatResponseHandler({
   onMessageSend, 
   conversationId 
 }: ChatResponseHandlerProps) {
+  const queryClient = useQueryClient();
   const { isCompleted } = useConversationCompletion(conversationId);
-  const [isProcessingUserMessage, setIsProcessingUserMessage] = useState(false);
   
   const {
     selectedResponse,
@@ -48,16 +48,8 @@ export function ChatResponseHandler({
     conversationId, 
     onMessageSend: async (message: Message) => {
       console.log('ChatResponseHandler - Message send triggered');
-      setIsProcessingUserMessage(true);
-      try {
-        await onMessageSend(message);
-      } finally {
-        // Reset processing state after a short delay to allow for smooth UI transition
-        setTimeout(() => {
-          setIsProcessingUserMessage(false);
-        }, 500);
-      }
       resetState();
+      await onMessageSend(message);
     },
     onComplete: resetState,
     selectedResponse: selectedResponse || { text: '', translation: '' }
@@ -117,8 +109,10 @@ export function ChatResponseHandler({
         languageCode: profile.target_language
       });
 
-      // Removed the queryClient.invalidateQueries call here since we don't want
-      // to regenerate responses when selecting one
+      // Invalidate responses cache after selection
+      queryClient.invalidateQueries({
+        queryKey: ['responses', conversationId],
+      });
     } catch (error) {
       console.error('Error preparing pronunciation practice:', error);
       toast({
@@ -141,7 +135,7 @@ export function ChatResponseHandler({
       <RecommendedResponses
         responses={responses}
         onSelectResponse={handleResponseClick}
-        isLoading={isLoadingResponses || audioGenerationStatus === 'generating' || isProcessingUserMessage}
+        isLoading={isLoadingResponses || audioGenerationStatus === 'generating'}
       />
 
       <PronunciationHandler
