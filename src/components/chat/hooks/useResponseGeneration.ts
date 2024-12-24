@@ -1,11 +1,41 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@supabase/auth-helpers-react';
+import { useEffect } from 'react';
 
 export function useResponseGeneration(conversationId: string, trigger: 'start' | 'selection' | 'refresh' = 'selection') {
   const user = useUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription to invalidate cache when new messages are added
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel('response-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'guided_conversation_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          console.log('New message detected, invalidating responses cache');
+          queryClient.invalidateQueries({
+            queryKey: ['responses', conversationId, user?.id, trigger],
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, user?.id, trigger, queryClient]);
 
   return useQuery({
     queryKey: ['responses', conversationId, user?.id, trigger],
@@ -35,7 +65,7 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
       }
     },
     enabled: !!conversationId && !!user?.id,
-    staleTime: Infinity, // Prevent automatic refetching
-    gcTime: 1000 * 60 * 5, // Cache for 5 minutes (replaced cacheTime with gcTime)
+    staleTime: 0, // Always consider the data stale to ensure fresh responses
+    gcTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 }

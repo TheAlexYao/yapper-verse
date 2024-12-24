@@ -7,6 +7,7 @@ import { useTTS } from "./hooks/useTTS";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from '@tanstack/react-query';
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatResponseHandlerProps {
@@ -18,6 +19,8 @@ export function ChatResponseHandler({
   onMessageSend, 
   conversationId 
 }: ChatResponseHandlerProps) {
+  const queryClient = useQueryClient();
+  
   const {
     selectedResponse,
     isProcessing,
@@ -93,6 +96,11 @@ export function ChatResponseHandler({
         ...response, 
         audio_url: normalAudioUrl,
         languageCode: profile.target_language
+      });
+
+      // Invalidate responses cache after selection
+      queryClient.invalidateQueries({
+        queryKey: ['responses', conversationId],
       });
     } catch (error) {
       console.error('Error preparing pronunciation practice:', error);
