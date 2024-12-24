@@ -23,10 +23,45 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clean URL and redirect
-    const path = window.location.pathname;
-    window.history.replaceState({}, '', '/auth');
-    navigate('/auth', { replace: true });
+    console.log('Auth Callback - Component mounted');
+    const handleCallback = async () => {
+      try {
+        // Get the URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const error = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+
+        if (error) {
+          console.error('Auth Callback - Error:', error, errorDescription);
+          navigate('/auth', { replace: true });
+          return;
+        }
+
+        // Let Supabase handle the token exchange
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        console.log('Auth Callback - Session check result:', data?.session ? 'Session present' : 'No session');
+        
+        if (sessionError) {
+          console.error('Auth Callback - Session error:', sessionError);
+          navigate('/auth', { replace: true });
+          return;
+        }
+
+        if (data?.session) {
+          console.log('Auth Callback - Valid session found, proceeding with auth flow');
+          // The Auth component will handle the rest of the flow
+          navigate('/auth', { replace: true });
+        } else {
+          console.log('Auth Callback - No session found, redirecting to auth');
+          navigate('/auth', { replace: true });
+        }
+      } catch (error) {
+        console.error('Auth Callback - Unexpected error:', error);
+        navigate('/auth', { replace: true });
+      }
+    };
+
+    handleCallback();
   }, [navigate]);
 
   return null;

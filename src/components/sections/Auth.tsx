@@ -15,11 +15,17 @@ const Auth = () => {
   // Clean URL on mount and whenever location changes
   useEffect(() => {
     const cleanUrl = () => {
+      const hasAuthParams = window.location.hash.includes('access_token') || 
+                           window.location.hash.includes('refresh_token') ||
+                           window.location.hash.includes('error_description');
+      
       // Only clean if we're not in the middle of auth
-      if (!window.location.hash.includes('access_token') && (window.location.hash || window.location.search)) {
+      if (!hasAuthParams && (window.location.hash || window.location.search)) {
         console.log('Auth flow - Cleaning URL');
         const path = window.location.pathname;
         window.history.replaceState({}, '', path);
+      } else if (hasAuthParams) {
+        console.log('Auth flow - Auth parameters detected, skipping URL cleaning');
       }
     };
 
