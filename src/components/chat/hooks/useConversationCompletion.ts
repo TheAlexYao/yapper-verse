@@ -11,55 +11,30 @@ export function useConversationCompletion(conversationId: string) {
   const [showModal, setShowModal] = useState(false);
   const queryClient = useQueryClient();
 
-  // Check initial completion status
-  useEffect(() => {
-    const checkInitialStatus = async () => {
-      if (!conversationId) return;
-
-      const { count } = await supabase
-        .from('guided_conversation_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('conversation_id', conversationId)
-        .eq('is_user', true);
-
-      if (count && count >= COMPLETION_THRESHOLD) {
-        console.log('Initial check: Conversation completed with', count, 'messages');
-        setIsCompleted(true);
-        setShowModal(true);
-      }
-    };
-
-    checkInitialStatus();
-  }, [conversationId]);
-
   // Listen for conversation completion
   useEffect(() => {
     if (!conversationId) return;
 
-    console.log('Setting up completion check subscription for conversation:', conversationId);
-    
     // Set up subscription to track message count
     const channel = supabase
-      .channel(`completion-check-${conversationId}`)
+      .channel('completion-check')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'guided_conversation_messages',
-          filter: `conversation_id=eq.${conversationId} AND is_user=eq.true`
+          filter: `conversation_id=eq.${conversationId}`
         },
-        async () => {
-          console.log('Checking completion status after new user message');
+        async (payload) => {
+          console.log('Checking completion status after new message');
           
           // Get current user messages count from the database
           const { count } = await supabase
             .from('guided_conversation_messages')
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conversationId)
-            .eq('is_user', true);
-
-          console.log('Current user message count:', count);
+            .eq('is_user', true);  // Only count user messages
 
           // Show completion modal when user message count reaches threshold
           if (count && count >= COMPLETION_THRESHOLD && !isCompleted) {
@@ -73,6 +48,7 @@ export function useConversationCompletion(conversationId: string) {
               .update({ 
                 status: 'completed', 
                 completed_at: new Date().toISOString(),
+                // Update metrics in the database
                 metrics: {
                   sentencesUsed: count,
                   completedAt: new Date().toISOString()
@@ -95,7 +71,6 @@ export function useConversationCompletion(conversationId: string) {
 
     // Cleanup subscription on unmount
     return () => {
-      console.log('Cleaning up completion check subscription');
       supabase.removeChannel(channel);
     };
   }, [conversationId, isCompleted, queryClient]);
