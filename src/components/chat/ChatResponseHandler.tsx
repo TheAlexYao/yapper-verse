@@ -8,6 +8,7 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from '@tanstack/react-query';
+import { useConversationCompletion } from "./hooks/useConversationCompletion";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatResponseHandlerProps {
@@ -20,6 +21,7 @@ export function ChatResponseHandler({
   conversationId 
 }: ChatResponseHandlerProps) {
   const queryClient = useQueryClient();
+  const { isCompleted } = useConversationCompletion(conversationId);
   
   const {
     selectedResponse,
@@ -54,6 +56,15 @@ export function ChatResponseHandler({
   });
 
   const handleResponseClick = async (response: any) => {
+    if (isCompleted) {
+      toast({
+        title: "Conversation completed",
+        description: "This conversation has been completed. Please view your feedback.",
+        variant: "default",
+      });
+      return;
+    }
+
     console.log('handleResponseClick - Starting with response:', response);
     
     if (audioGenerationStatus === 'generating') {
@@ -114,6 +125,10 @@ export function ChatResponseHandler({
       stopProcessing();
     }
   };
+
+  if (isCompleted) {
+    return null;
+  }
 
   return (
     <>
