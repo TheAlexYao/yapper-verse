@@ -2,8 +2,10 @@ import { useState, useCallback, memo } from "react";
 import { ChatMessagesSection } from "./ChatMessagesSection";
 import { ChatBottomSection } from "./ChatBottomSection";
 import { FeedbackModal } from "./FeedbackModal";
+import { CompletionModal } from "./CompletionModal";
 import { useToast } from "@/hooks/use-toast";
 import { useConversationMessages } from "./hooks/useConversationMessages";
+import { useConversationCompletion } from "./hooks/useConversationCompletion";
 import type { Message } from "@/hooks/useConversation";
 
 interface ChatContainerProps {
@@ -21,8 +23,15 @@ export function ChatContainer({
   conversationId 
 }: ChatContainerProps) {
   const [selectedMessageForScore, setSelectedMessageForScore] = useState<Message | null>(null);
+  const [completionMetrics, setCompletionMetrics] = useState({ 
+    pronunciationScore: 0, 
+    stylePoints: 0, 
+    sentencesUsed: 0 
+  });
+  
   const { toast } = useToast();
   const { messages } = useConversationMessages(conversationId);
+  const { showModal, setShowModal, getMetrics } = useConversationCompletion(conversationId);
   
   const handlePlayTTS = useCallback(async (audioUrl: string) => {
     if (!audioUrl) {
@@ -55,6 +64,18 @@ export function ChatContainer({
     setSelectedMessageForScore(message);
   }, []);
 
+  // Handle completion modal
+  const handleCloseCompletionModal = useCallback(async () => {
+    setShowModal(false);
+  }, [setShowModal]);
+
+  // Update metrics when modal shows
+  useEffect(() => {
+    if (showModal) {
+      getMetrics().then(setCompletionMetrics);
+    }
+  }, [showModal, getMetrics]);
+
   return (
     <div className="flex flex-col h-screen bg-background pt-16">
       <MemoizedChatMessagesSection 
@@ -78,6 +99,12 @@ export function ChatContainer({
           referenceAudioUrl={selectedMessageForScore.reference_audio_url}
         />
       )}
+
+      <CompletionModal
+        isOpen={showModal}
+        onClose={handleCloseCompletionModal}
+        metrics={completionMetrics}
+      />
     </div>
   );
 }
