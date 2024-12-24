@@ -23,10 +23,12 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
           table: 'guided_conversation_messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          console.log('New message detected, invalidating responses cache');
-          queryClient.invalidateQueries({
+        async (payload) => {
+          console.log('New message detected, refetching responses');
+          // Force refetch instead of just invalidating
+          await queryClient.refetchQueries({
             queryKey: ['responses', conversationId, user?.id, trigger],
+            exact: true
           });
         }
       )
@@ -65,7 +67,9 @@ export function useResponseGeneration(conversationId: string, trigger: 'start' |
       }
     },
     enabled: !!conversationId && !!user?.id,
-    staleTime: 0, // Always consider the data stale to ensure fresh responses
+    staleTime: 0, // Always consider the data stale
     gcTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnMount: true, // Ensure we get fresh data when component mounts
+    refetchOnWindowFocus: false // Don't refetch on window focus
   });
 }
