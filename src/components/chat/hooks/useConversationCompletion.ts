@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Message } from '@/hooks/useConversation';
 
-// Number of messages that indicates a completed conversation
+// Number of user messages that indicates a completed conversation
 const COMPLETION_THRESHOLD = 10;
 
 export function useConversationCompletion(conversationId: string) {
@@ -29,13 +29,14 @@ export function useConversationCompletion(conversationId: string) {
         async (payload) => {
           console.log('Checking completion status after new message');
           
-          // Get current messages count from the database
+          // Get current user messages count from the database
           const { count } = await supabase
             .from('guided_conversation_messages')
             .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', conversationId);
+            .eq('conversation_id', conversationId)
+            .eq('is_user', true);  // Only count user messages
 
-          // Show completion modal when message count reaches threshold
+          // Show completion modal when user message count reaches threshold
           if (count && count >= COMPLETION_THRESHOLD && !isCompleted) {
             console.log('Conversation completed');
             setIsCompleted(true);
