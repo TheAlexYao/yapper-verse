@@ -29,25 +29,33 @@ export function useConversationCompletion(conversationId: string) {
         async (payload) => {
           console.log('Checking completion status after new message');
           
-          // Get current messages count
+          // Get current messages count from the database
           const { count } = await supabase
             .from('guided_conversation_messages')
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conversationId);
 
-          // Check if conversation is complete
+          // Show completion modal when message count reaches threshold
           if (count && count >= COMPLETION_THRESHOLD && !isCompleted) {
             console.log('Conversation completed');
             setIsCompleted(true);
             setShowModal(true);
             
-            // Update conversation status
+            // Update conversation status in database
             await supabase
               .from('guided_conversations')
-              .update({ status: 'completed', completed_at: new Date().toISOString() })
+              .update({ 
+                status: 'completed', 
+                completed_at: new Date().toISOString(),
+                // Update metrics in the database
+                metrics: {
+                  sentencesUsed: count,
+                  completedAt: new Date().toISOString()
+                }
+              })
               .eq('id', conversationId);
 
-            // Don't invalidate queries, just update the status
+            // Update local cache without invalidating queries
             queryClient.setQueryData(
               ['conversation', conversationId],
               (oldData: any) => ({
@@ -60,12 +68,13 @@ export function useConversationCompletion(conversationId: string) {
       )
       .subscribe();
 
+    // Cleanup subscription on unmount
     return () => {
       supabase.removeChannel(channel);
     };
   }, [conversationId, isCompleted, queryClient]);
 
-  // Calculate metrics for the modal
+  // Calculate metrics for the completion modal
   const getMetrics = async () => {
     const { data: messages } = await supabase
       .from('guided_conversation_messages')
@@ -73,13 +82,14 @@ export function useConversationCompletion(conversationId: string) {
       .eq('conversation_id', conversationId)
       .eq('is_user', true);
 
+    // Calculate average pronunciation score
     const scores = messages?.map(m => m.pronunciation_score || 0) || [];
     const avgScore = scores.length ? 
       Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
 
     return {
       pronunciationScore: avgScore,
-      stylePoints: scores.length * 10, // Example scoring logic
+      stylePoints: scores.length * 10, // Points based on number of messages
       sentencesUsed: scores.length
     };
   };
