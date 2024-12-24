@@ -7,7 +7,6 @@ import { useTTS } from "./hooks/useTTS";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from '@tanstack/react-query';
 import { useConversationCompletion } from "./hooks/useConversationCompletion";
 import type { Message } from "@/hooks/useConversation";
 import { useState } from "react";
@@ -21,7 +20,6 @@ export function ChatResponseHandler({
   onMessageSend, 
   conversationId 
 }: ChatResponseHandlerProps) {
-  const queryClient = useQueryClient();
   const { isCompleted } = useConversationCompletion(conversationId);
   const [isProcessingUserMessage, setIsProcessingUserMessage] = useState(false);
   
@@ -119,10 +117,8 @@ export function ChatResponseHandler({
         languageCode: profile.target_language
       });
 
-      // Invalidate responses cache after selection
-      queryClient.invalidateQueries({
-        queryKey: ['responses', conversationId],
-      });
+      // Removed the queryClient.invalidateQueries call here since we don't want
+      // to regenerate responses when selecting one
     } catch (error) {
       console.error('Error preparing pronunciation practice:', error);
       toast({
