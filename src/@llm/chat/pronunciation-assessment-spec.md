@@ -21,175 +21,184 @@ CREATE TABLE guided_conversation_messages (
 );
 ```
 
+## User Flow
+
+1. **Initial State**
+   - User sees recommended responses
+   - Each response has text, translation, and reference audio
+
+2. **Practice Flow**
+   ```mermaid
+   graph TD
+     A[Select Response] --> B[Listen to Reference]
+     B --> C[Record Attempt]
+     C --> D[Submit Recording]
+     D --> E[View Assessment]
+     E --> F[Try Again/Continue]
+   ```
+
+3. **Interaction Steps**
+   a. **Response Selection**
+      - Click response to practice
+      - Modal opens with practice interface
+   
+   b. **Reference Audio**
+      - Play reference at normal speed
+      - Option for slower playback
+      - Visual text display with translation
+   
+   c. **Recording**
+      - Clear microphone access prompt
+      - Visual feedback during recording
+      - Ability to re-record
+   
+   d. **Assessment Review**
+      - Overall pronunciation score
+      - Word-by-word breakdown
+      - Audio comparison capability
+      - Detailed feedback display
+
+4. **Error Handling Flow**
+   ```mermaid
+   graph TD
+     A[Start Recording] --> B{Mic Access?}
+     B -->|No| C[Request Permission]
+     B -->|Yes| D[Record Audio]
+     D --> E{Quality Check}
+     E -->|Pass| F[Process Audio]
+     E -->|Fail| G[Show Quality Error]
+     F --> H{Assessment OK?}
+     H -->|Yes| I[Show Results]
+     H -->|No| J[Show Error]
+   ```
+
 ## TypeScript Interfaces
 
-### Assessment Data Structure
-```typescript
-interface PronunciationAssessment {
-  AccuracyScore: number;
-  FluencyScore: number;
-  CompletenessScore: number;
-  PronScore: number;
-}
-
-interface WordAssessment {
-  Word: string;
-  PronunciationAssessment: {
-    AccuracyScore: number;
-    ErrorType: "None" | "Mispronunciation" | "Omission" | "Insertion" | "NoAudioDetected";
-  };
-  Syllables?: Array<{
-    Syllable: string;
-    PronunciationAssessment?: {
-      AccuracyScore: number;
-    };
-  }>;
-  Phonemes?: Array<{
-    Phoneme: string;
-    PronunciationAssessment?: {
-      AccuracyScore: number;
-    };
-  }>;
+interface Message {
+  id: string;
+  conversation_id: string;
+  text: string;
+  translation: string;
+  pronunciation_score: number;
+  pronunciation_data: any;
+  audio_url: string;
+  reference_audio_url: string;
+  isUser: boolean;
 }
 
 interface AssessmentResult {
-  NBest: Array<{
-    PronunciationAssessment: PronunciationAssessment;
-    Words: WordAssessment[];
-    AudioUrl?: string;
-    OriginalAudioUrl?: string;
-  }>;
   pronunciationScore: number;
+  accuracyScore: number;
+  fluencyScore: number;
+  completenessScore: number;
+  words: WordAssessment[];
 }
-```
+
+interface WordAssessment {
+  word: string;
+  pronunciationAssessment: {
+    accuracyScore: number;
+    errorType: string;
+  };
+}
 
 ## Assessment Flow
 
-1. **Audio Recording**
-   - Format: WAV
-   - Sample Rate: 16kHz
-   - Channels: Mono
-   - Bit Depth: 16-bit
-
-2. **Assessment Process**
-   ```typescript
-   interface AssessmentRequest {
-     audio: Blob;           // WAV audio file
-     text: string;          // Reference text
-     languageCode: string;  // e.g., "en-US"
-   }
-
-   interface AssessmentResponse {
-     success: boolean;
-     audioUrl: string;      // Stored audio URL
-     assessment: AssessmentResult;
-   }
-   ```
-
-3. **Scoring Metrics**
-   - Accuracy Score (0-100): Pronunciation accuracy
-   - Fluency Score (0-100): Speech fluency
-   - Completeness Score (0-100): Text coverage
-   - Overall Score (0-100): Combined assessment
+1. **User selects a response to practice**
+2. **User listens to reference audio**
+3. **User records their pronunciation**
+4. **Recording is submitted for assessment**
+5. **User views detailed feedback**
 
 ## Error Handling
 
-1. **Audio Quality Issues**
-   ```typescript
-   interface AudioQualityError {
-     type: "QUALITY_ERROR";
-     message: string;
-     details?: {
-       signalToNoise?: number;
-       clarity?: number;
-     };
-   }
-   ```
+1. **Recording Issues**:
+   - Microphone access
+   - Audio quality
+   - Browser support
 
-2. **Recognition Errors**
-   ```typescript
-   interface RecognitionError {
-     type: "RECOGNITION_ERROR";
-     message: string;
-     errorCode: string;
-   }
-   ```
+2. **Processing Errors**:
+   - Service availability
+   - Network issues
+   - Format validation
+
+3. **Recovery Steps**:
+   - Reset state
+   - Clear invalid data
+   - Show user feedback
 
 ## Storage
 
-1. **Audio Files**
-   - Location: Supabase Storage 'audio' bucket
-   - Format: WAV files
-   - Naming: `{conversation_id}/{message_id}.wav`
-
-2. **Assessment Data**
-   - Stored in `pronunciation_data` JSONB column
-   - Includes full assessment result
-   - Cached for future reference
+- Audio files stored in Supabase storage
+- Assessment results stored in guided_conversation_messages table
 
 ## UI Components
 
-1. **Recording Interface**
-   ```typescript
-   interface AudioRecorderProps {
-     onRecordingComplete: (blob: Blob) => void;
-     isProcessing: boolean;
-   }
-   ```
-
-2. **Results Display**
-   ```typescript
-   interface PronunciationModalProps {
-     isOpen: boolean;
-     onClose: () => void;
-     response: {
-       text: string;
-       translation: string;
-       audio_url?: string;
-     };
-     onSubmit: (score: number, audioBlob?: Blob) => void;
-     isProcessing: boolean;
-   }
-   ```
+- PronunciationModal: Main interface
+- AudioRecorder: Handles recording
+- AudioControls: Playback interface
+- TextDisplay: Shows text/translation
 
 ## Edge Function Configuration
 
-```typescript
-interface EdgeFunctionConfig {
-  speechKey: string;      // Azure Speech Services API key
-  speechRegion: string;   // Azure region
-  languageCode: string;   // Target language
-  referenceText: string;  // Text to assess against
-  audioData: ArrayBuffer; // Raw audio data
-  sampleRate: number;     // Audio sample rate
-  channels: number;       // Number of channels
-  bitsPerSample: number; // Bit depth
-}
-```
+Required secrets:
+- OPENAI_API_KEY
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
 
 ## Assessment Response Format
 
-```typescript
-interface DetailedAssessmentResponse {
-  audioUrl: string;
-  assessment: {
-    pronunciationScore: number;
-    NBest: Array<{
-      PronunciationAssessment: {
-        AccuracyScore: number;
-        FluencyScore: number;
-        CompletenessScore: number;
-        PronScore: number;
-      };
-      Words: Array<{
-        Word: string;
-        PronunciationAssessment: {
-          AccuracyScore: number;
-          ErrorType: string;
-        };
-      }>;
-      AudioUrl: string;
-    }>;
-  };
+```json
+{
+  "audioUrl": "string",
+  "assessment": {
+    "NBest": [
+      {
+        "PronunciationAssessment": {
+          "AccuracyScore": 95,
+          "FluencyScore": 90,
+          "CompletenessScore": 85,
+          "PronScore": 92
+        },
+        "Words": [
+          {
+            "Word": "example",
+            "PronunciationAssessment": {
+              "AccuracyScore": 95,
+              "ErrorType": "none"
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
+
+## User Experience Guidelines
+
+1. **Feedback Timing**
+   - Immediate visual feedback for actions
+   - Progress indicators during processing
+   - Clear success/error states
+
+2. **Error Recovery**
+   - Clear error messages
+   - Retry options
+   - Alternative suggestions
+
+3. **Accessibility**
+   - Keyboard navigation support
+   - Screen reader compatibility
+   - Visual and audio feedback
+
+4. **Performance**
+   - Audio processing feedback
+   - Loading states
+   - Cached audio playback
+
+5. **Mobile Considerations**
+   - Touch-friendly controls
+   - Responsive layout
+   - Device-specific audio handling
