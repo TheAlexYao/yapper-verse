@@ -9,39 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      agents: {
-        Row: {
-          context_info: Json
-          created_at: string | null
-          id: string
-          name: string
-          persona_type: string
-          personality_description: string
-          updated_at: string | null
-          voice_settings: Json
-        }
-        Insert: {
-          context_info?: Json
-          created_at?: string | null
-          id?: string
-          name: string
-          persona_type: string
-          personality_description: string
-          updated_at?: string | null
-          voice_settings?: Json
-        }
-        Update: {
-          context_info?: Json
-          created_at?: string | null
-          id?: string
-          name?: string
-          persona_type?: string
-          personality_description?: string
-          updated_at?: string | null
-          voice_settings?: Json
-        }
-        Relationships: []
-      }
       characters: {
         Row: {
           age: number | null
@@ -366,133 +333,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pronunciation_attempts: {
-        Row: {
-          assessment_details: Json
-          assessment_score: number | null
-          created_at: string | null
-          id: string
-          is_successful: boolean
-          recommendation_id: string | null
-          storage_path: string
-          telegram_id: number
-          transcription: string | null
-          transformation_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          assessment_details?: Json
-          assessment_score?: number | null
-          created_at?: string | null
-          id?: string
-          is_successful?: boolean
-          recommendation_id?: string | null
-          storage_path: string
-          telegram_id: number
-          transcription?: string | null
-          transformation_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          assessment_details?: Json
-          assessment_score?: number | null
-          created_at?: string | null
-          id?: string
-          is_successful?: boolean
-          recommendation_id?: string | null
-          storage_path?: string
-          telegram_id?: number
-          transcription?: string | null
-          transformation_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pronunciation_attempts_recommendation_id_fkey"
-            columns: ["recommendation_id"]
-            isOneToOne: false
-            referencedRelation: "recommendations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pronunciation_attempts_telegram_id_fkey"
-            columns: ["telegram_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["telegram_id"]
-          },
-          {
-            foreignKeyName: "pronunciation_attempts_transformation_id_fkey"
-            columns: ["transformation_id"]
-            isOneToOne: false
-            referencedRelation: "transformations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      recommendations: {
-        Row: {
-          content_native_language: string
-          content_target_language: string
-          created_at: string | null
-          id: string
-          message_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          content_native_language: string
-          content_target_language: string
-          created_at?: string | null
-          id?: string
-          message_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          content_native_language?: string
-          content_target_language?: string
-          created_at?: string | null
-          id?: string
-          message_id?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      scenario_languages: {
-        Row: {
-          created_at: string | null
-          id: string
-          language_id: string
-          scenario_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          language_id: string
-          scenario_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          language_id?: string
-          scenario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scenario_languages_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "scenario_languages_scenario_id_fkey"
-            columns: ["scenario_id"]
-            isOneToOne: false
-            referencedRelation: "scenarios"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       scenarios: {
         Row: {
           category: string
@@ -550,44 +390,6 @@ export type Database = {
         }
         Relationships: []
       }
-      transformations: {
-        Row: {
-          created_at: string | null
-          id: string
-          recommendation_id: string
-          transformed_content_native_language: string
-          transformed_content_target_language: string
-          updated_at: string | null
-          user_prompt: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          recommendation_id: string
-          transformed_content_native_language: string
-          transformed_content_target_language: string
-          updated_at?: string | null
-          user_prompt: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          recommendation_id?: string
-          transformed_content_native_language?: string
-          transformed_content_target_language?: string
-          updated_at?: string | null
-          user_prompt?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transformations_recommendation_id_fkey"
-            columns: ["recommendation_id"]
-            isOneToOne: false
-            referencedRelation: "recommendations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tts_cache: {
         Row: {
           audio_url: string | null
@@ -630,57 +432,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_progress: {
-        Row: {
-          average_pronunciation_score: number
-          created_at: string | null
-          id: string
-          language_id: string
-          telegram_id: number
-          total_conversations: number
-          total_messages: number
-          total_pronunciation_attempts: number
-          updated_at: string | null
-        }
-        Insert: {
-          average_pronunciation_score?: number
-          created_at?: string | null
-          id?: string
-          language_id: string
-          telegram_id: number
-          total_conversations?: number
-          total_messages?: number
-          total_pronunciation_attempts?: number
-          updated_at?: string | null
-        }
-        Update: {
-          average_pronunciation_score?: number
-          created_at?: string | null
-          id?: string
-          language_id?: string
-          telegram_id?: number
-          total_conversations?: number
-          total_messages?: number
-          total_pronunciation_attempts?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_progress_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_progress_telegram_id_fkey"
-            columns: ["telegram_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["telegram_id"]
-          },
-        ]
-      }
       user_scenarios: {
         Row: {
           completed_at: string | null
@@ -719,44 +470,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "scenarios"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      users: {
-        Row: {
-          created_at: string | null
-          first_name: string | null
-          language_code: string | null
-          last_name: string | null
-          telegram_id: number
-          updated_at: string | null
-          username: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          first_name?: string | null
-          language_code?: string | null
-          last_name?: string | null
-          telegram_id: number
-          updated_at?: string | null
-          username?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          first_name?: string | null
-          language_code?: string | null
-          last_name?: string | null
-          telegram_id?: number
-          updated_at?: string | null
-          username?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "users_language_code_fkey"
-            columns: ["language_code"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["code"]
           },
         ]
       }
